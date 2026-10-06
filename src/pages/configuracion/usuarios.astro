@@ -1,0 +1,277 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Tabla from "@/components/ui/Tabla.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Badge from "@/components/ui/Badge.astro";
+import Alerta from "@/components/ui/Alerta.astro";
+import Input from "@/components/ui/Input.astro";
+import Select from "@/components/ui/Select.astro";
+import CamposCuenta from "@/components/personal/CamposCuenta.astro";
+import { esUuid, texto, validarClave, validarCuenta, type Errores } from "@/lib/validacion";
+import {
+  cambiarEstadoCuenta,
+  cambiarRol,
+  crearCuenta,
+  generarClaveTemporal,
+  restablecerClave,
+} from "@/lib/servicios/cuentas";
+import { ponerFlash } from "@/lib/flash";
+import { NOMBRE_ROL, ROLES, type Rol } from "@/types";
+
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+let errores: Errores = {};
+let mensaje: string | null = null;
+let accion: string | null = null;
+let valores: Record<string, string> = {};
+
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  accion = texto(f, "accion");
+  valores = Object.fromEntries([...f.entries()].map(([k, v]) => [k, String(v)]));
+  const id = texto(f, "id");
+  let exito: string | null = null;
+
+  if (accion === "crear") {
+    const rc = validarCuenta(f);
+    const nombre = texto(f, "nombre");
+    const apellido = texto(f, "apellido");
+    errores = rc.ok ? {} : { ...rc.errores };
+    if (!nombre) errores.nombre = "El nombre es obligatorio.";
+    if (!apellido) errores.apellido = "El apellido es obligatorio.";
+    if (rc.ok && nombre && apellido) {
+      const r = await crearCuenta(sb, { ...rc.datos, nombre, apellido });
+      if (r.ok) exito = `Cuenta de ${nombre} ${apellido} creada (${NOMBRE_ROL[rc.datos.rol]}).`;
+      else errores.email = r.mensaje;
+    }
+  } else if (esUuid(id) && (accion === "activar" || accion === "desactivar")) {
+    const r = await cambiarEstadoCuenta(sb, id, accion === "activar", perfil.id);
+    if (r.ok) exito = accion === "activar" ? "Cuenta activada." : "Cuenta desactivada.";
+    else mensaje = r.mensaje;
+  } else if (esUuid(id) && accion === "rol") {
+    const rol = texto(f, "rol") as Rol;
+    if (ROLES.includes(rol)) {
+      const r = await cambiarRol(sb, id, rol, perfil.id);
+      if (r.ok) exito = `Rol cambiado a ${NOMBRE_ROL[rol]}.`;
+      else mensaje = r.mensaje;
+    }
+  } else if (esUuid(id) && accion === "clave") {
+    const err = validarClave(texto(f, "password"));
+    if (err) errores = { password: err };
+    else {
+      const r = await restablecerClave(id, texto(f, "password"));
+      if (r.ok) exito = "Contraseña restablecida. Entregue la nueva contraseña a la persona.";
+      else mensaje = r.mensaje;
+    }
+  } else mensaje = "Acción no reconocida.";
+
+  if (exito) {
+    ponerFlash(Astro.cookies, "exito", exito);
+    return Astro.redirect("/configuracion/usuarios", 303);
+  }
+  mensaje ??= "Revise los campos marcados.";
+  Astro.response.status = 400;
+}
+
+interface FilaUsuario {
+  id: string;
+  nombre: string;
+  apellido: string;
+  email: string;
+  rol: Rol;
+  estado: "activo" | "inactivo";
+  personal: { id: string } | { id: string }[] | null;
+}
+const { data } = await sb
+  .from("usuarios")
+  .select("id, nombre, apellido, email, rol, estado, personal(id)")
+  .order("rol")
+  .order("apellido");
+const usuarios = ((data ?? []) as FilaUsuario[]).map((u) => ({
+  ...u,
+  fichaId: Array.isArray(u.personal) ? u.personal[0]?.id : u.personal?.id,
+}));
+const gestionar =
+  Astro.url.searchParams.get("gestionar") ??
+  (accion === "clave" || accion === "rol" ? valores.id : null);
+const seleccionado = usuarios.find((u) => u.id === gestionar);
+---
+
+<PanelLayout titulo="Usuarios" subtitulo="Cuentas de acceso y roles.">
+  <div class="pila">
+    {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
+
+    <Tarjeta>
+      <Tabla titulo="Cuentas" hayFilas={usuarios.length > 0}>
+        <thead>
+          <tr>
+            <th scope="col">Nombre</th>
+            <th scope="col">Correo</th>
+            <th scope="col">Rol</th>
+            <th scope="col">Ficha</th>
+            <th scope="col">Estado</th>
+            <th scope="col">
+              <span class="visualmente-oculto">Acciones</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {usuarios.map((u) => (
+            <tr class:list={[u.id === gestionar && "marcada"]}>
+              <td>
+                {u.apellido}, {u.nombre}
+                {u.id === perfil.id && <span class="suave"> (usted)</span>}
+              </td>
+              <td>{u.email}</td>
+              <td>{NOMBRE_ROL[u.rol]}</td>
+              <td>
+                {u.fichaId ? (
+                  <a href={`/personal/${u.fichaId}`}>Ver ficha</a>
+                ) : (
+                  <span class="suave">—</span>
+                )}
+              </td>
+              <td>
+                <Badge tipo={u.estado}>{u.estado === "activo" ? "Activa" : "Desactivada"}</Badge>
+              </td>
+              <td class="acciones">
+                <Boton
+                  href={`/configuracion/usuarios?gestionar=${u.id}#gestionar`}
+                  variante="fantasma"
+                  tamano="pequeno"
+                >
+                  Gestionar
+                </Boton>
+                {u.id !== perfil.id && (
+                  <form method="post">
+                    <input type="hidden" name="id" value={u.id} />
+                    <input
+                      type="hidden"
+                      name="accion"
+                      value={u.estado === "activo" ? "desactivar" : "activar"}
+                    />
+                    <Boton type="submit" variante="fantasma" tamano="pequeno">
+                      {u.estado === "activo" ? "Desactivar" : "Activar"}
+                    </Boton>
+                  </form>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Tabla>
+    </Tarjeta>
+
+    {seleccionado && (
+      <Tarjeta
+        titulo={`Gestionar: ${seleccionado.nombre} ${seleccionado.apellido}`}
+        descripcion={seleccionado.email}
+      >
+        <div id="gestionar" class="dos">
+          <form method="post" class="mini" novalidate>
+            <input type="hidden" name="accion" value="clave" />
+            <input type="hidden" name="id" value={seleccionado.id} />
+            <Input
+              etiqueta="Nueva contraseña temporal"
+              nombre="password"
+              type="text"
+              autocomplete="off"
+              value={accion === "clave" ? valores.password : generarClaveTemporal()}
+              error={accion === "clave" ? errores.password : undefined}
+            />
+            <Boton type="submit" variante="secundario">
+              Restablecer contraseña
+            </Boton>
+          </form>
+          <form method="post" class="mini">
+            <input type="hidden" name="accion" value="rol" />
+            <input type="hidden" name="id" value={seleccionado.id} />
+            <Select
+              etiqueta="Rol"
+              nombre="rol"
+              valor={seleccionado.rol}
+              opciones={ROLES.map((r) => ({ valor: r, texto: NOMBRE_ROL[r] }))}
+            />
+            <Boton type="submit" variante="secundario">
+              Cambiar rol
+            </Boton>
+          </form>
+        </div>
+      </Tarjeta>
+    )}
+
+    <Tarjeta
+      titulo="Nueva cuenta sin ficha de personal"
+      descripcion="Para directivos o secretaría que no registran asistencia. Al personal que marca, créele la cuenta desde su ficha en «Personal»."
+    >
+      <form method="post" class="formulario" novalidate>
+        <input type="hidden" name="accion" value="crear" />
+        <div class="dos">
+          <Input
+            etiqueta="Nombre"
+            nombre="nombre"
+            value={accion === "crear" ? valores.nombre : ""}
+            error={accion === "crear" ? errores.nombre : undefined}
+            required
+          />
+          <Input
+            etiqueta="Apellido"
+            nombre="apellido"
+            value={accion === "crear" ? valores.apellido : ""}
+            error={accion === "crear" ? errores.apellido : undefined}
+            required
+          />
+        </div>
+        <CamposCuenta
+          valores={accion === "crear" ? valores : { rol: "secretaria" }}
+          errores={accion === "crear" ? errores : {}}
+          claveSugerida={generarClaveTemporal()}
+        />
+        <div class="final">
+          <Boton type="submit">Crear cuenta</Boton>
+        </div>
+      </form>
+    </Tarjeta>
+  </div>
+</PanelLayout>
+
+<style>
+  .pila,
+  .formulario {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  .dos {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  .mini {
+    display: grid;
+    gap: var(--esp-2);
+    align-content: start;
+  }
+  @media (min-width: 768px) {
+    .dos {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  .acciones {
+    display: flex;
+    gap: var(--esp-1);
+  }
+  .final {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .suave {
+    color: var(--color-texto-suave);
+  }
+  .marcada {
+    background: #eff6ff;
+  }
+  a {
+    color: var(--color-acento);
+    font-weight: 600;
+  }
+</style>

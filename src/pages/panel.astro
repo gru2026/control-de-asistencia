@@ -1,0 +1,127 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Alerta from "@/components/ui/Alerta.astro";
+import { fechaLarga, hoyEnZona } from "@/lib/fecha";
+
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+const contar = (q: PromiseLike<{ count: number | null }>) => q.then((r) => r.count ?? 0);
+const base = () =>
+  sb.from("personal").select("id", { count: "exact", head: true }).eq("estado", "activo");
+
+const [activos, sinCuenta, sinJornada, jornadas, config] = await Promise.all([
+  contar(base()),
+  contar(base().is("usuario_id", null)),
+  contar(base().is("jornada_id", null)),
+  contar(sb.from("jornadas").select("id", { count: "exact", head: true }).eq("activa", true)),
+  sb.from("configuracion").select("colegio_lat, colegio_lng").eq("id", 1).maybeSingle(),
+]);
+
+const faltaUbicacion = !config.data?.colegio_lat || !config.data?.colegio_lng;
+const kpis = [
+  { valor: activos, texto: "Personal activo", enlace: "/personal" },
+  {
+    valor: sinCuenta,
+    texto: "Sin cuenta de acceso",
+    enlace: "/personal?cuenta=no",
+    alerta: sinCuenta > 0,
+  },
+  {
+    valor: sinJornada,
+    texto: "Sin jornada asignada",
+    enlace: "/personal?jornada=no",
+    alerta: sinJornada > 0,
+  },
+  {
+    valor: jornadas,
+    texto: "Jornadas activas",
+    enlace: perfil.rol === "directiva" ? "/jornadas" : undefined,
+  },
+];
+---
+
+<PanelLayout titulo="Panel" subtitulo={fechaLarga(hoyEnZona())}>
+  <Fragment slot="acciones">
+    {perfil.rol === "directiva" && <Boton href="/personal/nuevo">+ Nuevo personal</Boton>}
+  </Fragment>
+
+  {faltaUbicacion && perfil.rol === "directiva" && (
+    <div class="aviso">
+      <Alerta tipo="alerta">
+        Falta configurar la <strong>ubicación del colegio</strong> (necesaria para validar las
+        marcaciones por GPS). Estará disponible en Configuración.
+      </Alerta>
+    </div>
+  )}
+
+  <ul class="kpis">
+    {kpis.map((k) => (
+      <li class:list={["kpi", k.alerta && "alerta"]}>
+        {k.enlace ? (
+          <a href={k.enlace}>
+            <span class="valor">{k.valor}</span>
+            <span class="texto">{k.texto}</span>
+          </a>
+        ) : (
+          <div>
+            <span class="valor">{k.valor}</span>
+            <span class="texto">{k.texto}</span>
+          </div>
+        )}
+      </li>
+    ))}
+  </ul>
+
+  <Tarjeta titulo="Asistencia de hoy" descripcion="Presentes, tardanzas y faltas del día.">
+    <p class="pronto">
+      Los indicadores de asistencia aparecerán cuando se active la marcación con QR (Semana 2).
+    </p>
+  </Tarjeta>
+</PanelLayout>
+
+<style>
+  .aviso {
+    margin-bottom: var(--esp-4);
+  }
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: var(--esp-3);
+    margin: 0 0 var(--esp-6);
+    padding: 0;
+    list-style: none;
+  }
+  .kpi > * {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-1);
+    height: 100%;
+    padding: var(--esp-4);
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    color: inherit;
+    text-decoration: none;
+  }
+  .kpi a:hover {
+    border-color: var(--color-acento);
+  }
+  .kpi.alerta > * {
+    border-left: 4px solid var(--color-alerta);
+  }
+  .valor {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .texto {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .pronto {
+    margin: 0;
+    color: var(--color-texto-suave);
+  }
+</style>

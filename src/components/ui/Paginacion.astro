@@ -1,0 +1,68 @@
+---
+interface Props {
+  pagina: number;
+  total: number; // total de registros
+  porPagina: number;
+}
+const { pagina, total, porPagina } = Astro.props;
+const totalPaginas = Math.max(1, Math.ceil(total / porPagina));
+
+function url(p: number) {
+  const u = new URL(Astro.url);
+  if (p <= 1) u.searchParams.delete("pagina");
+  else u.searchParams.set("pagina", String(p));
+  return u.pathname + u.search;
+}
+const desde = total === 0 ? 0 : (pagina - 1) * porPagina + 1;
+const hasta = Math.min(total, pagina * porPagina);
+---
+
+<nav class="paginacion" aria-label="Paginación">
+  <span>
+    {desde}–{hasta} de {total}
+  </span>
+  {totalPaginas > 1 && (
+    <div class="enlaces">
+      {pagina > 1 ? (
+        <a href={url(pagina - 1)}>← Anterior</a>
+      ) : (
+        <span aria-disabled="true">← Anterior</span>
+      )}
+      <span>
+        Página {pagina} de {totalPaginas}
+      </span>
+      {pagina < totalPaginas ? (
+        <a href={url(pagina + 1)}>Siguiente →</a>
+      ) : (
+        <span aria-disabled="true">Siguiente →</span>
+      )}
+    </div>
+  )}
+</nav>
+
+<style>
+  .paginacion {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--esp-3);
+    margin-top: var(--esp-4);
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .enlaces {
+    display: flex;
+    gap: var(--esp-4);
+    align-items: center;
+  }
+  a {
+    color: var(--color-acento);
+    font-weight: 600;
+    padding: var(--esp-2);
+  }
+  [aria-disabled="true"] {
+    opacity: 0.4;
+    padding: var(--esp-2);
+  }
+</style>

@@ -1,0 +1,28 @@
+---
+import "@/styles/global.css";
+
+interface Props {
+  titulo: string;
+}
+
+const { titulo } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta
+      name="description"
+      content="Control de asistencia del personal — U.E.E. General Rafael Urdaneta"
+    />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{titulo} · Asistencia UEN</title>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

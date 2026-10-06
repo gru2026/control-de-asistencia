@@ -1,0 +1,85 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+type Props = Omit<HTMLAttributes<"input">, "name"> & {
+  etiqueta: string;
+  nombre: string;
+  error?: string | undefined;
+  ayuda?: string;
+};
+
+const {
+  etiqueta,
+  nombre,
+  error,
+  ayuda,
+  id = `campo-${nombre}`,
+  class: clase,
+  ...resto
+} = Astro.props;
+const idAyuda = `${id}-ayuda`;
+const idError = `${id}-error`;
+const describe = [ayuda && idAyuda, error && idError].filter(Boolean).join(" ") || undefined;
+---
+
+<div class:list={["campo", clase]}>
+  <label for={id}>
+    {etiqueta}
+    {resto.required && (
+      <span class="obligatorio" aria-hidden="true">
+        *
+      </span>
+    )}
+  </label>
+  <input
+    id={id}
+    name={nombre}
+    aria-invalid={error ? "true" : undefined}
+    aria-describedby={describe}
+    {...resto}
+  />
+  {ayuda && <small id={idAyuda}>{ayuda}</small>}
+  {error && (
+    <small id={idError} class="error">
+      {error}
+    </small>
+  )}
+</div>
+
+<style>
+  .campo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-1);
+  }
+  label {
+    font-weight: 600;
+    font-size: var(--texto-sm);
+  }
+  .obligatorio {
+    color: var(--color-error);
+    margin-left: 2px;
+  }
+  input {
+    min-height: var(--toque-min);
+    padding: var(--esp-2) var(--esp-3);
+    border: 1px solid var(--color-borde);
+    border-radius: calc(var(--radio) / 1.5);
+    background: var(--color-superficie);
+    color: var(--color-texto);
+  }
+  input:disabled {
+    background: var(--color-fondo);
+    color: var(--color-texto-suave);
+  }
+  input[aria-invalid="true"] {
+    border-color: var(--color-error);
+  }
+  small {
+    color: var(--color-texto-suave);
+  }
+  .error {
+    color: var(--color-error);
+    font-weight: 600;
+  }
+</style>

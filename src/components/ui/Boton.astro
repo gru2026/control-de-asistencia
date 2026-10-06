@@ -1,0 +1,99 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+type Props = (HTMLAttributes<"button"> | HTMLAttributes<"a">) & {
+  variante?: "primario" | "secundario" | "peligro" | "fantasma";
+  tamano?: "normal" | "pequeno" | "grande";
+  href?: string;
+  bloque?: boolean;
+};
+
+const {
+  variante = "primario",
+  tamano = "normal",
+  href,
+  bloque = false,
+  class: clase,
+  ...resto
+} = Astro.props;
+const clases = ["boton", variante, tamano, bloque && "bloque", clase];
+---
+
+{href ? (
+  <a href={href} class:list={clases} {...(resto as HTMLAttributes<"a">)}>
+    <slot />
+  </a>
+) : (
+  <button
+    class:list={clases}
+    {...(resto as HTMLAttributes<"button">)}
+    type={(resto as HTMLAttributes<"button">).type ?? "button"}
+  >
+    <slot />
+  </button>
+)}
+
+<style>
+  .boton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--esp-2);
+    min-height: var(--toque-min);
+    padding: var(--esp-2) var(--esp-4);
+    border: 1px solid transparent;
+    border-radius: var(--radio);
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background 0.15s,
+      border-color 0.15s;
+  }
+  .boton:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .primario {
+    background: var(--color-primario);
+    color: var(--color-primario-contraste);
+  }
+  .primario:hover:not(:disabled) {
+    background: #1e293b;
+  }
+  .secundario {
+    background: var(--color-superficie);
+    color: var(--color-texto);
+    border-color: var(--color-borde);
+  }
+  .secundario:hover:not(:disabled) {
+    border-color: var(--color-texto-suave);
+  }
+  .peligro {
+    background: var(--color-error);
+    color: #fff;
+  }
+  .peligro:hover:not(:disabled) {
+    background: #991b1b;
+  }
+  .fantasma {
+    background: transparent;
+    color: var(--color-acento);
+  }
+  .fantasma:hover:not(:disabled) {
+    background: #eff6ff;
+  }
+  .pequeno {
+    min-height: 36px;
+    padding: var(--esp-1) var(--esp-3);
+    font-size: var(--texto-sm);
+  }
+  .grande {
+    min-height: 64px;
+    font-size: var(--texto-lg);
+    padding: var(--esp-3) var(--esp-6);
+  }
+  .bloque {
+    width: 100%;
+  }
+</style>

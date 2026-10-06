@@ -1,0 +1,17 @@
+---
+import AuthLayout from "@/layouts/AuthLayout.astro";
+import Boton from "@/components/ui/Boton.astro";
+---
+
+<AuthLayout titulo="Página no encontrada">
+  <h1>Página no encontrada</h1>
+  <p>La dirección que abrió no existe.</p>
+  <Boton href="/">Ir al inicio</Boton>
+</AuthLayout>
+
+<style>
+  h1 {
+    margin-top: 0;
+    font-size: var(--texto-lg);
+  }
+</style>

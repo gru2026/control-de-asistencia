@@ -1,0 +1,63 @@
+---
+interface Props {
+  titulo?: string;
+  descripcion?: string;
+  class?: string;
+}
+const { titulo, descripcion, class: clase } = Astro.props;
+const tieneAcciones = Astro.slots.has("acciones");
+---
+
+<section class:list={["tarjeta", clase]}>
+  {(titulo || tieneAcciones) && (
+    <header>
+      <div>
+        {titulo && <h2>{titulo}</h2>}
+        {descripcion && <p>{descripcion}</p>}
+      </div>
+      {tieneAcciones && (
+        <div class="acciones">
+          <slot name="acciones" />
+        </div>
+      )}
+    </header>
+  )}
+  <slot />
+</section>
+
+<style>
+  .tarjeta {
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+    padding: var(--esp-4);
+  }
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--esp-3);
+    margin-bottom: var(--esp-4);
+  }
+  h2 {
+    margin: 0;
+    font-size: var(--texto-lg);
+  }
+  p {
+    margin: var(--esp-1) 0 0;
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2);
+  }
+  @media (min-width: 768px) {
+    .tarjeta {
+      padding: var(--esp-6);
+    }
+  }
+</style>

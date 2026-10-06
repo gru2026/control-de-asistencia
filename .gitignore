@@ -1,0 +1,29 @@
+# dependencias y build
+node_modules/
+dist/
+.astro/
+.vercel/
+coverage/
+
+# variables de entorno (NUNCA subir)
+.env
+.env.*
+!.env.example
+
+# credenciales y notas privadas del vault
+Documentacion/_privado/
+
+# Obsidian: estado local del editor
+Documentacion/.obsidian/workspace.json
+Documentacion/.obsidian/workspace-mobile.json
+Documentacion/.obsidian-mcp/
+Documentacion/.trash/
+
+# sistema / editores
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.vscode/*
+!.vscode/extensions.json
+.idea/

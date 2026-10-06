@@ -1,0 +1,124 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Alerta from "@/components/ui/Alerta.astro";
+import CamposPersonal from "@/components/personal/CamposPersonal.astro";
+import CamposCuenta from "@/components/personal/CamposCuenta.astro";
+import { listarJornadas } from "@/lib/datos/jornadas";
+import { texto, validarCuenta, validarPersonal, type Errores } from "@/lib/validacion";
+import { crearPersonal } from "@/lib/servicios/personal";
+import { generarClaveTemporal } from "@/lib/servicios/cuentas";
+import { ponerFlash } from "@/lib/flash";
+
+const sb = Astro.locals.supabase;
+const jornadas = await listarJornadas(sb);
+
+let valores: Record<string, string> = {};
+let errores: Errores = {};
+let mensaje: string | null = null;
+let conCuenta = true;
+
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  valores = Object.fromEntries([...f.entries()].map(([k, v]) => [k, String(v)]));
+  conCuenta = texto(f, "con_cuenta") === "si";
+
+  const rp = validarPersonal(f);
+  const rc = conCuenta ? validarCuenta(f) : null;
+  errores = { ...(rp.ok ? {} : rp.errores), ...(rc && !rc.ok ? rc.errores : {}) };
+
+  if (rp.ok && (!rc || rc.ok)) {
+    const r = await crearPersonal(sb, rp.datos, rc?.ok ? rc.datos : null);
+    if (r.ok) {
+      ponerFlash(
+        Astro.cookies,
+        "exito",
+        conCuenta
+          ? `${rp.datos.nombre} ${rp.datos.apellido} registrado con su cuenta de acceso.`
+          : `${rp.datos.nombre} ${rp.datos.apellido} registrado.`,
+      );
+      return Astro.redirect(`/personal/${r.id}`, 303);
+    }
+    mensaje = r.mensaje;
+    errores = { ...errores, ...r.errores };
+  } else {
+    mensaje = "Revise los campos marcados.";
+  }
+  Astro.response.status = 400;
+}
+---
+
+<PanelLayout titulo="Nuevo personal">
+  <Fragment slot="acciones">
+    <Boton href="/personal" variante="secundario">
+      ← Volver
+    </Boton>
+  </Fragment>
+
+  <form method="post" class="pila" novalidate>
+    {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
+
+    <Tarjeta titulo="Datos personales">
+      <CamposPersonal valores={valores} errores={errores} jornadas={jornadas} />
+    </Tarjeta>
+
+    <Tarjeta
+      titulo="Cuenta de acceso"
+      descripcion="Necesaria para que la persona marque desde su teléfono."
+    >
+      <label class="interruptor">
+        <input
+          type="checkbox"
+          name="con_cuenta"
+          value="si"
+          checked={conCuenta}
+          data-alternar="campos-cuenta"
+        />
+        Crear cuenta de acceso ahora
+      </label>
+      <div id="campos-cuenta" hidden={!conCuenta}>
+        <CamposCuenta valores={valores} errores={errores} claveSugerida={generarClaveTemporal()} />
+      </div>
+    </Tarjeta>
+
+    <div class="final">
+      <Boton href="/personal" variante="secundario">
+        Cancelar
+      </Boton>
+      <Boton type="submit">Guardar</Boton>
+    </div>
+  </form>
+</PanelLayout>
+
+<script>
+  document.querySelectorAll<HTMLInputElement>("[data-alternar]").forEach((c) => {
+    const destino = document.getElementById(c.dataset.alternar ?? "");
+    c.addEventListener("change", () => destino && (destino.hidden = !c.checked));
+  });
+</script>
+
+<style>
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+    max-width: 52rem;
+  }
+  .interruptor {
+    display: flex;
+    gap: var(--esp-2);
+    align-items: center;
+    font-weight: 600;
+    margin-bottom: var(--esp-4);
+    min-height: var(--toque-min);
+  }
+  .interruptor input {
+    width: 20px;
+    height: 20px;
+  }
+  .final {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--esp-2);
+  }
+</style>

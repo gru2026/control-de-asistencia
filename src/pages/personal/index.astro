@@ -1,0 +1,186 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Tabla from "@/components/ui/Tabla.astro";
+import Badge from "@/components/ui/Badge.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Input from "@/components/ui/Input.astro";
+import Select from "@/components/ui/Select.astro";
+import Paginacion from "@/components/ui/Paginacion.astro";
+import { terminosBusqueda } from "@/lib/validacion";
+import { CARGOS, NOMBRE_CARGO, type Cargo } from "@/types";
+
+const POR_PAGINA = 20;
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+const p = Astro.url.searchParams;
+
+const q = (p.get("q") ?? "").slice(0, 80);
+const cargo = CARGOS.includes(p.get("cargo") as Cargo) ? (p.get("cargo") as Cargo) : "";
+const estado = ["activo", "inactivo", "todos"].includes(p.get("estado") ?? "")
+  ? p.get("estado")!
+  : "activo";
+const sinCuenta = p.get("cuenta") === "no";
+const sinJornada = p.get("jornada") === "no";
+const pagina = Math.max(1, Number.parseInt(p.get("pagina") ?? "1", 10) || 1);
+
+let consulta = sb
+  .from("personal")
+  .select(
+    "id, nombre, apellido, cedula, cargo, estado, usuario_id, jornadas(nombre), usuarios(email)",
+    {
+      count: "exact",
+    },
+  )
+  .order("apellido")
+  .order("nombre")
+  .range((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA - 1);
+
+// Cada término debe aparecer en nombre, apellido o cédula ("Ana Pérez" → ambos).
+for (const t of terminosBusqueda(q)) {
+  consulta = consulta.or(`nombre.ilike.*${t}*,apellido.ilike.*${t}*,cedula.ilike.*${t}*`);
+}
+if (cargo) consulta = consulta.eq("cargo", cargo);
+if (estado !== "todos") consulta = consulta.eq("estado", estado);
+if (sinCuenta) consulta = consulta.is("usuario_id", null);
+if (sinJornada) consulta = consulta.is("jornada_id", null);
+
+interface Fila {
+  id: string;
+  nombre: string;
+  apellido: string;
+  cedula: string;
+  cargo: Cargo;
+  estado: "activo" | "inactivo";
+  usuario_id: string | null;
+  jornadas: { nombre: string } | null;
+  usuarios: { email: string } | null;
+}
+const { data, count, error } = await consulta;
+if (error) console.error("[personal] listado:", error);
+const filas = (data ?? []) as unknown as Fila[];
+const hayFiltros = q || cargo || estado !== "activo" || sinCuenta || sinJornada;
+---
+
+<PanelLayout titulo="Personal" subtitulo="Docentes y personal administrativo del colegio.">
+  <Fragment slot="acciones">
+    {perfil.rol === "directiva" && <Boton href="/personal/nuevo">+ Nuevo personal</Boton>}
+  </Fragment>
+
+  <Tarjeta>
+    <form method="get" class="filtros" role="search">
+      <Input
+        etiqueta="Buscar"
+        nombre="q"
+        value={q}
+        placeholder="Nombre, apellido o cédula"
+        type="search"
+      />
+      <Select
+        etiqueta="Cargo"
+        nombre="cargo"
+        valor={cargo}
+        vacia="Todos"
+        opciones={CARGOS.map((c) => ({ valor: c, texto: NOMBRE_CARGO[c] }))}
+      />
+      <Select
+        etiqueta="Estado"
+        nombre="estado"
+        valor={estado}
+        opciones={[
+          { valor: "activo", texto: "Activos" },
+          { valor: "inactivo", texto: "Inactivos" },
+          { valor: "todos", texto: "Todos" },
+        ]}
+      />
+      {sinCuenta && <input type="hidden" name="cuenta" value="no" />}
+      {sinJornada && <input type="hidden" name="jornada" value="no" />}
+      <div class="botones">
+        <Boton type="submit">Filtrar</Boton>
+        {hayFiltros && (
+          <Boton href="/personal" variante="fantasma">
+            Limpiar
+          </Boton>
+        )}
+      </div>
+    </form>
+    {(sinCuenta || sinJornada) && (
+      <p class="filtro-extra">
+        Mostrando solo personal {sinCuenta ? "sin cuenta de acceso" : "sin jornada asignada"}.
+      </p>
+    )}
+
+    {error && <p class="error">No se pudo cargar la lista. Recargue la página.</p>}
+
+    <Tabla
+      titulo="Lista de personal"
+      hayFilas={filas.length > 0}
+      vacio={hayFiltros ? "No hay resultados con esos filtros." : "Aún no hay personal registrado."}
+    >
+      <thead>
+        <tr>
+          <th scope="col">Nombre</th>
+          <th scope="col">Cédula</th>
+          <th scope="col">Cargo</th>
+          <th scope="col">Jornada</th>
+          <th scope="col">Cuenta</th>
+          <th scope="col">Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {filas.map((f) => (
+          <tr>
+            <td>
+              <a href={`/personal/${f.id}`}>
+                {f.apellido}, {f.nombre}
+              </a>
+            </td>
+            <td>{f.cedula}</td>
+            <td>{NOMBRE_CARGO[f.cargo]}</td>
+            <td>{f.jornadas?.nombre ?? <span class="suave">Sin asignar</span>}</td>
+            <td>{f.usuarios?.email ?? <span class="suave">Sin cuenta</span>}</td>
+            <td>
+              <Badge tipo={f.estado}>{f.estado === "activo" ? "Activo" : "Inactivo"}</Badge>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </Tabla>
+    <Paginacion pagina={pagina} total={count ?? 0} porPagina={POR_PAGINA} />
+  </Tarjeta>
+</PanelLayout>
+
+<style>
+  .filtros {
+    display: grid;
+    gap: var(--esp-3);
+    margin-bottom: var(--esp-4);
+  }
+  .botones {
+    display: flex;
+    gap: var(--esp-2);
+    align-items: flex-end;
+  }
+  @media (min-width: 768px) {
+    .filtros {
+      grid-template-columns: 2fr 1fr 1fr auto;
+      align-items: end;
+    }
+  }
+  .suave {
+    color: var(--color-texto-suave);
+  }
+  .filtro-extra {
+    margin: 0 0 var(--esp-3);
+    font-size: var(--texto-sm);
+    color: var(--color-alerta);
+    font-weight: 600;
+  }
+  .error {
+    color: var(--color-error);
+  }
+  a {
+    color: var(--color-acento);
+    font-weight: 600;
+  }
+</style>

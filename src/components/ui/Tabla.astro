@@ -1,0 +1,57 @@
+---
+/** Tabla responsiva: desplazamiento horizontal en pantallas pequeñas. */
+interface Props {
+  titulo: string; // descripción accesible
+  vacio?: string;
+  hayFilas?: boolean;
+}
+const { titulo, vacio = "No hay registros.", hayFilas = true } = Astro.props;
+---
+
+{hayFilas ? (
+  <div class="contenedor" role="region" aria-label={titulo} tabindex="0">
+    <table>
+      <slot />
+    </table>
+  </div>
+) : (
+  <p class="vacio">{vacio}</p>
+)}
+
+<style>
+  .contenedor {
+    overflow-x: auto;
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--texto-sm);
+  }
+  table :global(th),
+  table :global(td) {
+    padding: var(--esp-3);
+    text-align: left;
+    border-bottom: 1px solid var(--color-borde);
+    white-space: nowrap;
+  }
+  table :global(th) {
+    background: var(--color-fondo);
+    font-weight: 600;
+    color: var(--color-texto-suave);
+  }
+  table :global(tbody tr:last-child td) {
+    border-bottom: 0;
+  }
+  table :global(tbody tr:hover) {
+    background: #f1f5f9;
+  }
+  .vacio {
+    padding: var(--esp-6);
+    text-align: center;
+    color: var(--color-texto-suave);
+    border: 1px dashed var(--color-borde);
+    border-radius: var(--radio);
+  }
+</style>

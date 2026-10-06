@@ -1,0 +1,67 @@
+---
+interface Props {
+  tipo?: "exito" | "error" | "info" | "alerta";
+}
+const { tipo = "info" } = Astro.props;
+const icono = { exito: "✓", error: "✕", info: "i", alerta: "!" }[tipo];
+---
+
+<div class:list={["aviso", `aviso-${tipo}`]} role={tipo === "error" ? "alert" : "status"}>
+  <span class="icono" aria-hidden="true">
+    {icono}
+  </span>
+  <div>
+    <slot />
+  </div>
+</div>
+
+<style>
+  .aviso {
+    display: flex;
+    gap: var(--esp-3);
+    align-items: flex-start;
+    padding: var(--esp-3) var(--esp-4);
+    border-radius: var(--radio);
+    border: 1px solid;
+    font-size: var(--texto-sm);
+  }
+  .icono {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.75rem;
+  }
+  .aviso-exito {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+  }
+  .aviso-exito .icono {
+    background: var(--color-exito);
+  }
+  .aviso-error {
+    background: #fef2f2;
+    border-color: #fecaca;
+  }
+  .aviso-error .icono {
+    background: var(--color-error);
+  }
+  .aviso-info {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+  }
+  .aviso-info .icono {
+    background: var(--color-acento);
+  }
+  .aviso-alerta {
+    background: #fffbeb;
+    border-color: #fde68a;
+  }
+  .aviso-alerta .icono {
+    background: var(--color-alerta);
+  }
+</style>

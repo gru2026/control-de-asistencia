@@ -1,0 +1,100 @@
+---
+import AuthLayout from "@/layouts/AuthLayout.astro";
+import Input from "@/components/ui/Input.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Alerta from "@/components/ui/Alerta.astro";
+import { destinoSeguro } from "@/lib/auth/acceso";
+import { texto } from "@/lib/validacion";
+import type { Perfil } from "@/types";
+
+const volver = Astro.url.searchParams.get("volver");
+let error: string | null = null;
+let email = "";
+
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  email = texto(f, "email").toLowerCase();
+  const password = texto(f, "password");
+  const sb = Astro.locals.supabase;
+
+  if (!email || !password) {
+    error = "Escriba su correo y su contraseña.";
+  } else {
+    const { data, error: e } = await sb.auth.signInWithPassword({ email, password });
+    if (e || !data.user) {
+      error =
+        e?.code === "user_banned"
+          ? "Su cuenta está desactivada. Contacte a la administración."
+          : e?.status === 429
+            ? "Demasiados intentos. Espere unos minutos e intente de nuevo."
+            : "Correo o contraseña incorrectos.";
+    } else {
+      const { data: perfil } = await sb
+        .from("usuarios")
+        .select("rol, estado")
+        .eq("id", data.user.id)
+        .maybeSingle<Pick<Perfil, "rol" | "estado">>();
+      if (!perfil || perfil.estado !== "activo") {
+        await sb.auth.signOut();
+        error = "Su cuenta no está activa. Contacte a la administración.";
+      } else {
+        return Astro.redirect(destinoSeguro(volver, perfil.rol), 303);
+      }
+    }
+  }
+  Astro.response.status = 400;
+}
+---
+
+<AuthLayout titulo="Iniciar sesión">
+  <h1>Iniciar sesión</h1>
+  {error && (
+    <div class="espacio">
+      <Alerta tipo="error">{error}</Alerta>
+    </div>
+  )}
+  <form method="post" class="formulario">
+    <Input
+      etiqueta="Correo"
+      nombre="email"
+      type="email"
+      autocomplete="username"
+      inputmode="email"
+      value={email}
+      required
+      autofocus={!email}
+    />
+    <Input
+      etiqueta="Contraseña"
+      nombre="password"
+      type="password"
+      autocomplete="current-password"
+      required
+      autofocus={!!email}
+    />
+    <Boton type="submit" bloque tamano="grande">
+      Entrar
+    </Boton>
+  </form>
+  <p class="ayuda">¿Olvidó su contraseña? Solicítela a la administración del colegio.</p>
+</AuthLayout>
+
+<style>
+  h1 {
+    margin: 0 0 var(--esp-4);
+    font-size: var(--texto-lg);
+  }
+  .espacio {
+    margin-bottom: var(--esp-4);
+  }
+  .formulario {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  .ayuda {
+    margin: var(--esp-4) 0 0;
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+    text-align: center;
+  }
+</style>

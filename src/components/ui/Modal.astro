@@ -1,0 +1,71 @@
+---
+/**
+ * Diálogo nativo (<dialog>). Se abre con cualquier botón que tenga
+ * data-abrir-modal="<id>". Contenido y acciones por slots.
+ */
+interface Props {
+  id: string;
+  titulo: string;
+}
+const { id, titulo } = Astro.props;
+---
+
+<dialog id={id} class="modal" aria-labelledby={`${id}-titulo`}>
+  <h2 id={`${id}-titulo`}>{titulo}</h2>
+  <div class="cuerpo">
+    <slot />
+  </div>
+  <div class="acciones">
+    <form method="dialog">
+      <button class="cancelar" type="submit">
+        Cancelar
+      </button>
+    </form>
+    <slot name="acciones" />
+  </div>
+</dialog>
+
+<script>
+  document.addEventListener("click", (ev) => {
+    const boton = (ev.target as HTMLElement).closest<HTMLElement>("[data-abrir-modal]");
+    if (!boton) return;
+    const dialogo = document.getElementById(boton.dataset.abrirModal ?? "");
+    if (dialogo instanceof HTMLDialogElement) dialogo.showModal();
+  });
+</script>
+
+<style>
+  .modal {
+    width: min(28rem, calc(100vw - 2rem));
+    border: 0;
+    border-radius: var(--radio);
+    padding: var(--esp-6);
+    box-shadow: 0 20px 40px rgb(0 0 0 / 0.2);
+  }
+  .modal::backdrop {
+    background: rgb(15 23 42 / 0.5);
+  }
+  h2 {
+    margin: 0 0 var(--esp-3);
+    font-size: var(--texto-lg);
+  }
+  .cuerpo {
+    color: var(--color-texto-suave);
+  }
+  .acciones {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: var(--esp-2);
+    margin-top: var(--esp-6);
+  }
+  .cancelar {
+    min-height: var(--toque-min);
+    padding: var(--esp-2) var(--esp-4);
+    border-radius: var(--radio);
+    border: 1px solid var(--color-borde);
+    background: var(--color-superficie);
+    font-weight: 600;
+    cursor: pointer;
+  }
+</style>

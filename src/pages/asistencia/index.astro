@@ -1,0 +1,122 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Alerta from "@/components/ui/Alerta.astro";
+import Boton from "@/components/ui/Boton.astro";
+import { fechaLarga, hoyEnZona } from "@/lib/fecha";
+import { resolverJornada } from "@/lib/reglas/jornada";
+import {
+  aExcepcion,
+  aJornada,
+  COLUMNAS_JORNADA,
+  type FilaHorario,
+  type FilaJornada,
+} from "@/lib/datos/jornadas";
+
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+const hoy = hoyEnZona();
+
+const { data: ficha } = await sb
+  .from("personal")
+  .select(
+    `id, estado, jornadas(${COLUMNAS_JORNADA}), horarios(dia_semana, hora_entrada, hora_salida, tolerancia_min, libre)`,
+  )
+  .eq("usuario_id", perfil.id)
+  .maybeSingle<{
+    id: string;
+    estado: string;
+    jornadas: FilaJornada | null;
+    horarios: FilaHorario[];
+  }>();
+
+const { data: feriado } = await sb
+  .from("feriados")
+  .select("descripcion")
+  .eq("fecha", hoy)
+  .maybeSingle();
+
+const regla = ficha
+  ? resolverJornada({
+      fecha: hoy,
+      jornada: ficha.jornadas ? aJornada(ficha.jornadas) : null,
+      excepciones: ficha.horarios.map(aExcepcion),
+      feriados: feriado ? [hoy] : [],
+    })
+  : null;
+---
+
+<PanelLayout titulo={`Hola, ${perfil.nombre}`} subtitulo={fechaLarga(hoy)}>
+  <div class="pila">
+    {!ficha ? (
+      <Alerta tipo="info">
+        Su cuenta no tiene una ficha de personal asociada, por lo que no registra asistencia.
+      </Alerta>
+    ) : (
+      <Tarjeta titulo="Su jornada de hoy">
+        {feriado ? (
+          <p class="grande">Hoy es feriado: {feriado.descripcion}.</p>
+        ) : regla ? (
+          <dl class="jornada">
+            <div>
+              <dt>Entrada</dt>
+              <dd>{regla.horaEntrada}</dd>
+            </div>
+            <div>
+              <dt>Salida</dt>
+              <dd>{regla.horaSalida}</dd>
+            </div>
+            <div>
+              <dt>Tolerancia</dt>
+              <dd>{regla.toleranciaMin} min</dd>
+            </div>
+          </dl>
+        ) : !ficha.jornadas ? (
+          <p>Aún no tiene una jornada asignada. Consulte con la directiva.</p>
+        ) : (
+          <p class="grande">Hoy no es día laborable para usted.</p>
+        )}
+      </Tarjeta>
+    )}
+
+    <Tarjeta titulo="Marcar asistencia">
+      <Boton tamano="grande" bloque disabled>
+        Marcar entrada
+      </Boton>
+      <p class="nota">La marcación con código QR y ubicación estará disponible próximamente.</p>
+    </Tarjeta>
+  </div>
+</PanelLayout>
+
+<style>
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+    max-width: 32rem;
+  }
+  .jornada {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--esp-3);
+    margin: 0;
+  }
+  dt {
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  dd {
+    margin: 0;
+    font-size: var(--texto-xl);
+    font-weight: 700;
+  }
+  .grande {
+    font-size: var(--texto-lg);
+    margin: 0;
+  }
+  .nota {
+    margin: var(--esp-3) 0 0;
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+    text-align: center;
+  }
+</style>

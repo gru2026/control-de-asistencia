@@ -1,0 +1,98 @@
+---
+import Input from "@/components/ui/Input.astro";
+import Select from "@/components/ui/Select.astro";
+import type { FilaJornada } from "@/lib/datos/jornadas";
+import { resumenDias } from "@/lib/datos/jornadas";
+import { horaCorta } from "@/lib/fecha";
+import { CARGOS, NOMBRE_CARGO } from "@/types";
+
+interface Props {
+  valores: Record<string, string | null | undefined>;
+  errores?: Record<string, string>;
+  jornadas: FilaJornada[];
+}
+const { valores: v, errores: e = {}, jornadas } = Astro.props;
+const val = (k: string) => v[k] ?? "";
+---
+
+<div class="rejilla">
+  <Input
+    etiqueta="Nombre(s)"
+    nombre="nombre"
+    value={val("nombre")}
+    error={e.nombre}
+    required
+    maxlength={80}
+    autocomplete="off"
+  />
+  <Input
+    etiqueta="Apellido(s)"
+    nombre="apellido"
+    value={val("apellido")}
+    error={e.apellido}
+    required
+    maxlength={80}
+    autocomplete="off"
+  />
+  <Input
+    etiqueta="Cédula"
+    nombre="cedula"
+    value={val("cedula")}
+    error={e.cedula}
+    required
+    ayuda="Ejemplo: V-12345678"
+    autocomplete="off"
+  />
+  <Select
+    etiqueta="Cargo"
+    nombre="cargo"
+    valor={val("cargo") || "docente"}
+    error={e.cargo}
+    required
+    opciones={CARGOS.map((c) => ({ valor: c, texto: NOMBRE_CARGO[c] }))}
+  />
+  <Input
+    etiqueta="Teléfono"
+    nombre="telefono"
+    type="tel"
+    value={val("telefono")}
+    error={e.telefono}
+    ayuda="Opcional"
+  />
+  <Input
+    etiqueta="Fecha de ingreso"
+    nombre="fecha_ingreso"
+    type="date"
+    value={val("fecha_ingreso")}
+    error={e.fecha_ingreso}
+    ayuda="Opcional"
+  />
+  <Select
+    class="ancho"
+    etiqueta="Jornada"
+    nombre="jornada_id"
+    valor={val("jornada_id")}
+    error={e.jornada_id}
+    vacia="Sin asignar"
+    ayuda="Define su horario de entrada, salida y tolerancia."
+    opciones={jornadas.map((j) => ({
+      valor: j.id,
+      texto: `${j.nombre} · ${horaCorta(j.hora_entrada)}–${horaCorta(j.hora_salida)} · ${resumenDias(j.dias_laborables)}${j.activa ? "" : " (inactiva)"}`,
+    }))}
+  />
+</div>
+
+<style>
+  .rejilla {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  @media (min-width: 768px) {
+    .rejilla {
+      grid-template-columns: 1fr 1fr;
+    }
+    .rejilla :global(.ancho) {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

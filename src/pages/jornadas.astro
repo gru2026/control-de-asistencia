@@ -1,0 +1,435 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Tabla from "@/components/ui/Tabla.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Badge from "@/components/ui/Badge.astro";
+import Alerta from "@/components/ui/Alerta.astro";
+import Input from "@/components/ui/Input.astro";
+import { COLUMNAS_JORNADA, resumenDias, type FilaJornada } from "@/lib/datos/jornadas";
+import { esUuid, texto, validarFeriado, validarJornada, type Errores } from "@/lib/validacion";
+import { ponerFlash } from "@/lib/flash";
+import { fechaCorta, horaCorta, hoyEnZona } from "@/lib/fecha";
+import { NOMBRE_DIA, type DiaSemana } from "@/types";
+
+const sb = Astro.locals.supabase;
+let errores: Errores = {};
+let mensaje: string | null = null;
+let accion: string | null = null;
+let valores: Record<string, string | string[]> = {};
+
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  accion = texto(f, "accion");
+  valores = {
+    ...Object.fromEntries([...f.entries()].map(([k, v]) => [k, String(v)])),
+    dias_laborables: f.getAll("dias_laborables").map(String),
+  };
+  const id = texto(f, "id");
+  let exito: string | null = null;
+
+  if (accion === "guardar") {
+    const r = validarJornada(f);
+    if (!r.ok) errores = r.errores;
+    else {
+      const { error } =
+        id && esUuid(id)
+          ? await sb.from("jornadas").update(r.datos).eq("id", id)
+          : await sb.from("jornadas").insert(r.datos);
+      if (error?.code === "23505") errores = { nombre: "Ya existe una jornada con ese nombre." };
+      else if (error) {
+        console.error("[jornadas]", error);
+        mensaje = "No se pudo guardar la jornada.";
+      } else
+        exito = id
+          ? `Jornada «${r.datos.nombre}» actualizada.`
+          : `Jornada «${r.datos.nombre}» creada.`;
+    }
+  } else if (accion === "alternar" && esUuid(id)) {
+    const activa = texto(f, "activa") === "si";
+    const { error } = await sb.from("jornadas").update({ activa }).eq("id", id);
+    if (error) mensaje = "No se pudo actualizar la jornada.";
+    else exito = activa ? "Jornada activada." : "Jornada desactivada.";
+  } else if (accion === "eliminar" && esUuid(id)) {
+    const { count } = await sb
+      .from("personal")
+      .select("id", { count: "exact", head: true })
+      .eq("jornada_id", id);
+    if (count)
+      mensaje = `No se puede eliminar: ${count} persona(s) tienen esta jornada. Desactívela o reasígnelas.`;
+    else {
+      const { error } = await sb.from("jornadas").delete().eq("id", id);
+      if (error) mensaje = "No se pudo eliminar la jornada.";
+      else exito = "Jornada eliminada.";
+    }
+  } else if (accion === "feriado_agregar") {
+    const r = validarFeriado(f);
+    if (!r.ok) errores = r.errores;
+    else {
+      const { error } = await sb.from("feriados").insert(r.datos);
+      if (error?.code === "23505")
+        errores = { fecha: "Esa fecha ya está registrada como feriado." };
+      else if (error) mensaje = "No se pudo guardar el feriado.";
+      else exito = `Feriado del ${fechaCorta(r.datos.fecha)} agregado.`;
+    }
+  } else if (accion === "feriado_eliminar" && esUuid(id)) {
+    const { error } = await sb.from("feriados").delete().eq("id", id);
+    if (error) mensaje = "No se pudo eliminar el feriado.";
+    else exito = "Feriado eliminado.";
+  } else {
+    mensaje = "Acción no reconocida.";
+  }
+
+  if (exito) {
+    ponerFlash(Astro.cookies, "exito", exito);
+    const destino = accion.startsWith("feriado") ? "/jornadas#feriados" : "/jornadas";
+    return Astro.redirect(destino, 303);
+  }
+  mensaje ??= "Revise los campos marcados.";
+  Astro.response.status = 400;
+}
+
+const hoy = hoyEnZona();
+const [{ data: jornadasData }, { data: feriadosData }] = await Promise.all([
+  sb.from("jornadas").select(`${COLUMNAS_JORNADA}, personal(count)`).order("nombre"),
+  sb
+    .from("feriados")
+    .select("id, fecha, descripcion")
+    .gte("fecha", hoy.slice(0, 4) + "-01-01")
+    .order("fecha"),
+]);
+const jornadas = (jornadasData ?? []) as (FilaJornada & { personal: { count: number }[] })[];
+const feriados = (feriadosData ?? []) as { id: string; fecha: string; descripcion: string }[];
+
+// Formulario: edición (?editar=id), reintento tras error, o nueva jornada
+const editarId = Astro.url.searchParams.get("editar");
+const enEdicion = jornadas.find((j) => j.id === (accion === "guardar" ? valores.id : editarId));
+const form =
+  accion === "guardar"
+    ? valores
+    : enEdicion
+      ? {
+          id: enEdicion.id,
+          nombre: enEdicion.nombre,
+          hora_entrada: horaCorta(enEdicion.hora_entrada),
+          hora_salida: horaCorta(enEdicion.hora_salida),
+          tolerancia_min: String(enEdicion.tolerancia_min),
+          pausa_min: String(enEdicion.pausa_min),
+          dias_laborables: enEdicion.dias_laborables.map(String),
+          activa: enEdicion.activa ? "si" : "no",
+        }
+      : {
+          hora_entrada: "07:00",
+          hora_salida: "16:00",
+          tolerancia_min: "15",
+          pausa_min: "0",
+          dias_laborables: ["1", "2", "3", "4", "5"],
+        };
+const v = (k: string) => (typeof form[k] === "string" ? (form[k] as string) : "");
+const diasMarcados = new Set((form.dias_laborables as string[] | undefined) ?? []);
+const eJ = accion === "guardar" ? errores : {};
+const eF = accion === "feriado_agregar" ? errores : {};
+---
+
+<PanelLayout titulo="Jornadas y feriados" subtitulo="Horarios configurables del personal.">
+  <div class="pila">
+    {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
+
+    <Tarjeta titulo="Jornadas">
+      <Tabla titulo="Jornadas" hayFilas={jornadas.length > 0} vacio="Aún no hay jornadas.">
+        <thead>
+          <tr>
+            <th scope="col">Nombre</th>
+            <th scope="col">Horario</th>
+            <th scope="col">Tolerancia</th>
+            <th scope="col">Pausa</th>
+            <th scope="col">Días</th>
+            <th scope="col">Personas</th>
+            <th scope="col">Estado</th>
+            <th scope="col">
+              <span class="visualmente-oculto">Acciones</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {jornadas.map((j) => {
+            const personas = j.personal[0]?.count ?? 0;
+            return (
+              <tr>
+                <td>
+                  <strong>{j.nombre}</strong>
+                </td>
+                <td>
+                  {horaCorta(j.hora_entrada)}–{horaCorta(j.hora_salida)}
+                </td>
+                <td>{j.tolerancia_min} min</td>
+                <td>{j.pausa_min} min</td>
+                <td>{resumenDias(j.dias_laborables)}</td>
+                <td>{personas}</td>
+                <td>
+                  <Badge tipo={j.activa ? "activo" : "inactivo"}>
+                    {j.activa ? "Activa" : "Inactiva"}
+                  </Badge>
+                </td>
+                <td class="acciones">
+                  <Boton
+                    href={`/jornadas?editar=${j.id}#formulario`}
+                    variante="fantasma"
+                    tamano="pequeno"
+                  >
+                    Editar
+                  </Boton>
+                  <form method="post">
+                    <input type="hidden" name="accion" value="alternar" />
+                    <input type="hidden" name="id" value={j.id} />
+                    <input type="hidden" name="activa" value={j.activa ? "no" : "si"} />
+                    <Boton type="submit" variante="fantasma" tamano="pequeno">
+                      {j.activa ? "Desactivar" : "Activar"}
+                    </Boton>
+                  </form>
+                  {personas === 0 && (
+                    <form method="post">
+                      <input type="hidden" name="accion" value="eliminar" />
+                      <input type="hidden" name="id" value={j.id} />
+                      <Boton type="submit" variante="fantasma" tamano="pequeno">
+                        Eliminar
+                      </Boton>
+                    </form>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </Tabla>
+    </Tarjeta>
+
+    <Tarjeta titulo={enEdicion || v("id") ? "Editar jornada" : "Nueva jornada"}>
+      <form method="post" id="formulario" class="formulario" novalidate>
+        <input type="hidden" name="accion" value="guardar" />
+        {v("id") && <input type="hidden" name="id" value={v("id")} />}
+        <Input
+          class="ancho"
+          etiqueta="Nombre"
+          nombre="nombre"
+          value={v("nombre")}
+          error={eJ.nombre}
+          required
+          placeholder="Ej. Docente mañana"
+          maxlength={60}
+        />
+        <Input
+          etiqueta="Hora de entrada"
+          nombre="hora_entrada"
+          type="time"
+          value={v("hora_entrada")}
+          error={eJ.hora_entrada}
+          required
+        />
+        <Input
+          etiqueta="Hora de salida"
+          nombre="hora_salida"
+          type="time"
+          value={v("hora_salida")}
+          error={eJ.hora_salida}
+          required
+        />
+        <Input
+          etiqueta="Tolerancia (minutos)"
+          nombre="tolerancia_min"
+          type="number"
+          min="0"
+          max="180"
+          value={v("tolerancia_min")}
+          error={eJ.tolerancia_min}
+          ayuda="Después de este margen la entrada cuenta como tarde."
+        />
+        <Input
+          etiqueta="Pausa / almuerzo (minutos)"
+          nombre="pausa_min"
+          type="number"
+          min="0"
+          max="240"
+          value={v("pausa_min")}
+          error={eJ.pausa_min}
+          ayuda="Se descuenta de las horas trabajadas."
+        />
+        <fieldset
+          class="ancho dias"
+          aria-describedby={eJ.dias_laborables ? "error-dias" : undefined}
+        >
+          <legend>Días laborables</legend>
+          {([1, 2, 3, 4, 5, 6, 7] as DiaSemana[]).map((d) => (
+            <label>
+              <input
+                type="checkbox"
+                name="dias_laborables"
+                value={d}
+                checked={diasMarcados.has(String(d))}
+              />
+              {NOMBRE_DIA[d]}
+            </label>
+          ))}
+          {eJ.dias_laborables && (
+            <small id="error-dias" class="error">
+              {eJ.dias_laborables}
+            </small>
+          )}
+        </fieldset>
+        {v("id") && <input type="hidden" name="activa" value={v("activa") || "si"} />}
+        <p class="ancho nota">
+          Los cambios aplican a las próximas marcaciones. Los días ya registrados conservan la regla
+          con la que se marcaron.
+        </p>
+        <div class="ancho final">
+          {(enEdicion || v("id")) && (
+            <Boton href="/jornadas" variante="secundario">
+              Cancelar
+            </Boton>
+          )}
+          <Boton type="submit">{enEdicion || v("id") ? "Guardar cambios" : "Crear jornada"}</Boton>
+        </div>
+      </form>
+    </Tarjeta>
+
+    <Tarjeta
+      titulo="Feriados"
+      descripcion={`Días no laborables desde enero de ${hoy.slice(0, 4)}.`}
+    >
+      <div id="feriados" class="feriados">
+        <Tabla
+          titulo="Feriados"
+          hayFilas={feriados.length > 0}
+          vacio="No hay feriados registrados."
+        >
+          <thead>
+            <tr>
+              <th scope="col">Fecha</th>
+              <th scope="col">Descripción</th>
+              <th scope="col">
+                <span class="visualmente-oculto">Acciones</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {feriados.map((fe) => (
+              <tr class:list={[fe.fecha < hoy && "pasado"]}>
+                <td>{fechaCorta(fe.fecha)}</td>
+                <td>{fe.descripcion}</td>
+                <td>
+                  <form method="post">
+                    <input type="hidden" name="accion" value="feriado_eliminar" />
+                    <input type="hidden" name="id" value={fe.id} />
+                    <Boton type="submit" variante="fantasma" tamano="pequeno">
+                      Eliminar
+                    </Boton>
+                  </form>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Tabla>
+        <form method="post" class="nuevo-feriado" novalidate>
+          <input type="hidden" name="accion" value="feriado_agregar" />
+          <Input
+            etiqueta="Fecha"
+            nombre="fecha"
+            type="date"
+            value={accion === "feriado_agregar" ? v("fecha") : ""}
+            error={eF.fecha}
+            required
+          />
+          <Input
+            etiqueta="Descripción"
+            nombre="descripcion"
+            value={accion === "feriado_agregar" ? v("descripcion") : ""}
+            error={eF.descripcion}
+            required
+            placeholder="Ej. Carnaval"
+          />
+          <Boton type="submit" variante="secundario">
+            Agregar feriado
+          </Boton>
+        </form>
+      </div>
+    </Tarjeta>
+  </div>
+</PanelLayout>
+
+<style>
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  .acciones {
+    display: flex;
+    gap: var(--esp-1);
+  }
+  .formulario {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  .dias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-3);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    padding: var(--esp-3) var(--esp-4);
+    margin: 0;
+  }
+  .dias legend {
+    font-weight: 600;
+    font-size: var(--texto-sm);
+    padding: 0 var(--esp-1);
+  }
+  .dias label {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-1);
+    min-height: var(--toque-min);
+  }
+  .dias input {
+    width: 20px;
+    height: 20px;
+  }
+  .error {
+    width: 100%;
+    color: var(--color-error);
+    font-weight: 600;
+  }
+  .nota {
+    margin: 0;
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .final {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--esp-2);
+  }
+  .feriados {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  .nuevo-feriado {
+    display: grid;
+    gap: var(--esp-3);
+  }
+  .pasado {
+    opacity: 0.55;
+  }
+  @media (min-width: 768px) {
+    .formulario {
+      grid-template-columns: 1fr 1fr;
+    }
+    .formulario :global(.ancho),
+    .formulario .ancho {
+      grid-column: 1 / -1;
+    }
+    .nuevo-feriado {
+      grid-template-columns: 12rem 1fr auto;
+      align-items: end;
+    }
+  }
+</style>

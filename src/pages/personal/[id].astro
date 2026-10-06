@@ -1,0 +1,562 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Badge from "@/components/ui/Badge.astro";
+import Alerta from "@/components/ui/Alerta.astro";
+import Modal from "@/components/ui/Modal.astro";
+import Input from "@/components/ui/Input.astro";
+import Select from "@/components/ui/Select.astro";
+import CamposPersonal from "@/components/personal/CamposPersonal.astro";
+import CamposCuenta from "@/components/personal/CamposCuenta.astro";
+import {
+  aExcepcion,
+  aJornada,
+  listarJornadas,
+  type FilaHorario,
+  type FilaJornada,
+} from "@/lib/datos/jornadas";
+import { resolverJornada } from "@/lib/reglas/jornada";
+import {
+  esUuid,
+  texto,
+  validarClave,
+  validarCuenta,
+  validarExcepciones,
+  validarPersonal,
+  type Errores,
+} from "@/lib/validacion";
+import {
+  actualizarPersonal,
+  cambiarEstadoPersonal,
+  vincularCuentaNueva,
+} from "@/lib/servicios/personal";
+import { cambiarRol, generarClaveTemporal, restablecerClave } from "@/lib/servicios/cuentas";
+import { ponerFlash } from "@/lib/flash";
+import { fechaCorta, horaCorta } from "@/lib/fecha";
+import {
+  NOMBRE_CARGO,
+  NOMBRE_DIA,
+  NOMBRE_ROL,
+  ROLES,
+  type Cargo,
+  type DiaSemana,
+  type Rol,
+} from "@/types";
+
+const { id = "" } = Astro.params;
+if (!esUuid(id)) return Astro.rewrite("/404");
+
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+const esDirectiva = perfil.rol === "directiva";
+
+interface Ficha {
+  id: string;
+  nombre: string;
+  apellido: string;
+  cedula: string;
+  cargo: Cargo;
+  telefono: string | null;
+  jornada_id: string | null;
+  fecha_ingreso: string | null;
+  estado: "activo" | "inactivo";
+  creado_en: string;
+  jornadas: FilaJornada | null;
+  usuarios: { id: string; email: string; rol: Rol; estado: "activo" | "inactivo" } | null;
+  horarios: FilaHorario[];
+}
+
+async function cargar() {
+  const { data } = await sb
+    .from("personal")
+    .select(
+      "id, nombre, apellido, cedula, cargo, telefono, jornada_id, fecha_ingreso, estado, creado_en," +
+        " jornadas(id, nombre, hora_entrada, hora_salida, tolerancia_min, pausa_min, dias_laborables, activa)," +
+        " usuarios(id, email, rol, estado)," +
+        " horarios(dia_semana, hora_entrada, hora_salida, tolerancia_min, libre)",
+    )
+    .eq("id", id)
+    .maybeSingle<Ficha>();
+  return data;
+}
+
+let ficha = await cargar();
+if (!ficha) return Astro.rewrite("/404");
+
+// ── Acciones (solo directiva) ──────────────────────────────────
+let seccion: string | null = null;
+let errores: Errores = {};
+let mensaje: string | null = null;
+let valoresForm: Record<string, string> = {};
+
+if (Astro.request.method === "POST") {
+  if (!esDirectiva) return new Response("Prohibido", { status: 403 });
+  const f = await Astro.request.formData();
+  valoresForm = Object.fromEntries([...f.entries()].map(([k, v]) => [k, String(v)]));
+  seccion = texto(f, "accion");
+  let exito: string | null = null;
+
+  switch (seccion) {
+    case "datos": {
+      const r = validarPersonal(f);
+      if (!r.ok) {
+        errores = r.errores;
+        break;
+      }
+      const res = await actualizarPersonal(sb, id, r.datos);
+      if (res.ok) exito = "Datos actualizados.";
+      else ({ mensaje, errores = {} } = res);
+      break;
+    }
+    case "excepciones": {
+      const r = validarExcepciones(f);
+      if (!r.ok) {
+        errores = r.errores;
+        break;
+      }
+      const dias = r.datos.map((d) => d.dia_semana);
+      if (r.datos.length) {
+        const { error } = await sb.from("horarios").upsert(
+          r.datos.map((d) => ({ ...d, personal_id: id })),
+          { onConflict: "personal_id,dia_semana" },
+        );
+        if (error) {
+          mensaje = "No se pudo guardar el horario.";
+          break;
+        }
+      }
+      let borrar = sb.from("horarios").delete().eq("personal_id", id);
+      if (dias.length) borrar = borrar.not("dia_semana", "in", `(${dias.join(",")})`);
+      const { error } = await borrar;
+      if (error) mensaje = "No se pudo guardar el horario.";
+      else exito = "Horario semanal actualizado.";
+      break;
+    }
+    case "crear_cuenta": {
+      if (ficha.usuarios) {
+        mensaje = "Esta persona ya tiene una cuenta.";
+        break;
+      }
+      const r = validarCuenta(f);
+      if (!r.ok) {
+        errores = r.errores;
+        break;
+      }
+      const res = await vincularCuentaNueva(sb, id, ficha, r.datos);
+      if (res.ok) exito = "Cuenta de acceso creada. Entregue la contraseña temporal a la persona.";
+      else ({ mensaje, errores = {} } = res);
+      break;
+    }
+    case "clave": {
+      const clave = texto(f, "password");
+      const err = validarClave(clave);
+      if (err) {
+        errores = { password: err };
+        break;
+      }
+      if (!ficha.usuarios) break;
+      const res = await restablecerClave(ficha.usuarios.id, clave);
+      if (res.ok) exito = "Contraseña restablecida. Entregue la nueva contraseña a la persona.";
+      else mensaje = res.mensaje;
+      break;
+    }
+    case "rol": {
+      const rol = texto(f, "rol") as Rol;
+      if (!ficha.usuarios || !ROLES.includes(rol)) break;
+      const res = await cambiarRol(sb, ficha.usuarios.id, rol, perfil.id);
+      if (res.ok) exito = `Rol cambiado a ${NOMBRE_ROL[rol]}.`;
+      else mensaje = res.mensaje;
+      break;
+    }
+    case "activar":
+    case "desactivar": {
+      const res = await cambiarEstadoPersonal(sb, id, seccion === "activar", perfil.id);
+      if (res.ok) exito = seccion === "activar" ? "Persona reactivada." : "Persona desactivada.";
+      else mensaje = res.mensaje;
+      break;
+    }
+    default:
+      mensaje = "Acción no reconocida.";
+  }
+
+  if (exito) {
+    ponerFlash(Astro.cookies, "exito", exito);
+    return Astro.redirect(`/personal/${id}`, 303);
+  }
+  mensaje ??= "Revise los campos marcados.";
+  Astro.response.status = 400;
+  ficha = (await cargar()) ?? ficha;
+}
+
+const jornadas = await listarJornadas(sb);
+const excepciones = new Map(ficha.horarios.map((h) => [h.dia_semana, h]));
+
+// Resumen semanal efectivo (semana de referencia: 5–11 oct 2026, lunes a domingo)
+const jornadaBase = ficha.jornadas ? aJornada(ficha.jornadas) : null;
+const semana = ([1, 2, 3, 4, 5, 6, 7] as DiaSemana[]).map((d) => ({
+  dia: d,
+  regla: resolverJornada({
+    fecha: `2026-10-${String(4 + d).padStart(2, "0")}`,
+    jornada: jornadaBase,
+    excepciones: ficha!.horarios.map(aExcepcion),
+  }),
+  excepcion: excepciones.get(d),
+}));
+
+const valoresDatos =
+  seccion === "datos"
+    ? valoresForm
+    : {
+        nombre: ficha.nombre,
+        apellido: ficha.apellido,
+        cedula: ficha.cedula,
+        cargo: ficha.cargo,
+        telefono: ficha.telefono,
+        fecha_ingreso: ficha.fecha_ingreso,
+        jornada_id: ficha.jornada_id,
+      };
+const err = (s: string) => (seccion === s ? errores : {});
+const valorExc = (k: string, porDefecto: string) =>
+  seccion === "excepciones" ? (valoresForm[k] ?? porDefecto) : porDefecto;
+---
+
+<PanelLayout
+  titulo={`${ficha.nombre} ${ficha.apellido}`}
+  subtitulo={`${ficha.cedula} · ${NOMBRE_CARGO[ficha.cargo]}`}
+>
+  <Fragment slot="acciones">
+    <Badge tipo={ficha.estado}>{ficha.estado === "activo" ? "Activo" : "Inactivo"}</Badge>
+    <Boton href="/personal" variante="secundario">
+      ← Volver
+    </Boton>
+  </Fragment>
+
+  <div class="pila">
+    {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
+    {!esDirectiva && (
+      <Alerta tipo="info">Vista de solo lectura. Los cambios los realiza la directiva.</Alerta>
+    )}
+
+    <!-- Datos personales -->
+    <Tarjeta titulo="Datos personales">
+      <form method="post" novalidate>
+        <input type="hidden" name="accion" value="datos" />
+        <fieldset disabled={!esDirectiva}>
+          <CamposPersonal valores={valoresDatos} errores={err("datos")} jornadas={jornadas} />
+        </fieldset>
+        {esDirectiva && (
+          <div class="final">
+            <Boton type="submit">Guardar datos</Boton>
+          </div>
+        )}
+      </form>
+    </Tarjeta>
+
+    <!-- Horario semanal -->
+    <Tarjeta
+      titulo="Horario semanal"
+      descripcion={
+        ficha.jornadas
+          ? `Jornada «${ficha.jornadas.nombre}». Use «Horario especial» o «Libre» solo para los días que difieren.`
+          : "Asigne primero una jornada en los datos personales."
+      }
+    >
+      <form method="post" novalidate>
+        <input type="hidden" name="accion" value="excepciones" />
+        <fieldset disabled={!esDirectiva}>
+          <div class="semana">
+            <div class="fila cabecera" aria-hidden="true">
+              <span>Día</span>
+              <span>Tipo</span>
+              <span>Entrada</span>
+              <span>Salida</span>
+              <span>Tolerancia</span>
+              <span>Resultado</span>
+            </div>
+            {semana.map(({ dia, regla, excepcion }) => {
+              const tipo = valorExc(
+                `tipo_${dia}`,
+                excepcion ? (excepcion.libre ? "libre" : "especial") : "normal",
+              );
+              const e = err("excepciones");
+              return (
+                <div class="fila">
+                  <strong>{NOMBRE_DIA[dia]}</strong>
+                  <Select
+                    etiqueta={`Tipo · ${NOMBRE_DIA[dia]}`}
+                    class="sin-etiqueta"
+                    nombre={`tipo_${dia}`}
+                    valor={tipo}
+                    opciones={[
+                      { valor: "normal", texto: "Según jornada" },
+                      { valor: "especial", texto: "Horario especial" },
+                      { valor: "libre", texto: "Libre" },
+                    ]}
+                  />
+                  <Input
+                    class="sin-etiqueta"
+                    etiqueta={`Entrada · ${NOMBRE_DIA[dia]}`}
+                    nombre={`entrada_${dia}`}
+                    type="time"
+                    value={valorExc(`entrada_${dia}`, horaCorta(excepcion?.hora_entrada))}
+                    error={e[`entrada_${dia}`]}
+                  />
+                  <Input
+                    class="sin-etiqueta"
+                    etiqueta={`Salida · ${NOMBRE_DIA[dia]}`}
+                    nombre={`salida_${dia}`}
+                    type="time"
+                    value={valorExc(`salida_${dia}`, horaCorta(excepcion?.hora_salida))}
+                    error={e[`salida_${dia}`]}
+                  />
+                  <Input
+                    class="sin-etiqueta"
+                    etiqueta={`Tolerancia (min) · ${NOMBRE_DIA[dia]}`}
+                    nombre={`tolerancia_${dia}`}
+                    type="number"
+                    min="0"
+                    max="180"
+                    placeholder="Jornada"
+                    value={valorExc(
+                      `tolerancia_${dia}`,
+                      excepcion?.tolerancia_min?.toString() ?? "",
+                    )}
+                    error={e[`tolerancia_${dia}`]}
+                  />
+                  <span class="resultado">
+                    {regla
+                      ? `${regla.horaEntrada}–${regla.horaSalida} (±${regla.toleranciaMin}′)`
+                      : "No laborable"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <p class="nota">
+            Entrada, salida y tolerancia solo se usan en los días con «Horario especial».
+          </p>
+        </fieldset>
+        {esDirectiva && (
+          <div class="final">
+            <Boton type="submit">Guardar horario</Boton>
+          </div>
+        )}
+      </form>
+    </Tarjeta>
+
+    <!-- Cuenta de acceso -->
+    <Tarjeta titulo="Cuenta de acceso">
+      {ficha.usuarios ? (
+        <div class="pila">
+          <dl class="datos">
+            <div>
+              <dt>Correo</dt>
+              <dd>{ficha.usuarios.email}</dd>
+            </div>
+            <div>
+              <dt>Rol</dt>
+              <dd>{NOMBRE_ROL[ficha.usuarios.rol]}</dd>
+            </div>
+            <div>
+              <dt>Estado</dt>
+              <dd>
+                <Badge tipo={ficha.usuarios.estado}>
+                  {ficha.usuarios.estado === "activo" ? "Activa" : "Desactivada"}
+                </Badge>
+              </dd>
+            </div>
+          </dl>
+          {esDirectiva && (
+            <div class="dos">
+              <form method="post" class="mini" novalidate>
+                <input type="hidden" name="accion" value="clave" />
+                <Input
+                  etiqueta="Nueva contraseña temporal"
+                  nombre="password"
+                  type="text"
+                  autocomplete="off"
+                  value={seccion === "clave" ? valoresForm.password : generarClaveTemporal()}
+                  error={err("clave").password}
+                />
+                <Boton type="submit" variante="secundario">
+                  Restablecer contraseña
+                </Boton>
+              </form>
+              <form method="post" class="mini">
+                <input type="hidden" name="accion" value="rol" />
+                <Select
+                  etiqueta="Rol"
+                  nombre="rol"
+                  valor={ficha.usuarios.rol}
+                  opciones={ROLES.map((r) => ({ valor: r, texto: NOMBRE_ROL[r] }))}
+                />
+                <Boton type="submit" variante="secundario">
+                  Cambiar rol
+                </Boton>
+              </form>
+            </div>
+          )}
+        </div>
+      ) : esDirectiva ? (
+        <form method="post" novalidate>
+          <input type="hidden" name="accion" value="crear_cuenta" />
+          <p class="nota">
+            Esta persona aún no tiene cuenta. Sin cuenta no puede marcar desde su teléfono.
+          </p>
+          <CamposCuenta
+            valores={seccion === "crear_cuenta" ? valoresForm : {}}
+            errores={err("crear_cuenta")}
+            claveSugerida={generarClaveTemporal()}
+          />
+          <div class="final">
+            <Boton type="submit">Crear cuenta</Boton>
+          </div>
+        </form>
+      ) : (
+        <p class="nota">Sin cuenta de acceso.</p>
+      )}
+    </Tarjeta>
+
+    <Tarjeta
+      titulo="Teléfono y PIN"
+      descripcion="Aprobación del teléfono de marcación y PIN del kiosco."
+    >
+      <p class="nota">Disponible próximamente (Semanas 2 y 3).</p>
+    </Tarjeta>
+
+    {esDirectiva && (
+      <Tarjeta titulo="Estado">
+        <p class="nota">
+          Registrada el {fechaCorta(ficha.creado_en.slice(0, 10))}. Las personas nunca se borran: se
+          desactivan para conservar su historial.
+        </p>
+        {ficha.estado === "activo" ? (
+          <Boton variante="peligro" data-abrir-modal="confirmar-desactivar">
+            Desactivar persona
+          </Boton>
+        ) : (
+          <form method="post">
+            <input type="hidden" name="accion" value="activar" />
+            <Boton type="submit">Reactivar persona</Boton>
+          </form>
+        )}
+      </Tarjeta>
+    )}
+  </div>
+
+  {esDirectiva && ficha.estado === "activo" && (
+    <Modal id="confirmar-desactivar" titulo="¿Desactivar a esta persona?">
+      <p>
+        {ficha.nombre} {ficha.apellido} dejará de aparecer en el registro diario
+        {ficha.usuarios ? " y su cuenta quedará bloqueada" : ""}. Su historial se conserva y puede
+        reactivarse después.
+      </p>
+      <form method="post" slot="acciones">
+        <input type="hidden" name="accion" value="desactivar" />
+        <Boton type="submit" variante="peligro">
+          Desactivar
+        </Boton>
+      </form>
+    </Modal>
+  )}
+</PanelLayout>
+
+<style>
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+  }
+  .final {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--esp-4);
+  }
+  .nota {
+    margin: 0 0 var(--esp-3);
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .datos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-6);
+    margin: 0;
+  }
+  dt {
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  dd {
+    margin: 0;
+    font-weight: 600;
+  }
+  .dos {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  .mini {
+    display: grid;
+    gap: var(--esp-2);
+    align-content: start;
+  }
+  @media (min-width: 768px) {
+    .dos {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .semana {
+    display: grid;
+    gap: var(--esp-3);
+    margin-bottom: var(--esp-3);
+  }
+  .fila {
+    display: grid;
+    gap: var(--esp-2);
+    padding: var(--esp-3);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+  }
+  .cabecera {
+    display: none;
+  }
+  .resultado {
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  /* En móvil se muestran las etiquetas; en PC la cabecera las reemplaza */
+  @media (min-width: 1000px) {
+    .fila {
+      grid-template-columns: 7rem 11rem 8rem 8rem 8rem 1fr;
+      align-items: start;
+      border: 0;
+      border-bottom: 1px solid var(--color-borde);
+      border-radius: 0;
+      padding: var(--esp-2) 0;
+    }
+    .cabecera {
+      display: grid;
+      font-size: var(--texto-sm);
+      font-weight: 600;
+      color: var(--color-texto-suave);
+    }
+    .fila :global(.sin-etiqueta label) {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+    .fila > strong,
+    .resultado {
+      padding-top: var(--esp-3);
+    }
+  }
+</style>

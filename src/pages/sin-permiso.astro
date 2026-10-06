@@ -1,0 +1,18 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Boton from "@/components/ui/Boton.astro";
+import { inicioPorRol } from "@/lib/auth/acceso";
+
+Astro.response.status = 403;
+const perfil = Astro.locals.perfil;
+if (!perfil) return Astro.redirect("/login");
+---
+
+<PanelLayout titulo="Acceso no permitido">
+  <Tarjeta>
+    <p>Su cuenta no tiene permiso para ver esta sección.</p>
+    <p>Si cree que es un error, comuníquese con la directiva del colegio.</p>
+    <Boton href={inicioPorRol(perfil.rol)}>Volver al inicio</Boton>
+  </Tarjeta>
+</PanelLayout>

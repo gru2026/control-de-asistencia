@@ -93,36 +93,37 @@ Plantilla por antecedente:
 
 ## 7. Recursos (apunte 2: cómo comprobar el proyecto con relación a recursos)
 
-| Tipo | Recurso | Disponibilidad | Costo |
-|---|---|---|---|
-| Humano | 1 desarrollador (diseño, desarrollo, pruebas, capacitación) | ✅ | — |
-| Humano | Directiva y secretaría (datos, validación, uso) | ✅ | — |
-| Tecnológico | PC del colegio con internet | ✅ (confirmado) | Existente |
-| Tecnológico | Teléfonos del personal con datos | ✅ (confirmado) | Existente |
-| Tecnológico | Supabase (BD + auth), Vercel (hosting), GitHub | Plan gratuito | $0 |
-| Material | Impresión del QR (1 hoja, renovable) | ✅ | Mínimo |
-| Tiempo | 4 semanas de desarrollo + capacitación | Planificado | — |
+| Tipo        | Recurso                                                     | Disponibilidad | Costo     |
+| ----------- | ----------------------------------------------------------- | -------------- | --------- |
+| Humano      | 1 desarrollador (diseño, desarrollo, pruebas, capacitación) | ✅              | —         |
+| Humano      | Directiva y secretaría (datos, validación, uso)             | ✅              | —         |
+| Tecnológico | PC del colegio con internet                                 | ✅ (confirmado) | Existente |
+| Tecnológico | Teléfonos del personal con datos                            | ✅ (confirmado) | Existente |
+| Tecnológico | Supabase (BD + auth), Vercel (hosting), GitHub              | Plan gratuito  | $0        |
+| Material    | Impresión del QR (1 hoja, renovable)                        | ✅              | Mínimo    |
+| Tiempo      | 4 semanas de desarrollo + capacitación                      | Planificado    | —         |
+| Dominio     | URL del proyecto hacia donde conectar la app                | Planificado    | $11       |
 
-**Comprobación:** el proyecto es viable porque todos los recursos necesarios existen en la institución o son gratuitos; el único costo material es la impresión periódica del código QR.
+**Comprobación:** el proyecto es viable porque todos los recursos necesarios existen en la institución o son gratuitos; el único costo material es la impresión periódica del código QR y dominio anual.
 
 ---
 
 # Análisis FODA
 
-| | **Positivo** | **Negativo** |
-|---|---|---|
-| **Interno** (proyecto/equipo) | **Fortalezas** | **Debilidades** |
-| | F1. Costo de infraestructura $0 (planes gratuitos). | D1. Un solo desarrollador: riesgo si se atrasa o enferma. |
-| | F2. Aprovecha recursos existentes (PC, internet, teléfonos). | D2. Plazo corto (4 semanas). |
-| | F3. Marcación verificable: QR + GPS + hora del servidor + un teléfono por cuenta. | D3. Dependencia de servicios externos gratuitos (límites del plan). |
-| | F4. Configurable (jornada, tolerancia, radio) sin tocar código. | D4. Sin marcación offline en la primera versión. |
-| | F5. Reportes automáticos en PDF/Excel en segundos. | D5. Valores institucionales aún por confirmar. |
-| **Externo** (colegio/entorno) | **Oportunidades** | **Amenazas** |
-| | O1. Apoyo de la directiva al proyecto. | A1. Fallas de internet o electricidad en la institución/zona. |
-| | O2. Personal con teléfono y datos. | A2. Resistencia al cambio de parte del personal. |
-| | O3. Base para futuros módulos (estudiantes, notificaciones por correo, multi-sede). | A3. Teléfonos antiguos o con GPS impreciso. |
-| | O4. Modelo replicable en otras escuelas de la zona. | A4. Intentos de evadir el control (fotos del QR, ubicación falsa). |
-| | O5. Digitalización alineada con la modernización de la gestión educativa. | A5. Cambios de personal directivo o de políticas. |
+|                               | **Positivo**                                                                        | **Negativo**                                                        |
+| ----------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **Interno** (proyecto/equipo) | **Fortalezas**                                                                      | **Debilidades**                                                     |
+|                               | F1. Costo de infraestructura $0 (planes gratuitos).                                 | D1. Un solo desarrollador: riesgo si se atrasa o enferma.           |
+|                               | F2. Aprovecha recursos existentes (PC, internet, teléfonos).                        | D2. Plazo corto (4 semanas).                                        |
+|                               | F3. Marcación verificable: QR + GPS + hora del servidor + un teléfono por cuenta.   | D3. Dependencia de servicios externos gratuitos (límites del plan). |
+|                               | F4. Configurable (jornada, tolerancia, radio) sin tocar código.                     | D4. Sin marcación offline en la primera versión.                    |
+|                               | F5. Reportes automáticos en PDF/Excel en segundos.                                  | D5. Valores institucionales aún por confirmar.                      |
+| **Externo** (colegio/entorno) | **Oportunidades**                                                                   | **Amenazas**                                                        |
+|                               | O1. Apoyo de la directiva al proyecto.                                              | A1. Fallas de internet o electricidad en la institución/zona.       |
+|                               | O2. Personal con teléfono y datos.                                                  | A2. Resistencia al cambio de parte del personal.                    |
+|                               | O3. Base para futuros módulos (estudiantes, notificaciones por correo, multi-sede). | A3. Teléfonos antiguos o con GPS impreciso.                         |
+|                               | O4. Modelo replicable en otras escuelas de la zona.                                 | A4. Intentos de evadir el control (fotos del QR, ubicación falsa).  |
+|                               | O5. Digitalización alineada con la modernización de la gestión educativa.           | A5. Cambios de personal directivo o de políticas.                   |
 
 ## Estrategias derivadas
 

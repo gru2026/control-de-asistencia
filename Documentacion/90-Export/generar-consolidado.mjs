@@ -33,6 +33,8 @@ const ORDEN = [
   "05-Entregables/Manual-de-usuario.md",
   "05-Entregables/Plan-de-pruebas.md",
   "05-Entregables/Presentacion-del-proyecto.md",
+  "06-Servicio-comunitario/Equipo-y-reparto-de-tareas.md",
+  "06-Servicio-comunitario/Registro-de-horas.md",
   "00-Inicio/Preguntas-para-el-colegio.md",
   "00-Inicio/Glosario.md",
 ];

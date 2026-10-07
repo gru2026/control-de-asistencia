@@ -52,6 +52,11 @@ Documentación del proyecto **Diseño de una aplicación web progresiva de contr
 - [[05-Entregables/Plan-de-pruebas|Plan de pruebas]] — casos de prueba
 - [[05-Entregables/Presentacion-del-proyecto|Presentación del proyecto]] — estructura para exponer
 
+## 06 · Servicio comunitario
+
+- [[06-Servicio-comunitario/Equipo-y-reparto-de-tareas|Equipo y reparto de tareas]] — integrantes, roles y tareas por semana
+- [[06-Servicio-comunitario/Registro-de-horas|Registro de horas]] — horas reales con evidencia y firmas
+
 ## Pendientes
 
 - [[Preguntas-para-el-colegio]] — datos por definir con la institución

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "./BaseLayout.astro";
 import Alerta from "@/components/ui/Alerta.astro";
+import Icono, { type NombreIcono } from "@/components/ui/Icono.astro";
 import { puedeVer } from "@/lib/auth/acceso";
 import { NOMBRE_ROL } from "@/types";
 
@@ -16,13 +17,14 @@ const flash = Astro.locals.flash;
 const ruta = Astro.url.pathname;
 
 // Ítems de navegación; se muestran solo los que el rol puede ver.
-const items = [
-  { href: "/panel", texto: "Panel", icono: "▦" },
-  { href: "/asistencia", texto: "Mi asistencia", icono: "◷" },
-  { href: "/personal", texto: "Personal", icono: "👥" },
-  { href: "/jornadas", texto: "Jornadas", icono: "🗓" },
-  { href: "/configuracion/usuarios", texto: "Usuarios", icono: "🔑" },
-].filter((i) => puedeVer(i.href, perfil.rol));
+const items: { href: string; texto: string; icono: NombreIcono }[] = [
+  { href: "/panel", texto: "Panel", icono: "panel" },
+  { href: "/asistencia", texto: "Mi asistencia", icono: "reloj" },
+  { href: "/personal", texto: "Personal", icono: "usuarios" },
+  { href: "/jornadas", texto: "Jornadas", icono: "calendario" },
+  { href: "/configuracion/usuarios", texto: "Usuarios", icono: "escudo" },
+];
+const visibles = items.filter((i) => puedeVer(i.href, perfil.rol));
 
 const activo = (href: string) => ruta === href || ruta.startsWith(href + "/");
 const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
@@ -33,10 +35,10 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     Saltar al contenido
   </a>
   <header class="barra">
-    <a class="logo" href="/">
-      <img src="/favicon.svg" alt="" width="32" height="32" />
-      <span>
-        Asistencia <strong>UEN</strong>
+    <a class="marca" href="/" aria-label="GRU-system, ir al inicio">
+      <img src="/icons/icon-192.png" alt="" width="32" height="32" />
+      <span class="nombre-app">
+        GRU<span class="tenue">-system</span>
       </span>
     </a>
     <div class="usuario">
@@ -50,8 +52,9 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
         <span class="rol">{NOMBRE_ROL[perfil.rol]}</span>
       </span>
       <form method="post" action="/api/salir">
-        <button type="submit" class="salir">
-          Salir
+        <button type="submit" class="salir" aria-label="Cerrar sesión">
+          <Icono nombre="salir" tamano={18} />
+          <span class="texto-salir">Salir</span>
         </button>
       </form>
     </div>
@@ -59,13 +62,11 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
 
   <div class="marco">
     <nav class="nav" aria-label="Principal">
-      <ul>
-        {items.map((i) => (
+      <ul style={`--columnas: ${visibles.length}`}>
+        {visibles.map((i) => (
           <li>
             <a href={i.href} aria-current={activo(i.href) ? "page" : undefined}>
-              <span class="icono" aria-hidden="true">
-                {i.icono}
-              </span>
+              <Icono nombre={i.icono} tamano={22} />
               <span>{i.texto}</span>
             </a>
           </li>
@@ -100,37 +101,52 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
   }
   .saltar:focus {
     left: var(--esp-2);
-    top: var(--esp-2);
-    z-index: 10;
+    top: calc(var(--seguro-arriba) + var(--esp-2));
+    z-index: 20;
     background: #fff;
-    padding: var(--esp-2);
+    padding: var(--esp-2) var(--esp-3);
+    border-radius: var(--radio-sm);
   }
+
+  /* ── Barra superior ─────────────────────────────────── */
   .barra {
     position: sticky;
     top: 0;
-    z-index: 5;
+    z-index: 10;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: var(--esp-3);
-    padding: var(--esp-2) var(--esp-4);
+    min-height: calc(56px + var(--seguro-arriba));
+    padding: var(--seguro-arriba) calc(var(--esp-4) + var(--seguro-der)) 0
+      calc(var(--esp-4) + var(--seguro-izq));
     background: var(--color-primario);
     color: var(--color-primario-contraste);
   }
-  .logo {
+  .marca {
     display: flex;
     align-items: center;
     gap: var(--esp-2);
     color: inherit;
     text-decoration: none;
+    min-height: 44px;
   }
-  .logo img {
-    border-radius: 8px;
+  .marca img {
+    border-radius: var(--radio-sm);
+  }
+  .nombre-app {
+    font-weight: var(--peso-titulo);
+    font-size: var(--texto-lg);
+    letter-spacing: -0.01em;
+  }
+  .tenue {
+    font-weight: var(--peso-medio);
+    opacity: 0.7;
   }
   .usuario {
     display: flex;
     align-items: center;
-    gap: var(--esp-2);
+    gap: var(--esp-3);
   }
   .avatar {
     display: grid;
@@ -138,37 +154,54 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: rgb(255 255 255 / 0.15);
-    font-weight: 700;
+    background: rgb(255 255 255 / 0.12);
+    font-weight: var(--peso-fuerte);
     font-size: var(--texto-sm);
   }
   .datos {
     display: none;
     flex-direction: column;
-    line-height: 1.2;
+    line-height: 1.25;
+  }
+  .nombre {
+    font-weight: var(--peso-medio);
+    font-size: var(--texto-sm);
   }
   .rol {
-    font-size: 0.75rem;
-    opacity: 0.75;
+    font-size: var(--texto-xs);
+    opacity: 0.7;
   }
   .salir {
-    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
     padding: 0 var(--esp-3);
-    border: 1px solid rgb(255 255 255 / 0.3);
+    border: 1px solid rgb(255 255 255 / 0.25);
     border-radius: var(--radio);
     background: transparent;
-    color: inherit;
-    cursor: pointer;
+    font-size: var(--texto-sm);
+    transition: background var(--duracion-rapida) var(--curva);
+  }
+  .salir:hover {
+    background: rgb(255 255 255 / 0.1);
+  }
+  .salir:focus-visible {
+    outline-color: #fff;
+  }
+  .texto-salir {
+    display: none;
   }
 
-  .marco {
-    display: block;
-  }
+  /* ── Contenido ──────────────────────────────────────── */
   main {
-    padding: var(--esp-4);
-    padding-bottom: calc(var(--esp-8) * 3); /* espacio para la barra inferior */
+    width: 100%;
     max-width: 72rem;
     margin: 0 auto;
+    padding: var(--esp-5) calc(var(--esp-4) + var(--seguro-der)) calc(88px + var(--seguro-abajo))
+      calc(var(--esp-4) + var(--seguro-izq));
   }
   .encabezado {
     display: flex;
@@ -176,37 +209,44 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     justify-content: space-between;
     align-items: flex-end;
     gap: var(--esp-3);
-    margin-bottom: var(--esp-4);
+    margin-bottom: var(--esp-5);
   }
   h1 {
     margin: 0;
     font-size: var(--texto-xl);
+    font-weight: var(--peso-titulo);
+    letter-spacing: -0.02em;
   }
   .subtitulo {
     margin: var(--esp-1) 0 0;
     color: var(--color-texto-suave);
   }
+  .subtitulo::first-letter {
+    text-transform: uppercase;
+  }
   .acciones {
     display: flex;
     gap: var(--esp-2);
     flex-wrap: wrap;
+    align-items: center;
   }
   .flash {
     margin-bottom: var(--esp-4);
   }
 
-  /* Móvil: barra inferior */
+  /* ── Navegación móvil: barra inferior ───────────────── */
   .nav {
     position: fixed;
     inset: auto 0 0 0;
-    z-index: 5;
-    background: var(--color-superficie);
+    z-index: 10;
+    background: rgb(255 255 255 / 0.96);
+    backdrop-filter: saturate(1.4) blur(8px);
     border-top: 1px solid var(--color-borde);
-    padding-bottom: env(safe-area-inset-bottom);
+    padding: var(--esp-1) var(--seguro-der) var(--seguro-abajo) var(--seguro-izq);
   }
   .nav ul {
-    display: flex;
-    justify-content: space-around;
+    display: grid;
+    grid-template-columns: repeat(var(--columnas), 1fr);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -215,23 +255,40 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 2px;
-    min-width: var(--toque-min);
-    padding: var(--esp-2) var(--esp-1);
+    min-height: 56px;
+    padding: var(--esp-1);
     color: var(--color-texto-suave);
     text-decoration: none;
-    font-size: 0.7rem;
+    font-size: var(--texto-xs);
+    font-weight: var(--peso-medio);
+    border-radius: var(--radio);
+    transition:
+      color var(--duracion-rapida) var(--curva),
+      background var(--duracion-rapida) var(--curva);
+  }
+  .nav a span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .nav a:hover {
+    color: var(--color-texto);
   }
   .nav a[aria-current="page"] {
     color: var(--color-acento);
-    font-weight: 700;
-  }
-  .icono {
-    font-size: 1.25rem;
-    line-height: 1;
+    font-weight: var(--peso-fuerte);
   }
 
-  /* PC: navegación lateral */
+  @media (min-width: 480px) {
+    .texto-salir {
+      display: inline;
+    }
+  }
+
+  /* ── PC: navegación lateral ─────────────────────────── */
   @media (min-width: 900px) {
     .datos {
       display: flex;
@@ -239,40 +296,48 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     .marco {
       display: grid;
       grid-template-columns: 15rem 1fr;
-      min-height: calc(100dvh - 52px);
+      min-height: calc(100dvh - 56px);
     }
     .nav {
       position: sticky;
-      top: 52px;
+      top: 56px;
       align-self: start;
-      height: calc(100dvh - 52px);
+      height: calc(100dvh - 56px);
+      background: var(--color-superficie);
+      backdrop-filter: none;
       border-top: 0;
       border-right: 1px solid var(--color-borde);
-      padding: var(--esp-4) var(--esp-2);
+      padding: var(--esp-4) var(--esp-3);
     }
     .nav ul {
+      display: flex;
       flex-direction: column;
       gap: var(--esp-1);
     }
     .nav a {
       flex-direction: row;
+      justify-content: flex-start;
       gap: var(--esp-3);
-      padding: var(--esp-3);
-      border-radius: var(--radio);
-      font-size: var(--texto-base);
+      min-height: 44px;
+      padding: 0 var(--esp-3);
+      font-size: var(--texto-sm);
+    }
+    .nav a:hover {
+      background: var(--color-superficie-hover);
     }
     .nav a[aria-current="page"] {
-      background: #eff6ff;
+      background: var(--color-acento-suave);
     }
-    .icono {
-      font-size: 1rem;
-      width: 1.25rem;
-      text-align: center;
+    .nav a :global(.icono) {
+      width: var(--icono-md);
+      height: var(--icono-md);
     }
     main {
-      padding: var(--esp-8);
+      padding: var(--esp-8) var(--esp-8) var(--esp-10);
       margin: 0;
-      width: 100%;
+    }
+    h1 {
+      font-size: var(--texto-2xl);
     }
   }
 </style>

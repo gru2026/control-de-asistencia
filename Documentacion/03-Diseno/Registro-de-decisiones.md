@@ -36,6 +36,9 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-17 | 2026-10-06 | Formularios HTML nativos con POST → redirect → GET (casi sin JavaScript) | ✅ Vigente |
 | D-18 | 2026-10-06 | Secretos con `astro:env` (`access: secret`), leídos en tiempo de ejecución | ✅ Vigente |
 | D-19 | 2026-10-06 | Migraciones aplicadas con `scripts/db.mjs` (API de gestión), registradas en `interno.migraciones` | ✅ Vigente |
+| D-20 | 2026-10-08 | Nombre del producto: **GRU-system**; ícono con las iniciales "GRU" en la paleta del proyecto | ✅ Vigente |
+| D-21 | 2026-10-08 | Escritorio = **PWA instalada desde Edge/Chrome** (Windows 10). Se descartan Electron y Tauri | ✅ Vigente |
+| D-22 | 2026-10-08 | Interfaz: estilo Minimalismo/Swiss, íconos SVG de una sola familia (Lucide), sin emojis; fuentes del sistema | ✅ Vigente |
 
 ---
 
@@ -46,6 +49,16 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 - **D-17:** cada acción es un `<form method="post">`; tras guardar se redirige (303) con un mensaje "flash" en cookie. Astro verifica el `Origin` (protección CSRF).
 - **D-18:** `import.meta.env` incrustaba la clave secreta en el build; con `astro:env` queda fuera del artefacto.
 - **D-19:** `TOKEN_ACCESS` (token personal de Supabase) es **solo local**; nunca se configura en Vercel.
+
+### D-21 · App de escritorio sin Electron ni Tauri
+- La app depende del servidor (login, QR, GPS, reportes); un contenedor nativo no agrega funciones y sí peso (Electron: +150 MB y ~250 MB de RAM) y mantenimiento (compilar y redistribuir cada versión).
+- Edge viene en Windows 10 y permite **Instalar este sitio como aplicación**: ventana propia, ícono en Inicio/escritorio y actualización automática con cada despliegue.
+- Reconsiderar solo si se necesita hardware local (impresora térmica, lector biométrico).
+
+### D-22 · Sistema de diseño
+- Definido con la skill *ui-ux-pro-max* (`.opencode/skills/`): estilo Minimalismo/Swiss, recomendado para paneles administrativos.
+- Tokens en `src/styles/tokens.css`; íconos en `src/components/ui/Icono.astro` (trazo 2, contorno).
+- Accesibilidad: contraste ≥ 4.5:1, foco visible, controles ≥ 44 px, respeto de `prefers-reduced-motion`, áreas seguras del iPhone.
 
 ### D-02 · El PC del colegio
 - Desde el PC, **directiva y secretaría** administran: personal, jornadas, configuración, QR, dispositivos, reportes.

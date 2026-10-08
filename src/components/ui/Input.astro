@@ -53,7 +53,8 @@ const describe = [ayuda && idAyuda, error && idError].filter(Boolean).join(" ") 
     gap: var(--esp-1);
   }
   label {
-    font-weight: 600;
+    font-weight: var(--peso-medio);
+    color: var(--color-texto);
     font-size: var(--texto-sm);
   }
   .obligatorio {
@@ -64,9 +65,21 @@ const describe = [ayuda && idAyuda, error && idError].filter(Boolean).join(" ") 
     min-height: var(--toque-min);
     padding: var(--esp-2) var(--esp-3);
     border: 1px solid var(--color-borde);
-    border-radius: calc(var(--radio) / 1.5);
+    border-radius: var(--radio-sm);
     background: var(--color-superficie);
     color: var(--color-texto);
+    border-color: var(--color-borde-fuerte);
+    transition:
+      border-color var(--duracion-rapida) var(--curva),
+      box-shadow var(--duracion-rapida) var(--curva);
+  }
+  input:hover:not(:disabled) {
+    border-color: var(--color-texto-suave);
+  }
+  input:focus-visible {
+    border-color: var(--color-acento);
+    box-shadow: 0 0 0 3px rgb(37 99 235 / 0.2);
+    outline: none;
   }
   input:disabled {
     background: var(--color-fondo);

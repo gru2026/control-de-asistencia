@@ -1,42 +1,80 @@
-/* Design tokens: única fuente de colores, tipografía y espaciado. */
+/* GRU-system · Design tokens (única fuente de colores, tipografía, espacio y movimiento).
+ * Estilo: Minimalismo / Swiss — limpio, funcional, alto contraste. */
 :root {
   /* Marca */
   --color-primario: #0f172a;
+  --color-primario-hover: #1e293b;
   --color-primario-contraste: #ffffff;
   --color-acento: #2563eb;
+  --color-acento-hover: #1d4ed8;
+  --color-acento-suave: #eff6ff;
 
-  /* Semánticos (estados de asistencia) */
-  --color-exito: #15803d; /* presente */
-  --color-alerta: #b45309; /* tarde */
-  --color-error: #b91c1c; /* falta */
-  --color-info: #475569; /* permiso */
+  /* Semánticos (estados de asistencia) — contraste ≥ 4.5:1 sobre su fondo */
+  --color-exito: #15803d;
+  --color-exito-suave: #dcfce7;
+  --color-alerta: #b45309;
+  --color-alerta-suave: #fef3c7;
+  --color-error: #b91c1c;
+  --color-error-suave: #fee2e2;
+  --color-info: #475569;
+  --color-info-suave: #f1f5f9;
 
   /* Superficies y texto */
   --color-fondo: #f8fafc;
   --color-superficie: #ffffff;
+  --color-superficie-hover: #f1f5f9;
   --color-borde: #e2e8f0;
+  --color-borde-fuerte: #cbd5e1;
   --color-texto: #0f172a;
   --color-texto-suave: #475569;
 
-  /* Tipografía */
-  --fuente-base: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Tipografía: fuentes del sistema (rápidas en equipos modestos, sin descargas) */
+  --fuente-base:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --texto-xs: 0.75rem;
   --texto-sm: 0.875rem;
   --texto-base: 1rem;
-  --texto-lg: 1.25rem;
-  --texto-xl: 1.75rem;
+  --texto-lg: 1.125rem;
+  --texto-xl: 1.5rem;
+  --texto-2xl: 2rem;
+  --peso-medio: 500;
+  --peso-fuerte: 600;
+  --peso-titulo: 700;
 
-  /* Espaciado */
+  /* Espaciado (ritmo de 4/8 px) */
   --esp-1: 0.25rem;
   --esp-2: 0.5rem;
   --esp-3: 0.75rem;
   --esp-4: 1rem;
+  --esp-5: 1.25rem;
   --esp-6: 1.5rem;
   --esp-8: 2rem;
+  --esp-10: 2.5rem;
 
   /* Bordes y sombras */
+  --radio-sm: 0.5rem;
   --radio: 0.75rem;
-  --sombra: 0 1px 3px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.04);
+  --radio-lg: 1rem;
+  --sombra-sm: 0 1px 2px rgb(15 23 42 / 0.06);
+  --sombra: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.04);
+  --sombra-lg: 0 10px 30px rgb(15 23 42 / 0.12);
 
-  /* Táctil: tamaño mínimo de botones (accesibilidad móvil) */
+  /* Íconos */
+  --icono-sm: 16px;
+  --icono-md: 20px;
+  --icono-lg: 24px;
+
+  /* Movimiento */
+  --duracion-rapida: 150ms;
+  --duracion: 200ms;
+  --curva: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Táctil: tamaño mínimo de controles */
   --toque-min: 48px;
+
+  /* Áreas seguras (notch y barra de gestos en iPhone) */
+  --seguro-arriba: env(safe-area-inset-top, 0px);
+  --seguro-abajo: env(safe-area-inset-bottom, 0px);
+  --seguro-izq: env(safe-area-inset-left, 0px);
+  --seguro-der: env(safe-area-inset-right, 0px);
 }

@@ -8,7 +8,7 @@ import { decidirAcceso } from "@/lib/auth/acceso";
 import { tomarFlash } from "@/lib/flash";
 import type { Perfil } from "@/types";
 
-const ESTATICO = /^\/(_astro|icons)\/|\.(svg|png|ico|webmanifest|js|css|txt|woff2?)$/;
+const ESTATICO = /^\/(_astro|icons)\/|\.(svg|png|ico|webmanifest|js|css|txt|html|woff2?)$/;
 
 function cabecerasSeguridad(res: Response, privada: boolean): Response {
   const h = res.headers;

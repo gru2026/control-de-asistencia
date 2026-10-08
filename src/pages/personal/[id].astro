@@ -2,6 +2,7 @@
 import PanelLayout from "@/layouts/PanelLayout.astro";
 import Tarjeta from "@/components/ui/Tarjeta.astro";
 import Boton from "@/components/ui/Boton.astro";
+import Icono from "@/components/ui/Icono.astro";
 import Badge from "@/components/ui/Badge.astro";
 import Alerta from "@/components/ui/Alerta.astro";
 import Modal from "@/components/ui/Modal.astro";
@@ -228,7 +229,8 @@ const valorExc = (k: string, porDefecto: string) =>
   <Fragment slot="acciones">
     <Badge tipo={ficha.estado}>{ficha.estado === "activo" ? "Activo" : "Inactivo"}</Badge>
     <Boton href="/personal" variante="secundario">
-      ← Volver
+      <Icono nombre="atras" tamano={18} />
+      Volver
     </Boton>
   </Fragment>
 

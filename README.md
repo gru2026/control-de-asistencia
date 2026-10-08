@@ -1,4 +1,4 @@
-# Control de Asistencia — U.E.E. General Rafael Urdaneta
+# GRU-system — Control de Asistencia U.E.E. General Rafael Urdaneta
 
 Aplicación web progresiva (PWA) para el registro y control de asistencia del personal docente y administrativo de la **Unidad Educativa Estadal General Rafael Urdaneta**.
 
@@ -146,6 +146,14 @@ Si una validación falla, la persona recibe un mensaje claro sobre qué hacer (a
           │ Datos, sesiones, roles  │
           └─────────────────────────┘
 ```
+
+## Instalar la aplicación
+
+| Dispositivo           | Pasos                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| iPhone (Safari)       | Abrir la dirección → botón Compartir → **Agregar a pantalla de inicio**                |
+| Android (Chrome)      | Abrir la dirección → menú → **Instalar aplicación**                                    |
+| PC con Windows (Edge) | Abrir la dirección → menú `…` → **Aplicaciones → Instalar este sitio como aplicación** |
 
 ## Estado del proyecto
 

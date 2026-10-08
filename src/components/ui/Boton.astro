@@ -40,34 +40,43 @@ const clases = ["boton", variante, tamano, bloque && "bloque", clase];
     justify-content: center;
     gap: var(--esp-2);
     min-height: var(--toque-min);
-    padding: var(--esp-2) var(--esp-4);
+    padding: 0 var(--esp-5);
     border: 1px solid transparent;
     border-radius: var(--radio);
-    font-weight: 600;
+    font-weight: var(--peso-fuerte);
+    font-size: var(--texto-sm);
+    line-height: 1.2;
     text-decoration: none;
+    white-space: nowrap;
     cursor: pointer;
     transition:
-      background 0.15s,
-      border-color 0.15s;
+      background var(--duracion-rapida) var(--curva),
+      border-color var(--duracion-rapida) var(--curva),
+      box-shadow var(--duracion-rapida) var(--curva),
+      opacity var(--duracion-rapida) var(--curva);
+  }
+  .boton:active:not(:disabled) {
+    opacity: 0.85;
   }
   .boton:disabled {
-    opacity: 0.55;
+    opacity: 0.5;
     cursor: not-allowed;
   }
   .primario {
     background: var(--color-primario);
     color: var(--color-primario-contraste);
+    box-shadow: var(--sombra-sm);
   }
   .primario:hover:not(:disabled) {
-    background: #1e293b;
+    background: var(--color-primario-hover);
   }
   .secundario {
     background: var(--color-superficie);
     color: var(--color-texto);
-    border-color: var(--color-borde);
+    border-color: var(--color-borde-fuerte);
   }
   .secundario:hover:not(:disabled) {
-    border-color: var(--color-texto-suave);
+    background: var(--color-superficie-hover);
   }
   .peligro {
     background: var(--color-error);
@@ -81,17 +90,17 @@ const clases = ["boton", variante, tamano, bloque && "bloque", clase];
     color: var(--color-acento);
   }
   .fantasma:hover:not(:disabled) {
-    background: #eff6ff;
+    background: var(--color-acento-suave);
   }
   .pequeno {
     min-height: 36px;
-    padding: var(--esp-1) var(--esp-3);
+    padding: 0 var(--esp-3);
     font-size: var(--texto-sm);
   }
   .grande {
-    min-height: 64px;
-    font-size: var(--texto-lg);
-    padding: var(--esp-3) var(--esp-6);
+    min-height: 56px;
+    font-size: var(--texto-base);
+    padding: 0 var(--esp-6);
   }
   .bloque {
     width: 100%;

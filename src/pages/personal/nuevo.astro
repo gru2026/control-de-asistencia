@@ -2,6 +2,7 @@
 import PanelLayout from "@/layouts/PanelLayout.astro";
 import Tarjeta from "@/components/ui/Tarjeta.astro";
 import Boton from "@/components/ui/Boton.astro";
+import Icono from "@/components/ui/Icono.astro";
 import Alerta from "@/components/ui/Alerta.astro";
 import CamposPersonal from "@/components/personal/CamposPersonal.astro";
 import CamposCuenta from "@/components/personal/CamposCuenta.astro";
@@ -52,7 +53,8 @@ if (Astro.request.method === "POST") {
 <PanelLayout titulo="Nuevo personal">
   <Fragment slot="acciones">
     <Boton href="/personal" variante="secundario">
-      ← Volver
+      <Icono nombre="atras" tamano={18} />
+      Volver
     </Boton>
   </Fragment>
 

@@ -38,14 +38,20 @@ const { titulo, vacio = "No hay registros.", hayFilas = true } = Astro.props;
   }
   table :global(th) {
     background: var(--color-fondo);
-    font-weight: 600;
+    font-weight: var(--peso-fuerte);
+    font-size: var(--texto-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     color: var(--color-texto-suave);
   }
   table :global(tbody tr:last-child td) {
     border-bottom: 0;
   }
+  table :global(tbody tr) {
+    transition: background var(--duracion-rapida) var(--curva);
+  }
   table :global(tbody tr:hover) {
-    background: #f1f5f9;
+    background: var(--color-superficie-hover);
   }
   .vacio {
     padding: var(--esp-6);

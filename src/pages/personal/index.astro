@@ -4,6 +4,7 @@ import Tarjeta from "@/components/ui/Tarjeta.astro";
 import Tabla from "@/components/ui/Tabla.astro";
 import Badge from "@/components/ui/Badge.astro";
 import Boton from "@/components/ui/Boton.astro";
+import Icono from "@/components/ui/Icono.astro";
 import Input from "@/components/ui/Input.astro";
 import Select from "@/components/ui/Select.astro";
 import Paginacion from "@/components/ui/Paginacion.astro";
@@ -64,7 +65,12 @@ const hayFiltros = q || cargo || estado !== "activo" || sinCuenta || sinJornada;
 
 <PanelLayout titulo="Personal" subtitulo="Docentes y personal administrativo del colegio.">
   <Fragment slot="acciones">
-    {perfil.rol === "directiva" && <Boton href="/personal/nuevo">+ Nuevo personal</Boton>}
+    {perfil.rol === "directiva" && (
+      <Boton href="/personal/nuevo">
+        <Icono nombre="mas" tamano={18} />
+        Nuevo personal
+      </Boton>
+    )}
   </Fragment>
 
   <Tarjeta>

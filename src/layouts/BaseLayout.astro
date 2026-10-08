@@ -3,9 +3,11 @@ import "@/styles/global.css";
 
 interface Props {
   titulo: string;
+  /** Color de la barra del sistema (móvil / ventana de escritorio). */
+  colorTema?: string;
 }
 
-const { titulo } = Astro.props;
+const { titulo, colorTema = "#0f172a" } = Astro.props;
 ---
 
 <!doctype html>
@@ -13,16 +15,33 @@ const { titulo } = Astro.props;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content={colorTema} />
+    <meta name="color-scheme" content="light" />
     <meta
       name="description"
-      content="Control de asistencia del personal — U.E.E. General Rafael Urdaneta"
+      content="GRU-system: control de asistencia del personal de la U.E.E. General Rafael Urdaneta"
     />
     <meta name="robots" content="noindex" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>{titulo} · Asistencia UEN</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="application-name" content="GRU-system" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="GRU-system" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+
+    <title>{titulo} · GRU-system</title>
   </head>
   <body>
     <slot />
+    {import.meta.env.PROD && <script is:inline>
+      if ("serviceWorker" in navigator) {
+        addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+      }
+    </script>}
   </body>
 </html>

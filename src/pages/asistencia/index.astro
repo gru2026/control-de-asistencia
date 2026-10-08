@@ -3,6 +3,7 @@ import PanelLayout from "@/layouts/PanelLayout.astro";
 import Tarjeta from "@/components/ui/Tarjeta.astro";
 import Alerta from "@/components/ui/Alerta.astro";
 import Boton from "@/components/ui/Boton.astro";
+import Icono from "@/components/ui/Icono.astro";
 import { fechaLarga, hoyEnZona } from "@/lib/fecha";
 import { resolverJornada } from "@/lib/reglas/jornada";
 import {
@@ -81,6 +82,7 @@ const regla = ficha
 
     <Tarjeta titulo="Marcar asistencia">
       <Boton tamano="grande" bloque disabled>
+        <Icono nombre="qr" tamano={22} />
         Marcar entrada
       </Boton>
       <p class="nota">La marcación con código QR y ubicación estará disponible próximamente.</p>

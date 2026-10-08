@@ -8,6 +8,8 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -18,6 +20,15 @@ body {
   line-height: 1.5;
   color: var(--color-texto);
   background: var(--color-fondo);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  text-wrap: balance;
 }
 
 img,
@@ -31,11 +42,46 @@ input,
 select,
 textarea {
   font: inherit;
+  color: inherit;
+}
+
+a,
+button,
+summary,
+label[for],
+select,
+[role="button"] {
+  cursor: pointer;
+}
+
+:disabled {
+  cursor: not-allowed;
+}
+
+a {
+  color: var(--color-acento);
+  text-underline-offset: 3px;
 }
 
 :focus-visible {
   outline: 3px solid var(--color-acento);
   outline-offset: 2px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline-offset: 0;
+  border-color: var(--color-acento);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--color-acento);
+}
+
+::selection {
+  background: #bfdbfe;
 }
 
 .visualmente-oculto {
@@ -45,4 +91,16 @@ textarea {
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* Respeta la preferencia de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

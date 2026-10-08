@@ -10,13 +10,16 @@ const { titulo } = Astro.props;
 <BaseLayout titulo={titulo}>
   <main class="auth">
     <div class="marca">
-      <img src="/favicon.svg" alt="" width="56" height="56" />
-      <p class="institucion">U.E.E. General Rafael Urdaneta</p>
-      <p class="app">Control de Asistencia</p>
+      <img src="/icons/icon-192.png" alt="" width="72" height="72" />
+      <p class="app">
+        GRU<span>-system</span>
+      </p>
+      <p class="institucion">Control de Asistencia · U.E.E. General Rafael Urdaneta</p>
     </div>
     <div class="caja">
       <slot />
     </div>
+    <p class="pie">Proyecto de Servicio Comunitario</p>
   </main>
 </BaseLayout>
 
@@ -25,9 +28,13 @@ const { titulo } = Astro.props;
     min-height: 100dvh;
     display: grid;
     place-content: center;
+    justify-items: center;
     gap: var(--esp-6);
-    padding: var(--esp-6) var(--esp-4);
-    background: linear-gradient(160deg, var(--color-primario) 0 45%, var(--color-fondo) 45%);
+    padding: calc(var(--esp-8) + var(--seguro-arriba)) var(--esp-4)
+      calc(var(--esp-6) + var(--seguro-abajo));
+    background:
+      linear-gradient(180deg, var(--color-primario) 0, var(--color-primario) 42%, transparent 42%),
+      var(--color-fondo);
   }
   .marca {
     text-align: center;
@@ -35,24 +42,35 @@ const { titulo } = Astro.props;
   }
   .marca img {
     margin: 0 auto var(--esp-3);
-    border-radius: 14px;
-    box-shadow: 0 0 0 3px rgb(255 255 255 / 0.25);
-  }
-  .institucion {
-    margin: 0;
-    font-size: var(--texto-sm);
-    opacity: 0.85;
+    border-radius: 18px;
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.15);
   }
   .app {
     margin: 0;
-    font-size: var(--texto-xl);
-    font-weight: 700;
+    font-size: var(--texto-2xl);
+    font-weight: var(--peso-titulo);
+    letter-spacing: -0.02em;
+  }
+  .app span {
+    font-weight: var(--peso-medio);
+    opacity: 0.7;
+  }
+  .institucion {
+    margin: var(--esp-1) 0 0;
+    font-size: var(--texto-sm);
+    opacity: 0.8;
   }
   .caja {
     width: min(26rem, calc(100vw - 2rem));
     background: var(--color-superficie);
-    border-radius: var(--radio);
-    box-shadow: 0 10px 30px rgb(0 0 0 / 0.12);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio-lg);
+    box-shadow: var(--sombra-lg);
     padding: var(--esp-6);
+  }
+  .pie {
+    margin: 0;
+    font-size: var(--texto-xs);
+    color: var(--color-texto-suave);
   }
 </style>

@@ -42,7 +42,9 @@ El resultado es un cuello de botella administrativo que consume horas de trabajo
 
 ## La solución
 
-Una aplicación que se instala en el teléfono del personal y digitaliza todo el proceso:
+Una aplicación que se instala en el teléfono del personal y digitaliza todo el proceso.
+
+**Aplicación en línea:** https://control-de-asistencia-vert.vercel.app
 
 | Antes                                  | Con la aplicación                                       |
 | -------------------------------------- | ------------------------------------------------------- |

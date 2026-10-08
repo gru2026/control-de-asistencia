@@ -6,7 +6,7 @@ import vercel from "@astrojs/vercel";
 export default defineConfig({
   output: "server",
   adapter: vercel(),
-  site: "https://asistencia-uen.vercel.app",
+  site: "https://control-de-asistencia-vert.vercel.app",
   server: { port: 4321 },
   security: { checkOrigin: true },
   env: {

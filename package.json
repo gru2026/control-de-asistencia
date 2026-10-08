@@ -5,7 +5,7 @@
   "type": "module",
   "description": "PWA de control de asistencia del personal docente y administrativo — U.E.E. General Rafael Urdaneta",
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "astro dev",

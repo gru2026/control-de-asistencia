@@ -162,20 +162,20 @@ if (filtroCuando === "pasados") qFeriados = qFeriados.lt("fecha", hoy);
 
 const [{ data: jornadasData }, { data: feriadosData }, { data: categoriasData }] =
   await Promise.all([
-    sb.from("jornadas").select(`${COLUMNAS_JORNADA}, personal(count)`).order("nombre"),
+    sb.from("jornadas").select(`${COLUMNAS_JORNADA}, personal(id)`).order("nombre"),
     qFeriados,
     sb
       .from("categorias")
-      .select(`${COLUMNAS_CATEGORIA}, personal(count)`)
+      .select(`${COLUMNAS_CATEGORIA}, personal(id)`)
       .order("orden")
       .order("nombre"),
   ]);
-const todasJornadas = (jornadasData ?? []) as (FilaJornada & { personal: { count: number }[] })[];
+const todasJornadas = (jornadasData ?? []) as (FilaJornada & { personal: { id: string }[] })[];
 const jornadas = todasJornadas.filter(
   (j) => !filtroJornada || j.activa === (filtroJornada === "activa"),
 );
 const feriados = (feriadosData ?? []) as { id: string; fecha: string; descripcion: string }[];
-const categorias = (categoriasData ?? []) as (Categoria & { personal: { count: number }[] })[];
+const categorias = (categoriasData ?? []) as (Categoria & { personal: { id: string }[] })[];
 const nombreJornada = new Map(todasJornadas.map((j) => [j.id, j.nombre]));
 const editarCat = categorias.find(
   (c) => c.id === (accion === "categoria_guardar" ? valores.id : qp.get("categoria")),
@@ -272,7 +272,7 @@ const eF = accion === "feriado_agregar" ? errores : {};
         </thead>
         <tbody>
           {jornadas.map((j) => {
-            const personas = j.personal[0]?.count ?? 0;
+            const personas = j.personal.length;
             return (
               <tr>
                 <td class="principal">
@@ -449,7 +449,7 @@ const eF = accion === "feriado_agregar" ? errores : {};
         </thead>
         <tbody>
           {categorias.map((c) => {
-            const n = c.personal[0]?.count ?? 0;
+            const n = c.personal.length;
             return (
               <tr>
                 <td class="principal">
@@ -673,9 +673,6 @@ const eF = accion === "feriado_agregar" ? errores : {};
     display: flex;
     gap: var(--esp-3);
     align-items: flex-start;
-    padding: var(--esp-3) var(--esp-4);
-    border: 1px solid var(--color-borde);
-    border-radius: var(--radio);
   }
   .casilla input {
     width: 20px;
@@ -691,9 +688,7 @@ const eF = accion === "feriado_agregar" ? errores : {};
   .form-categoria {
     display: grid;
     gap: var(--esp-4);
-    margin-top: var(--esp-5);
-    padding-top: var(--esp-5);
-    border-top: 1px solid var(--color-borde);
+    margin-top: var(--esp-8);
   }
   .form-categoria h3 {
     margin: 0;
@@ -724,16 +719,16 @@ const eF = accion === "feriado_agregar" ? errores : {};
   .dias {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--esp-3);
-    border: 1px solid var(--color-borde);
-    border-radius: var(--radio);
-    padding: var(--esp-3) var(--esp-4);
+    gap: var(--esp-2) var(--esp-5);
+    border: 0;
+    padding: 0;
     margin: 0;
   }
   .dias legend {
-    font-weight: 600;
+    font-weight: var(--peso-medio);
     font-size: var(--texto-sm);
-    padding: 0 var(--esp-1);
+    padding: 0;
+    margin-bottom: var(--esp-2);
   }
   .dias label {
     display: flex;

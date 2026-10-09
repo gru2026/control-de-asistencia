@@ -35,15 +35,35 @@ const { id, titulo } = Astro.props;
 </script>
 
 <style>
+  /* Lo que flota usa sombra, sin borde. Entrada corta con salida exponencial. */
   .modal {
     width: min(28rem, calc(100vw - 2rem));
     border: 0;
-    border-radius: var(--radio);
+    border-radius: var(--radio-lg);
     padding: var(--esp-6);
-    box-shadow: 0 20px 40px rgb(0 0 0 / 0.2);
+    box-shadow: var(--sombra-lg);
+    color: var(--color-texto);
+  }
+  .modal[open] {
+    animation: aparecer var(--duracion) var(--curva);
+  }
+  .modal[open]::backdrop {
+    animation: velo var(--duracion) var(--curva);
   }
   .modal::backdrop {
-    background: rgb(15 23 42 / 0.5);
+    background: rgb(15 23 42 / 0.45);
+    backdrop-filter: blur(2px);
+  }
+  @keyframes aparecer {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+  }
+  @keyframes velo {
+    from {
+      opacity: 0;
+    }
   }
   h2 {
     margin: 0 0 var(--esp-3);
@@ -60,12 +80,16 @@ const { id, titulo } = Astro.props;
     margin-top: var(--esp-6);
   }
   .cancelar {
-    min-height: var(--toque-min);
-    padding: var(--esp-2) var(--esp-4);
-    border-radius: var(--radio);
-    border: 1px solid var(--color-borde);
+    min-height: 44px;
+    padding: 0 var(--esp-5);
+    border-radius: var(--radio-sm);
+    border: 1px solid var(--color-borde-fuerte);
     background: var(--color-superficie);
-    font-weight: 600;
-    cursor: pointer;
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-fuerte);
+    transition: background var(--duracion-rapida) var(--curva);
+  }
+  .cancelar:hover {
+    background: var(--color-superficie-hover);
   }
 </style>

@@ -280,39 +280,58 @@ const enlaceCategoria = (id: string | null) => {
     </section>
   )}
 
-  <!-- Indicadores -->
-  <ul class="kpis">
-    {kpis.map((k) => (
-      <li class="kpi" data-datos>
-        <div class="cabeza">
-          <span class="titulo">{k.titulo}</span>
-          <Icono nombre={k.icono} tamano={20} class="kpi-icono" />
-        </div>
-        <span class="valor">{k.valor}</span>
-        <span class="detalle">{k.detalle}</span>
-        {k.var && (
-          <span class:list={["variacion", k.var.mejora ? "mejora" : "empeora"]}>
-            <Icono nombre={k.var.mejora ? "tendencia" : "tendenciaBaja"} tamano={14} />
-            {k.var.texto} vs. período anterior
-          </span>
-        )}
-      </li>
-    ))}
-  </ul>
+  <!-- Indicadores: una cifra principal y una fila de cifras secundarias en una sola superficie -->
+  <section class="resumen" aria-label="Indicadores del período" data-datos>
+    {(() => {
+      const [principal, ...resto] = kpis;
+      return (
+        <>
+          <div class="principal">
+            <span class="titulo">{principal!.titulo}</span>
+            <span class="valor-principal">{principal!.valor}</span>
+            <span class="detalle">{principal!.detalle}</span>
+            {principal!.var && (
+              <span class:list={["variacion", principal!.var.mejora ? "mejora" : "empeora"]}>
+                <Icono nombre={principal!.var.mejora ? "tendencia" : "tendenciaBaja"} tamano={16} />
+                {principal!.var.texto} frente al período anterior
+              </span>
+            )}
+          </div>
+          <dl class="secundarios">
+            {resto.map((k) => (
+              <div class="kpi">
+                <dt class="titulo">
+                  <Icono nombre={k.icono} tamano={16} class="kpi-icono" />
+                  {k.titulo}
+                </dt>
+                <dd class="valor">{k.valor}</dd>
+                <dd class="detalle">{k.detalle}</dd>
+                {k.var && (
+                  <dd class:list={["variacion", k.var.mejora ? "mejora" : "empeora"]}>
+                    <Icono nombre={k.var.mejora ? "tendencia" : "tendenciaBaja"} tamano={14} />
+                    {k.var.texto}
+                  </dd>
+                )}
+              </div>
+            ))}
+          </dl>
+        </>
+      );
+    })()}
+  </section>
 
   {lectura.length > 0 && (
-    <Tarjeta
-      titulo="Lectura rápida"
-      descripcion="Observaciones calculadas a partir de los datos del período."
-      class="lectura"
-      datos
-    >
-      <ul>
-        {lectura.map((t) => (
-          <li>{t}</li>
-        ))}
-      </ul>
-    </Tarjeta>
+    <section class="lectura" aria-labelledby="titulo-lectura" data-datos>
+      <Icono nombre="info" tamano={20} class="lectura-icono" />
+      <div>
+        <h2 id="titulo-lectura">Lectura rápida</h2>
+        <ul>
+          {lectura.map((t) => (
+            <li>{t}</li>
+          ))}
+        </ul>
+      </div>
+    </section>
   )}
 
   {registros.length === 0 ? (
@@ -494,13 +513,13 @@ const enlaceCategoria = (id: string | null) => {
     flex-wrap: wrap;
     align-items: center;
     gap: var(--esp-3) var(--esp-4);
-    margin-bottom: var(--esp-5);
+    margin-bottom: var(--esp-6);
   }
   .segmentado {
     display: inline-flex;
     padding: 4px;
     gap: 2px;
-    background: var(--color-superficie-hover);
+    background: var(--color-lateral);
     border-radius: var(--radio);
   }
   .segmentado a {
@@ -514,6 +533,9 @@ const enlaceCategoria = (id: string | null) => {
     font-weight: var(--peso-medio);
     text-decoration: none;
     white-space: nowrap;
+  }
+  .segmentado a:hover:not([aria-current]) {
+    color: var(--color-texto);
   }
   .segmentado a[aria-current] {
     background: var(--color-superficie);
@@ -534,11 +556,10 @@ const enlaceCategoria = (id: string | null) => {
   }
   .hoy {
     margin-bottom: var(--esp-4);
-    padding: var(--esp-5);
+    padding: var(--esp-5) var(--esp-6);
     background: var(--color-superficie);
     border: 1px solid var(--color-borde);
     border-radius: var(--radio);
-    box-shadow: var(--sombra-sm);
   }
   .hoy-cabeza {
     display: flex;
@@ -546,11 +567,10 @@ const enlaceCategoria = (id: string | null) => {
     justify-content: space-between;
     align-items: baseline;
     gap: var(--esp-2);
-    margin-bottom: var(--esp-3);
+    margin-bottom: var(--esp-4);
   }
   .hoy h2,
   .nomina h2 {
-    margin: 0;
     font-size: var(--texto-lg);
   }
   .hoy-cabeza p {
@@ -558,53 +578,60 @@ const enlaceCategoria = (id: string | null) => {
     color: var(--color-texto-suave);
     font-size: var(--texto-sm);
   }
-  .kpis {
+  /* ── Resumen de indicadores ── */
+  .resumen {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(13rem, 45%), 1fr));
-    gap: var(--esp-3);
-    margin: 0 0 var(--esp-4);
-    padding: 0;
-    list-style: none;
+    gap: var(--esp-6);
+    margin-bottom: var(--esp-6);
+    padding: var(--esp-6);
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+  }
+  .principal {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-2);
+  }
+  .titulo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+    color: var(--color-texto-suave);
+  }
+  .valor-principal {
+    font-size: var(--texto-3xl);
+    font-weight: var(--peso-titulo);
+    letter-spacing: var(--tracking-cifra);
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+  }
+  .secundarios {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--esp-5) var(--esp-4);
+    margin: 0;
+    padding-top: var(--esp-6);
+    border-top: 1px solid var(--color-borde);
   }
   .kpi {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: var(--esp-4) var(--esp-5);
-    background: var(--color-superficie);
-    border: 1px solid var(--color-borde);
-    border-radius: var(--radio);
-    box-shadow: var(--sombra-sm);
+    gap: 6px;
+    min-width: 0;
   }
-  .cabeza {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .titulo {
-    font-size: var(--texto-sm);
-    color: var(--color-texto-suave);
-    font-weight: var(--peso-medio);
+  .kpi dd {
+    margin: 0;
   }
   .kpi :global(.kpi-icono) {
-    color: var(--color-texto-suave);
-  }
-  @media (max-width: 480px) {
-    .kpi {
-      padding: var(--esp-3) var(--esp-4);
-    }
-    .kpi .valor {
-      font-size: var(--texto-xl);
-    }
-    .kpi .detalle,
-    .kpi .variacion {
-      font-size: 0.7rem;
-    }
+    color: var(--color-texto-tenue);
   }
   .valor {
-    font-size: var(--texto-2xl);
+    font-size: var(--texto-xl);
     font-weight: var(--peso-titulo);
-    letter-spacing: -0.02em;
+    letter-spacing: var(--tracking-titulo);
     font-variant-numeric: tabular-nums;
   }
   .detalle {
@@ -614,10 +641,12 @@ const enlaceCategoria = (id: string | null) => {
   .variacion {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    margin-top: var(--esp-1);
+    gap: 6px;
     font-size: var(--texto-xs);
     font-weight: var(--peso-fuerte);
+  }
+  .principal .variacion {
+    font-size: var(--texto-sm);
   }
   .mejora {
     color: var(--color-exito);
@@ -625,11 +654,51 @@ const enlaceCategoria = (id: string | null) => {
   .empeora {
     color: var(--color-error);
   }
-  :global(.lectura) {
-    margin-bottom: var(--esp-4);
-    border-left: 4px solid var(--color-acento) !important;
+  @media (min-width: 1000px) {
+    .resumen {
+      grid-template-columns: minmax(14rem, 1fr) 3fr;
+      gap: var(--esp-8);
+    }
+    .secundarios {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      padding-top: 0;
+      padding-left: var(--esp-8);
+      border-top: 0;
+      border-left: 1px solid var(--color-borde);
+      align-content: center;
+    }
   }
-  :global(.lectura) ul {
+  @media (min-width: 1440px) {
+    .secundarios {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 640px) and (max-width: 999px) {
+    .secundarios {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  /* ── Lectura rápida: fondo tintado, sin borde lateral ── */
+  .lectura {
+    display: flex;
+    gap: var(--esp-3);
+    margin-bottom: var(--separacion-bloques);
+    padding: var(--esp-5) var(--esp-6);
+    border-radius: var(--radio);
+    background: var(--color-acento-suave);
+    color: var(--color-texto);
+  }
+  .lectura :global(.lectura-icono) {
+    flex: none;
+    margin-top: 2px;
+    color: var(--color-acento-texto);
+  }
+  .lectura h2 {
+    font-size: var(--texto-base);
+    margin-bottom: var(--esp-2);
+  }
+  .lectura ul {
     margin: 0;
     padding-left: var(--esp-5);
     display: grid;
@@ -637,8 +706,8 @@ const enlaceCategoria = (id: string | null) => {
   }
   .graficas {
     display: grid;
-    gap: var(--esp-4);
-    margin-bottom: var(--esp-4);
+    gap: var(--esp-5);
+    margin-bottom: var(--separacion-bloques);
   }
   @media (min-width: 1000px) {
     .graficas {
@@ -673,7 +742,7 @@ const enlaceCategoria = (id: string | null) => {
     height: 36px;
     border-radius: 50%;
     background: color-mix(in srgb, var(--c) 14%, white);
-    color: var(--c);
+    color: color-mix(in srgb, var(--c) 65%, black);
     font-size: var(--texto-sm);
     font-weight: var(--peso-titulo);
   }
@@ -700,38 +769,50 @@ const enlaceCategoria = (id: string | null) => {
     margin: 0;
     color: var(--color-texto-suave);
   }
+  /* Nómina: una sola superficie dividida, no cuatro tarjetas */
   .nomina {
     display: grid;
-    gap: var(--esp-3);
+    gap: var(--esp-4);
   }
   .nomina ul {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-    gap: var(--esp-3);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     margin: 0;
     padding: 0;
     list-style: none;
-  }
-  .nomina a {
-    display: block;
-    padding: var(--esp-3) var(--esp-4);
     background: var(--color-superficie);
     border: 1px solid var(--color-borde);
     border-radius: var(--radio);
+    overflow: hidden;
+  }
+  .nomina li {
+    box-shadow: inset -1px -1px 0 var(--color-borde);
+  }
+  .nomina a {
+    display: block;
+    height: 100%;
+    padding: var(--esp-4) var(--esp-5);
     color: var(--color-texto-suave);
     text-decoration: none;
     font-size: var(--texto-sm);
-    transition: border-color var(--duracion-rapida) var(--curva);
+    transition: background var(--duracion-rapida) var(--curva);
   }
   .nomina a:hover {
-    border-color: var(--color-acento);
+    background: var(--color-superficie-hover);
   }
   .nomina strong {
     display: block;
     color: var(--color-texto);
     font-size: var(--texto-xl);
+    font-weight: var(--peso-titulo);
+    font-variant-numeric: tabular-nums;
   }
-  .nomina .atencion a {
-    border-left: 4px solid var(--color-alerta);
+  .nomina .atencion strong {
+    color: var(--color-alerta);
+  }
+  @media (min-width: 900px) {
+    .nomina ul {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
   }
 </style>

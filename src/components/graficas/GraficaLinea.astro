@@ -13,9 +13,10 @@ interface Props {
 }
 const { puntos, referencia, minimo } = Astro.props;
 
-const AN = 640;
-const AL = 220;
-const M = { arriba: 12, derecha: 12, abajo: 28, izquierda: 36 };
+// viewBox cercano al ancho real en PC: el texto del eje se ve a ~14 px (sin escalar).
+const AN = 900;
+const AL = 280;
+const M = { arriba: 16, derecha: 28, abajo: 34, izquierda: 60 };
 const ancho = AN - M.izquierda - M.derecha;
 const alto = AL - M.arriba - M.abajo;
 
@@ -69,13 +70,13 @@ const cada = Math.max(1, Math.ceil(puntos.length / 8));
     {puntos.map((p, i) => (
       <g class="punto">
         <circle cx={x(i)} cy={y(p.valor)} r="10" class="zona" />
-        <circle cx={x(i)} cy={y(p.valor)} r="3.5" class="marca" />
+        <circle cx={x(i)} cy={y(p.valor)} r="4" class="marca" />
         <title>{p.detalle ?? `${p.etiqueta}: ${p.valor}%`}</title>
       </g>
     ))}
     {puntos.map((p, i) =>
       i % cada === 0 || i === puntos.length - 1 ? (
-        <text x={x(i)} y={AL - 8} class="eje" text-anchor="middle">
+        <text x={x(i)} y={AL - 10} class="eje" text-anchor="middle">
           {p.etiqueta}
         </text>
       ) : null,
@@ -88,7 +89,7 @@ const cada = Math.max(1, Math.ceil(puntos.length / 8));
     overflow-x: auto;
   }
   .linea {
-    min-width: 520px;
+    min-width: 780px;
     width: 100%;
     height: auto;
     overflow: visible;
@@ -98,7 +99,7 @@ const cada = Math.max(1, Math.ceil(puntos.length / 8));
     stroke-width: 1;
   }
   .eje {
-    font-size: 11px;
+    font-size: 16px;
     fill: var(--color-texto-suave);
     font-variant-numeric: tabular-nums;
   }

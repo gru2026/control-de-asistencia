@@ -46,12 +46,18 @@ const { titulo, vacio = "No hay registros.", hayFilas = true, tarjetas = false }
 )}
 
 <style>
+  /* Dentro de una tarjeta, la tabla llega a sus bordes (sin caja dentro de la caja). */
   .contenedor {
     overflow: auto;
     max-height: 70vh;
-    border: 1px solid var(--color-borde);
-    border-radius: var(--radio);
+    margin-inline: calc(-1 * var(--tarjeta-pad, 0px));
+    border-block: 1px solid var(--color-borde);
     background: var(--color-superficie);
+  }
+  .contenedor:last-child {
+    margin-bottom: calc(-1 * var(--tarjeta-pad, 0px));
+    border-bottom: 0;
+    border-radius: 0 0 var(--radio) var(--radio);
   }
   table {
     width: 100%;
@@ -61,7 +67,18 @@ const { titulo, vacio = "No hay registros.", hayFilas = true, tarjetas = false }
   }
   table :global(th),
   table :global(td) {
-    padding: var(--esp-3);
+    padding: var(--esp-3) var(--esp-4);
+  }
+  table :global(th:first-child),
+  table :global(td:first-child) {
+    padding-left: max(var(--esp-4), var(--tarjeta-pad, 0px));
+  }
+  table :global(th:last-child),
+  table :global(td:last-child) {
+    padding-right: max(var(--esp-4), var(--tarjeta-pad, 0px));
+  }
+  table :global(th),
+  table :global(td) {
     text-align: left;
     border-bottom: 1px solid var(--color-borde);
     white-space: nowrap;
@@ -70,11 +87,9 @@ const { titulo, vacio = "No hay registros.", hayFilas = true, tarjetas = false }
     position: sticky;
     top: 0;
     z-index: 1;
-    background: var(--color-fondo);
-    font-weight: var(--peso-fuerte);
-    font-size: var(--texto-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    background: var(--color-hundido);
+    font-weight: var(--peso-medio);
+    font-size: var(--texto-sm);
     color: var(--color-texto-suave);
   }
   table :global(td.num),
@@ -84,6 +99,16 @@ const { titulo, vacio = "No hay registros.", hayFilas = true, tarjetas = false }
   }
   table :global(tbody tr:last-child td) {
     border-bottom: 0;
+  }
+  /* Enlaces en tablas (nombres): texto fuerte, subrayado solo al pasar */
+  table :global(td a) {
+    color: var(--color-texto);
+    font-weight: var(--peso-fuerte);
+    text-decoration: none;
+  }
+  table :global(td a:hover) {
+    color: var(--color-acento-texto);
+    text-decoration: underline;
   }
   table :global(tbody tr) {
     transition: background var(--duracion-rapida) var(--curva);
@@ -98,8 +123,9 @@ const { titulo, vacio = "No hay registros.", hayFilas = true, tarjetas = false }
     padding: var(--esp-8) var(--esp-4);
     text-align: center;
     color: var(--color-texto-suave);
-    border: 1px dashed var(--color-borde-fuerte);
-    border-radius: var(--radio);
+  }
+  .vacio svg {
+    color: var(--color-texto-tenue);
   }
   .vacio p {
     margin: 0;
@@ -109,7 +135,6 @@ const { titulo, vacio = "No hay registros.", hayFilas = true, tarjetas = false }
   @media (max-width: 700px) {
     .tarjetas {
       max-height: none;
-      border: 0;
       background: transparent;
     }
     .tarjetas table,
@@ -126,21 +151,26 @@ const { titulo, vacio = "No hay registros.", hayFilas = true, tarjetas = false }
       overflow: hidden;
       clip: rect(0 0 0 0);
     }
+    /* Cada fila es un bloque de la lista separado por una línea, no otra tarjeta. */
     .tarjetas :global(tbody tr) {
-      margin-bottom: var(--esp-3);
-      padding: var(--esp-2) var(--esp-4);
-      border: 1px solid var(--color-borde);
-      border-radius: var(--radio);
-      background: var(--color-superficie);
-      box-shadow: var(--sombra-sm);
+      padding: var(--esp-3) max(var(--esp-4), var(--tarjeta-pad, 0px));
+      border-bottom: 1px solid var(--color-borde);
+    }
+    .tarjetas :global(tbody tr:last-child) {
+      border-bottom: 0;
+    }
+    .tarjetas :global(td:nth-child(n)) {
+      padding-inline: 0;
+      border-bottom: 0;
     }
     .tarjetas :global(td) {
       display: flex;
       justify-content: space-between;
       gap: var(--esp-3);
-      padding: var(--esp-2) 0;
+      padding-block: 6px;
       white-space: normal;
       text-align: right;
+      font-size: var(--texto-sm);
     }
     .tarjetas :global(td[data-etiqueta])::before {
       content: attr(data-etiqueta);
@@ -151,10 +181,7 @@ const { titulo, vacio = "No hay registros.", hayFilas = true, tarjetas = false }
     .tarjetas :global(td.principal) {
       font-size: var(--texto-base);
       text-align: left;
-      border-bottom: 1px solid var(--color-borde);
-    }
-    .tarjetas :global(td:last-child) {
-      border-bottom: 0;
+      padding-bottom: var(--esp-2);
     }
   }
 </style>

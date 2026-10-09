@@ -84,7 +84,7 @@ const describe = [ayuda && idAyuda, error && idError].filter(Boolean).join(" ") 
   .campo {
     display: flex;
     flex-direction: column;
-    gap: var(--esp-1);
+    gap: 6px;
   }
   label {
     font-weight: var(--peso-medio);
@@ -113,16 +113,16 @@ const describe = [ayuda && idAyuda, error && idError].filter(Boolean).join(" ") 
       border-color var(--duracion-rapida) var(--curva),
       box-shadow var(--duracion-rapida) var(--curva);
   }
-  input:hover:not(:disabled) {
-    border-color: var(--color-texto-suave);
+  input:hover:not(:disabled):not(:focus-visible) {
+    border-color: var(--color-texto-tenue);
   }
   input:focus-visible {
     border-color: var(--color-acento);
-    box-shadow: 0 0 0 3px rgb(37 99 235 / 0.2);
+    box-shadow: 0 0 0 3px rgb(37 99 235 / 0.18);
     outline: none;
   }
   input:disabled {
-    background: var(--color-fondo);
+    background: var(--color-hundido);
     color: var(--color-texto-suave);
   }
   input[aria-invalid="true"] {

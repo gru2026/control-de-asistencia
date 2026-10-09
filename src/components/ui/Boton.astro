@@ -39,10 +39,10 @@ const clases = ["boton", variante, tamano, bloque && "bloque", clase];
     align-items: center;
     justify-content: center;
     gap: var(--esp-2);
-    min-height: var(--toque-min);
+    min-height: 44px;
     padding: 0 var(--esp-5);
     border: 1px solid transparent;
-    border-radius: var(--radio);
+    border-radius: var(--radio-sm);
     font-weight: var(--peso-fuerte);
     font-size: var(--texto-sm);
     line-height: 1.2;
@@ -53,10 +53,11 @@ const clases = ["boton", variante, tamano, bloque && "bloque", clase];
       background var(--duracion-rapida) var(--curva),
       border-color var(--duracion-rapida) var(--curva),
       box-shadow var(--duracion-rapida) var(--curva),
-      opacity var(--duracion-rapida) var(--curva);
+      opacity var(--duracion-rapida) var(--curva),
+      transform 80ms var(--curva);
   }
   .boton:active:not(:disabled) {
-    opacity: 0.85;
+    transform: translateY(1px);
   }
   .boton:disabled {
     opacity: 0.5;
@@ -65,7 +66,6 @@ const clases = ["boton", variante, tamano, bloque && "bloque", clase];
   .primario {
     background: var(--color-primario);
     color: var(--color-primario-contraste);
-    box-shadow: var(--sombra-sm);
   }
   .primario:hover:not(:disabled) {
     background: var(--color-primario-hover);
@@ -94,11 +94,13 @@ const clases = ["boton", variante, tamano, bloque && "bloque", clase];
   }
   .pequeno {
     min-height: 36px;
+    border-radius: 6px;
     padding: 0 var(--esp-3);
     font-size: var(--texto-sm);
   }
   .grande {
-    min-height: 56px;
+    min-height: 52px;
+    border-radius: var(--radio);
     font-size: var(--texto-base);
     padding: 0 var(--esp-6);
   }

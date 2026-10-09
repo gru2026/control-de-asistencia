@@ -236,17 +236,14 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: flex-end;
-    gap: var(--esp-3);
-    margin-bottom: var(--esp-5);
+    gap: var(--esp-4);
+    margin-bottom: var(--separacion-bloques);
   }
   h1 {
-    margin: 0;
-    font-size: var(--texto-xl);
-    font-weight: var(--peso-titulo);
-    letter-spacing: -0.02em;
+    font-size: 1.625rem;
   }
   .subtitulo {
-    margin: var(--esp-1) 0 0;
+    margin: 6px 0 0;
     color: var(--color-texto-suave);
   }
   .subtitulo::first-letter {
@@ -302,9 +299,11 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     position: fixed;
     inset: auto 0 0 0;
     z-index: 10;
-    background: rgb(255 255 255 / 0.96);
-    backdrop-filter: saturate(1.4) blur(8px);
-    border-top: 1px solid var(--color-borde);
+    background: rgb(255 255 255 / 0.92);
+    backdrop-filter: saturate(1.6) blur(12px);
+    box-shadow:
+      0 -1px 0 var(--color-borde),
+      0 -8px 24px -16px rgb(15 23 42 / 0.25);
     padding: var(--esp-1) var(--seguro-der) var(--seguro-abajo) var(--seguro-izq);
   }
   .nav ul {
@@ -341,7 +340,7 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     color: var(--color-texto);
   }
   .nav a[aria-current="page"] {
-    color: var(--color-acento);
+    color: var(--color-acento-texto);
     font-weight: var(--peso-fuerte);
   }
 
@@ -360,17 +359,19 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
       display: grid;
       grid-template-columns: 15rem 1fr;
       min-height: calc(100dvh - 56px);
+      /* la capa lateral llega hasta el final aunque la página sea larga */
+      background: linear-gradient(to right, var(--color-lateral) 15rem, transparent 15rem);
     }
     .nav {
       position: sticky;
       top: 56px;
       align-self: start;
       height: calc(100dvh - 56px);
-      background: var(--color-superficie);
+      /* Segunda capa neutra, algo más fría que el contenido */
+      background: var(--color-lateral);
       backdrop-filter: none;
-      border-top: 0;
-      border-right: 1px solid var(--color-borde);
-      padding: var(--esp-4) var(--esp-3);
+      box-shadow: inset -1px 0 0 var(--color-borde);
+      padding: var(--esp-5) var(--esp-3);
     }
     .nav ul {
       display: flex;
@@ -384,19 +385,23 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
       min-height: 44px;
       padding: 0 var(--esp-3);
       font-size: var(--texto-sm);
+      border-radius: var(--radio-sm);
     }
     .nav a:hover {
-      background: var(--color-superficie-hover);
+      background: rgb(255 255 255 / 0.6);
+      color: var(--color-texto);
     }
+    /* Ítem actual: superficie blanca que «flota» sobre la capa lateral */
     .nav a[aria-current="page"] {
-      background: var(--color-acento-suave);
+      background: var(--color-superficie);
+      box-shadow: var(--sombra-sm);
     }
     .nav a :global(.icono) {
       width: var(--icono-md);
       height: var(--icono-md);
     }
     main {
-      padding: var(--esp-8) var(--esp-8) var(--esp-10);
+      padding: var(--esp-10) var(--esp-10) var(--esp-12);
       margin: 0;
     }
     h1 {

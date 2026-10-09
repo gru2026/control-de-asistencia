@@ -10,6 +10,8 @@ html {
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
   scroll-behavior: smooth;
+  /* Barras de desplazamiento con la paleta (Firefox y Chrome ≥ 121) */
+  scrollbar-color: var(--color-borde-fuerte) transparent;
 }
 
 body {
@@ -17,18 +19,31 @@ body {
   min-height: 100dvh;
   font-family: var(--fuente-base);
   font-size: var(--texto-base);
-  line-height: 1.5;
+  line-height: var(--interlineado);
   color: var(--color-texto);
   background: var(--color-fondo);
+  caret-color: var(--color-acento);
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
 }
 
 h1,
 h2,
 h3 {
-  line-height: 1.25;
+  margin: 0;
+  line-height: var(--interlineado-titulo);
+  letter-spacing: var(--tracking-titulo);
+  font-weight: var(--peso-titulo);
   text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* El navegador reduce <small> al 83 %: se fija al tamaño mínimo de metadatos (13 px). */
+small {
+  font-size: var(--texto-xs);
 }
 
 img,
@@ -45,6 +60,13 @@ textarea {
   color: inherit;
 }
 
+/* Cifras alineadas en columnas en tablas, indicadores y horas */
+table,
+time,
+.cifra {
+  font-variant-numeric: tabular-nums;
+}
+
 a,
 button,
 summary,
@@ -59,20 +81,27 @@ select,
 }
 
 a {
-  color: var(--color-acento);
+  color: var(--color-acento-texto);
+  text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
+a:hover {
+  text-decoration-thickness: 2px;
+}
 
+/* Foco: un solo anillo coherente en toda la app */
 :focus-visible {
-  outline: 3px solid var(--color-acento);
+  outline: 2px solid var(--color-acento);
   outline-offset: 2px;
+  border-radius: 4px;
 }
 
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline-offset: 0;
+  outline: none;
   border-color: var(--color-acento);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.18);
 }
 
 input[type="checkbox"],
@@ -82,6 +111,30 @@ input[type="radio"] {
 
 ::selection {
   background: #bfdbfe;
+  color: var(--color-texto);
+}
+
+::placeholder {
+  color: var(--color-texto-tenue);
+  opacity: 1;
+}
+
+/* Barras de desplazamiento finas (Chrome/Edge anteriores a 121, Safari) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-borde-fuerte);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-texto-tenue);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .visualmente-oculto {

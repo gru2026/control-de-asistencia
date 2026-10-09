@@ -128,6 +128,13 @@ try {
   await esperarDatos(pag);
   r.ok("usuarios: filtro por rol sin recarga", await sinRecarga(pag));
 
+  r.seccion("Listados con conteos");
+  await pag.goto(`${B}/jornadas`);
+  const filasJornadas = await pag.$$eval("#jornadas tbody tr", (f) => f.length);
+  const filasCategorias = await pag.$$eval("#categorias tbody tr", (f) => f.length);
+  r.ok("jornadas listadas", filasJornadas > 0, `${filasJornadas} jornadas`);
+  r.ok("categorías listadas", filasCategorias > 0, `${filasCategorias} categorías`);
+
   r.seccion("Celular");
   const movil = await navegador.newPage({
     viewport: { width: 390, height: 844 },

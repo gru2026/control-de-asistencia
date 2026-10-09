@@ -202,19 +202,20 @@ npm run crear-usuario -- correo@ejemplo.com directiva Nombre Apellido
 
 ### Comandos
 
-| Comando             | Descripción                                                            |
-| ------------------- | ---------------------------------------------------------------------- |
-| `npm run dev`       | Servidor de desarrollo                                                 |
-| `npm run build`     | Compilación para producción                                            |
-| `npm run check`     | Verificación de tipos                                                  |
-| `npm run lint`      | Análisis estático del código                                           |
-| `npm run format`    | Formato automático                                                     |
-| `npm test`          | Pruebas unitarias                                                      |
-| `npm run test:e2e`  | Pruebas en un navegador real (requiere `npm run dev` en otra terminal) |
-| `npm run capturas`  | Capturas de pantalla en PC y celular (`tests/e2e/capturas/`)           |
-| `npm run db:migrar` | Aplica las migraciones pendientes                                      |
-| `npm run db:seed`   | Carga los datos iniciales                                              |
-| `npm run docs`      | Regenera el documento consolidado de la documentación                  |
+| Comando                  | Descripción                                                            |
+| ------------------------ | ---------------------------------------------------------------------- |
+| `npm run dev`            | Servidor de desarrollo                                                 |
+| `npm run build`          | Compilación para producción                                            |
+| `npm run check`          | Verificación de tipos                                                  |
+| `npm run lint`           | Análisis estático del código                                           |
+| `npm run format`         | Formato automático                                                     |
+| `npm test`               | Pruebas unitarias                                                      |
+| `npm run test:e2e`       | Pruebas en un navegador real (requiere `npm run dev` en otra terminal) |
+| `npm run capturas`       | Capturas de pantalla en PC y celular (`tests/e2e/capturas/`)           |
+| `npm run diseno:revisar` | Revisión de diseño automática (detector de Impeccable)                 |
+| `npm run db:migrar`      | Aplica las migraciones pendientes                                      |
+| `npm run db:seed`        | Carga los datos iniciales                                              |
+| `npm run docs`           | Regenera el documento consolidado de la documentación                  |
 
 ## Estructura del repositorio
 

@@ -159,5 +159,6 @@ fecha: 2026-10-06
 
 | Fecha | Versión | Ejecutado por | Aprobado | Observaciones |
 |---|---|---|---|---|
+| 2026-10-08 | Refinamiento visual | Desarrollador (Impeccable + Playwright) | ✅ | Detector de diseño: 95 → 0 hallazgos (PC y celular). 22/22 en navegador. Corregido listado de jornadas/categorías. |
 | 2026-10-08 | Navegación parcial | Desarrollador (Playwright) | ✅ | 20/20 verificaciones en navegador real. |
 | 2026-10-06 | Semana 1 | Desarrollador (automatizado) | ✅ | 62 tests unitarios (R0, R1, R2, R5, R10, acceso, validación). E2E: F1–F5, CRUD de personal/jornadas/feriados/cuentas, CSRF, redirección abierta, cuenta desactivada. RLS probado contra la API real con anon, personal y secretaría. |

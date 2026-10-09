@@ -514,6 +514,7 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-28 | 2026-10-08 | Skill de diseño **Impeccable** (reemplaza a ui-ux-pro-max): tipografía Onest, tokens refinados, `DESIGN.md`/`PRODUCT.md` y revisión automática `npm run diseno:revisar` | ✅ Vigente |
 | D-27 | 2026-10-08 | Filtros y paginación actualizan solo el contenido (navegación parcial); pruebas de navegador con Playwright | ✅ Vigente |
 | D-26 | 2026-10-08 | Nómina real cargada por importación (`origen = importado`) y asistencia de **demostración** (`es_demo`), ambas eliminables desde Ajustes | ✅ Vigente |
 
@@ -544,6 +545,15 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 - Vigilancia trabaja de noche: la jornada nocturna termina al día siguiente; una marca de madrugada pertenece a la jornada que empezó la noche anterior.
 - La planilla oficial no lleva firmas por persona (el sistema registra la hora). Solo se imprime y firma si la dirección lo desea.
 - La nómina real (51 personas) se cargó desde un CSV **privado** (no está en el repositorio). La asistencia de demostración es simulada; el panel lo indica con un aviso.
+
+### D-28 · Refinamiento visual con Impeccable
+- ui-ux-pro-max queda archivada en `.opencode/skills-archivo/`; la skill activa es Impeccable (Apache 2.0), modo *Operate*.
+- Línea base del detector: **95 hallazgos** (borde lateral de color, tarjetas anidadas, texto de 11 px, contraste 3.1:1 y 4.2:1, espaciado monótono, jerarquía plana). Después: **0**.
+- Tipografía Onest autoalojada (34 KB) con respaldo de métricas ajustadas.
+- Una superficie usa borde o sombra, nunca ambos; sin tarjetas dentro de tarjetas.
+- Panel con una cifra principal y secundarias en una sola superficie.
+- Sistema documentado en `DESIGN.md`; contexto del producto en `PRODUCT.md` (raíz).
+- Durante la revisión se encontró y corrigió un error real: los listados de jornadas y categorías no cargaban por un conteo sobre `personal` sin permiso de tabla.
 
 ### D-02 · El PC del colegio
 - Desde el PC, **directiva y secretaría** administran: personal, jornadas, configuración, QR, dispositivos, reportes.
@@ -1533,6 +1543,17 @@ npm run capturas -- /panel /reportes
 - Ver el navegador mientras prueba: `E2E_VISIBLE=1 npm run test:e2e`.
 - Para agregar pruebas: copiar el esquema de `tests/e2e/navegacion.mjs` y usar las utilidades de `tests/e2e/utilidades.mjs`.
 
+## Revisión de diseño (Impeccable)
+
+```bash
+npm run dev                # en otra terminal
+npm run diseno:revisar     # detector sobre src/ y sobre las páginas renderizadas (PC y celular)
+```
+
+- Debe terminar con «Sin hallazgos». Usa el Chromium de Playwright (`npm run e2e:instalar`).
+- Reglas del sistema visual: `DESIGN.md`. Contexto del producto: `PRODUCT.md`.
+- Con OpenCode: `/impeccable polish`, `/impeccable audit`, `/impeccable critique <ruta>`, etc.
+
 ## Problemas comunes
 
 | Síntoma | Causa probable | Solución |
@@ -2095,6 +2116,7 @@ Presentes hoy, tardanzas y faltas del mes, marcaciones por revisar, teléfonos p
 
 | Fecha | Versión | Ejecutado por | Aprobado | Observaciones |
 |---|---|---|---|---|
+| 2026-10-08 | Refinamiento visual | Desarrollador (Impeccable + Playwright) | ✅ | Detector de diseño: 95 → 0 hallazgos (PC y celular). 22/22 en navegador. Corregido listado de jornadas/categorías. |
 | 2026-10-08 | Navegación parcial | Desarrollador (Playwright) | ✅ | 20/20 verificaciones en navegador real. |
 | 2026-10-06 | Semana 1 | Desarrollador (automatizado) | ✅ | 62 tests unitarios (R0, R1, R2, R5, R10, acceso, validación). E2E: F1–F5, CRUD de personal/jornadas/feriados/cuentas, CSRF, redirección abierta, cuenta desactivada. RLS probado contra la API real con anon, personal y secretaría. |
 

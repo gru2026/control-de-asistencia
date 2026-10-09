@@ -1,15 +1,45 @@
-/* GRU-system · Design tokens (única fuente de colores, tipografía, espacio y movimiento).
- * Estilo: Minimalismo / Swiss — limpio, funcional, alto contraste. */
+/* GRU-system · Design tokens. Única fuente de valores visuales.
+ * Documentado en DESIGN.md (raíz del repositorio). Modo «Operate» (Impeccable):
+ * la herramienta desaparece en la tarea; la marca vive en los detalles.
+ *
+ * Colores: paleta slate/blue (diseñada en OKLCH), entregada en hex para que
+ * funcione también en navegadores sin soporte de oklch().
+ */
+
+/* Onest (variable, solo subconjunto latino: cubre todo el español). OFL 1.1 */
+@font-face {
+  font-family: "Onest";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fuentes/onest-latin-variable.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* Respaldo con métricas ajustadas a Onest: el texto no salta al cargar la fuente.
+ * Valores calculados contra Arial / Liberation Sans. */
+@font-face {
+  font-family: "Onest Respaldo";
+  src: local("Arial"), local("Liberation Sans"), local("Helvetica");
+  size-adjust: 105.65%;
+  ascent-override: 91.81%;
+  descent-override: 28.87%;
+  line-gap-override: 0%;
+}
+
 :root {
-  /* Marca */
-  --color-primario: #0f172a;
+  /* ── Marca ── */
+  --color-primario: #0f172a; /* azul noche: barra superior, acciones principales */
   --color-primario-hover: #1e293b;
   --color-primario-contraste: #ffffff;
-  --color-acento: #2563eb;
+  --color-acento: #2563eb; /* solo acciones, selección actual y estados */
   --color-acento-hover: #1d4ed8;
+  --color-acento-texto: #1d4ed8; /* acento como texto sobre fondos tintados (≥ 4.5:1) */
   --color-acento-suave: #eff6ff;
+  --color-acento-borde: #bfdbfe;
 
-  /* Semánticos (estados de asistencia) — contraste ≥ 4.5:1 sobre su fondo */
+  /* ── Semánticos (estados de asistencia) ── texto ≥ 4.5:1 sobre su fondo suave */
   --color-exito: #15803d;
   --color-exito-suave: #dcfce7;
   --color-alerta: #b45309;
@@ -19,59 +49,78 @@
   --color-info: #475569;
   --color-info-suave: #f1f5f9;
 
-  /* Superficies y texto */
-  --color-fondo: #f8fafc;
-  --color-superficie: #ffffff;
+  /* ── Superficies (dos capas neutras) ── */
+  --color-fondo: #f6f8fb; /* lienzo del contenido */
+  --color-lateral: #eef2f7; /* segunda capa: navegación lateral, algo más fría */
+  --color-superficie: #ffffff; /* tarjetas, tablas, formularios */
   --color-superficie-hover: #f1f5f9;
+  --color-hundido: #f8fafc; /* zonas internas (cabecera de tabla, pistas) */
   --color-borde: #e2e8f0;
   --color-borde-fuerte: #cbd5e1;
-  --color-texto: #0f172a;
-  --color-texto-suave: #475569;
 
-  /* Tipografía: fuentes del sistema (rápidas en equipos modestos, sin descargas) */
-  --fuente-base: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --texto-xs: 0.75rem;
-  --texto-sm: 0.875rem;
-  --texto-base: 1rem;
-  --texto-lg: 1.125rem;
-  --texto-xl: 1.5rem;
-  --texto-2xl: 2rem;
+  /* ── Texto ── */
+  --color-texto: #0f172a;
+  --color-texto-suave: #475569; /* 7.2:1 sobre el lienzo */
+  --color-texto-tenue: #64748b; /* solo metadatos ≥ 13 px (4.6:1) */
+
+  /* ── Tipografía ──
+   * Una familia para todo; escala fija en rem con proporción ~1.2 (modo Operate). */
+  --fuente-base:
+    "Onest", "Onest Respaldo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --texto-xs: 0.8125rem; /* 13 px · metadatos, ejes de gráficas */
+  --texto-sm: 0.875rem; /* 14 px · etiquetas, tablas, ayuda */
+  --texto-base: 1rem; /* 16 px · cuerpo */
+  --texto-lg: 1.125rem; /* 18 px · títulos de tarjeta */
+  --texto-xl: 1.375rem; /* 22 px · cifras secundarias, títulos en móvil */
+  --texto-2xl: 1.75rem; /* 28 px · título de página */
+  --texto-3xl: 2.5rem; /* 40 px · cifra principal del panel */
+  --peso-normal: 400;
   --peso-medio: 500;
   --peso-fuerte: 600;
-  --peso-titulo: 700;
+  --peso-titulo: 650;
+  --interlineado: 1.55;
+  --interlineado-titulo: 1.2;
+  --tracking-titulo: -0.018em;
+  --tracking-cifra: -0.03em;
 
-  /* Espaciado (ritmo de 4/8 px) */
-  --esp-1: 0.25rem;
-  --esp-2: 0.5rem;
-  --esp-3: 0.75rem;
-  --esp-4: 1rem;
-  --esp-5: 1.25rem;
-  --esp-6: 1.5rem;
-  --esp-8: 2rem;
-  --esp-10: 2.5rem;
+  /* ── Espaciado (base 4 px) ──
+   * Ritmo: grupos internos 8–12 px · entre controles 16 px · entre bloques 32–48 px. */
+  --esp-1: 0.25rem; /* 4 */
+  --esp-2: 0.5rem; /* 8 */
+  --esp-3: 0.75rem; /* 12 */
+  --esp-4: 1rem; /* 16 */
+  --esp-5: 1.25rem; /* 20 */
+  --esp-6: 1.5rem; /* 24 */
+  --esp-8: 2rem; /* 32 */
+  --esp-10: 2.5rem; /* 40 */
+  --esp-12: 3rem; /* 48 */
+  --separacion-bloques: var(--esp-8);
 
-  /* Bordes y sombras */
+  /* ── Forma ── controles 8 px · tarjetas 12 px · diálogos 16 px */
   --radio-sm: 0.5rem;
   --radio: 0.75rem;
   --radio-lg: 1rem;
-  --sombra-sm: 0 1px 2px rgb(15 23 42 / 0.06);
-  --sombra: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.04);
-  --sombra-lg: 0 10px 30px rgb(15 23 42 / 0.12);
 
-  /* Íconos */
+  /* ── Profundidad ── siempre con desplazamiento y desenfoque suave.
+   * Regla: una superficie usa BORDE o SOMBRA, nunca ambos. */
+  --sombra-sm: 0 1px 2px rgb(15 23 42 / 0.06), 0 1px 1px rgb(15 23 42 / 0.04);
+  --sombra: 0 4px 12px -2px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.06);
+  --sombra-lg: 0 18px 40px -12px rgb(15 23 42 / 0.22), 0 6px 12px -6px rgb(15 23 42 / 0.1);
+
+  /* ── Íconos ── */
   --icono-sm: 16px;
   --icono-md: 20px;
   --icono-lg: 24px;
 
-  /* Movimiento */
+  /* ── Movimiento ── estados en 150–200 ms; salida exponencial */
   --duracion-rapida: 150ms;
   --duracion: 200ms;
-  --curva: cubic-bezier(0.2, 0, 0, 1);
+  --curva: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Táctil: tamaño mínimo de controles */
+  /* ── Táctil ── */
   --toque-min: 48px;
 
-  /* Áreas seguras (notch y barra de gestos en iPhone) */
+  /* ── Áreas seguras (notch y barra de gestos en iPhone) ── */
   --seguro-arriba: env(safe-area-inset-top, 0px);
   --seguro-abajo: env(safe-area-inset-bottom, 0px);
   --seguro-izq: env(safe-area-inset-left, 0px);

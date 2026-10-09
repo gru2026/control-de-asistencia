@@ -101,6 +101,17 @@ npm run capturas -- /panel /reportes
 - Ver el navegador mientras prueba: `E2E_VISIBLE=1 npm run test:e2e`.
 - Para agregar pruebas: copiar el esquema de `tests/e2e/navegacion.mjs` y usar las utilidades de `tests/e2e/utilidades.mjs`.
 
+## Revisión de diseño (Impeccable)
+
+```bash
+npm run dev                # en otra terminal
+npm run diseno:revisar     # detector sobre src/ y sobre las páginas renderizadas (PC y celular)
+```
+
+- Debe terminar con «Sin hallazgos». Usa el Chromium de Playwright (`npm run e2e:instalar`).
+- Reglas del sistema visual: `DESIGN.md`. Contexto del producto: `PRODUCT.md`.
+- Con OpenCode: `/impeccable polish`, `/impeccable audit`, `/impeccable critique <ruta>`, etc.
+
 ## Problemas comunes
 
 | Síntoma | Causa probable | Solución |

@@ -54,7 +54,8 @@ Ritmo: dentro de un grupo 6–12 px; entre controles 16 px; entre bloques 32 px 
 - Campos: 48 px, borde `#cbd5e1`, foco con anillo azul de 3 px. Etiqueta visible siempre.
 - Tablas: encabezado en zona hundida, ordenables, en celular como lista.
 - Navegación: barra superior azul noche; lateral en capa neutra con el ítem actual como superficie blanca; barra inferior translúcida en celular.
-- Panel: una superficie de resumen con una cifra principal (asistencia del período) y cifras secundarias separadas por líneas; «Lectura rápida» sobre fondo azul tintado.
+- Panel en tres niveles: Hoy y 4 indicadores (detalle en tooltip) · «Requiere atención» (lista de pendientes con enlace) · Análisis en secciones plegables con la conclusión en el título.
+- Secciones plegables (`Seccion.astro`): `<details>` nativo, estado recordado por navegador.
 
 ## Motion
 

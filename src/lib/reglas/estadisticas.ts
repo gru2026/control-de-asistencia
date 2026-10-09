@@ -234,3 +234,97 @@ export function hallazgos(
   }
   return out;
 }
+
+// ── Conclusiones de una línea para los títulos de las secciones del panel ──
+
+const DIAS_LARGOS = [
+  "",
+  "lunes",
+  "martes",
+  "miércoles",
+  "jueves",
+  "viernes",
+  "sábados",
+  "domingos",
+];
+const redondo = (n: number) => `${Math.round(n)} %`;
+
+export interface Conclusiones {
+  tendencia: string;
+  dias: string;
+  llegadas: string;
+  categorias: string;
+  personas: string;
+}
+
+/**
+ * Resume cada análisis en una frase corta, para que la sección se entienda sin abrirla.
+ * Solo afirma una diferencia cuando es relevante (≥ 3 puntos) y hay datos suficientes.
+ */
+export function conclusiones(
+  registros: RegistroEstadistica[],
+  nombreCategoria: (id: string) => string,
+  umbralFaltas = 3,
+): Conclusiones {
+  const general = resumir(registros);
+  const sinDatos = "Sin datos en el período";
+  if (!registros.length) {
+    return {
+      tendencia: sinDatos,
+      dias: sinDatos,
+      llegadas: sinDatos,
+      categorias: sinDatos,
+      personas: sinDatos,
+    };
+  }
+
+  // Tendencia: compara la primera y la segunda mitad del período
+  const serie = serieDiaria(registros);
+  let tendencia = `Promedio ${redondo(general.asistencia)}`;
+  if (serie.length >= 4) {
+    const mitad = Math.floor(serie.length / 2);
+    const prom = (xs: PuntoSerie[]) => xs.reduce((s, p) => s + p.valor, 0) / xs.length;
+    const cambio = prom(serie.slice(mitad)) - prom(serie.slice(0, mitad));
+    const estado = cambio >= 2 ? "En alza" : cambio <= -2 ? "En baja" : "Estable";
+    tendencia = `${estado} · promedio ${redondo(general.asistencia)}`;
+  }
+
+  // Día de la semana
+  const ds = porDiaSemana(registros).filter((d) => d.conteo.total >= 5);
+  let dias = "Sin diferencias entre días";
+  if (ds.length >= 2) {
+    const peor = ds.reduce((a, b) => (b.asistencia < a.asistencia ? b : a));
+    if (general.asistencia - peor.asistencia >= 2) {
+      dias = `Los ${DIAS_LARGOS[peor.dia]}, la más baja (${redondo(peor.asistencia)})`;
+    }
+  }
+
+  // Llegadas
+  const h = histogramaLlegadas(registros);
+  const total = h.reduce((s, x) => s + x.valor, 0);
+  const pct = (claves: string[]) =>
+    total
+      ? (h.filter((x) => claves.includes(x.clave)).reduce((s, x) => s + x.valor, 0) / total) * 100
+      : 0;
+  const llegadas = total
+    ? `${redondo(pct(["antes", "0-5"]))} a la hora · ${redondo(pct(["16-30", "31-60", "60+"]))} tarde`
+    : "Sin llegadas registradas";
+
+  // Categorías
+  const cs = porCategoria(registros).filter((c) => c.conteo.presente + c.conteo.tarde >= 10);
+  let categorias = "Sin diferencias relevantes";
+  if (cs.length >= 2) {
+    const peor = cs.reduce((a, b) => (b.puntualidad < a.puntualidad ? b : a));
+    if (general.puntualidad - peor.puntualidad >= 3) {
+      categorias = `${nombreCategoria(peor.categoriaId)}, la menos puntual (${redondo(peor.puntualidad)})`;
+    }
+  }
+
+  // Personas
+  const muchas = personasCriticas(registros, 1000).filter((p) => p.faltas >= umbralFaltas).length;
+  const personas = muchas
+    ? `${muchas} ${muchas === 1 ? "persona" : "personas"} con ${umbralFaltas} o más faltas`
+    : "Nadie con faltas repetidas";
+
+  return { tendencia, dias, llegadas, categorias, personas };
+}

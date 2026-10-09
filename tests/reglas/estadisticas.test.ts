@@ -126,3 +126,27 @@ describe("rangoPeriodo", () => {
     });
   });
 });
+
+import { conclusiones } from "@/lib/reglas/estadisticas";
+
+describe("conclusiones", () => {
+  it("sin datos", () => {
+    expect(conclusiones([], () => "X").tendencia).toBe("Sin datos en el período");
+  });
+  it("frases cortas a partir de los datos", () => {
+    const regs: RegistroEstadistica[] = [];
+    const lunes = ["2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28"];
+    for (const l of lunes) {
+      const martes = l.replace(/(\d\d)$/, (d) => String(Number(d) + 1).padStart(2, "0"));
+      for (let p = 0; p < 10; p++) {
+        regs.push(r(l, `p${p}`, p < 3 ? "falta" : "presente", p < 3 ? null : 0, p < 5 ? "doc" : "vig"));
+        regs.push(r(martes, `p${p}`, p === 9 ? "tarde" : "presente", p === 9 ? 20 : 0, p < 5 ? "doc" : "vig"));
+      }
+    }
+    const c = conclusiones(regs, (id) => (id === "vig" ? "Vigilancia" : "Docente"));
+    expect(c.dias).toMatch(/^Los lunes, la más baja/);
+    expect(c.personas).toBe("3 personas con 3 o más faltas");
+    expect(c.llegadas).toMatch(/% a la hora · \d+ % tarde$/);
+    expect(c.tendencia).toMatch(/promedio \d+ %$/);
+  });
+});

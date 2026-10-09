@@ -1,0 +1,120 @@
+---
+/**
+ * Sección plegable (<details>): el título muestra la conclusión aunque esté cerrada.
+ * El estado abierto/cerrado se recuerda por navegador (data-recordar) y se conserva
+ * en las actualizaciones parciales. Sin JavaScript funciona igual (nativo).
+ */
+interface Props {
+  id: string;
+  titulo: string;
+  resumen?: string;
+  abierta?: boolean;
+  tono?: "normal" | "alerta";
+}
+const { id, titulo, resumen, abierta = false, tono = "normal" } = Astro.props;
+---
+
+<details
+  class:list={["seccion", tono === "alerta" && "alerta"]}
+  id={id}
+  open={abierta}
+  data-recordar={id}
+>
+  <summary>
+    <svg
+      class="chevron"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.25"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+    <span class="titulo">{titulo}</span>
+    {resumen && <span class="resumen">{resumen}</span>}
+  </summary>
+  <div class="contenido" data-datos>
+    <slot />
+  </div>
+</details>
+
+<style>
+  .seccion {
+    border-bottom: 1px solid var(--color-borde);
+  }
+  .seccion:last-of-type {
+    border-bottom: 0;
+  }
+  summary {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: var(--esp-3);
+    row-gap: 2px;
+    min-height: 60px;
+    padding: var(--esp-3) var(--esp-6);
+    list-style: none;
+    cursor: pointer;
+    transition: background var(--duracion-rapida) var(--curva);
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary:hover {
+    background: var(--color-superficie-hover);
+  }
+  summary:focus-visible {
+    outline-offset: -2px;
+  }
+  .chevron {
+    grid-row: span 2;
+    color: var(--color-texto-tenue);
+    transition: transform var(--duracion) var(--curva);
+  }
+  .seccion[open] .chevron {
+    transform: rotate(90deg);
+  }
+  .titulo {
+    font-weight: var(--peso-fuerte);
+  }
+  .resumen {
+    grid-column: 2;
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .alerta .resumen {
+    color: var(--color-alerta);
+    font-weight: var(--peso-medio);
+  }
+  .contenido {
+    padding: var(--esp-2) var(--esp-6) var(--esp-6) calc(var(--esp-6) + 18px + var(--esp-3));
+  }
+  @media (min-width: 700px) {
+    summary {
+      grid-template-columns: auto 1fr auto;
+    }
+    .resumen {
+      grid-column: 3;
+      grid-row: 1;
+      text-align: right;
+    }
+  }
+  @media (max-width: 699px) {
+    summary {
+      padding-inline: var(--esp-4);
+    }
+    .contenido {
+      padding: var(--esp-2) var(--esp-4) var(--esp-5);
+    }
+  }
+  @media print {
+    .contenido {
+      display: block !important;
+    }
+  }
+</style>

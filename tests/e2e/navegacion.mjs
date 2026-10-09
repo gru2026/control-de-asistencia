@@ -111,6 +111,30 @@ try {
     (await sinRecarga(pag)) && pag.url().includes("periodo=anterior"),
   );
 
+  r.seccion("Panel: niveles de lectura");
+  r.ok("cuatro indicadores", (await pag.$$(".kpis .kpi")).length === 4);
+  r.ok("sección «Requiere atención» presente", Boolean(await pag.$("#titulo-atencion")));
+  const resumenes = await pag.$$eval("details.seccion .resumen", (e) =>
+    e.map((x) => x.textContent?.trim()),
+  );
+  r.ok(
+    "cada sección muestra su conclusión cerrada",
+    resumenes.length === 5 && resumenes.every(Boolean),
+    resumenes[1],
+  );
+  await pag.click("#seccion-llegadas summary");
+  r.ok("abrir una sección", await pag.$eval("#seccion-llegadas", (d) => d.open));
+  await pag.click('.segmentado a:has-text("Este mes")');
+  await pag.waitForFunction(() => location.search.includes("periodo=mes"));
+  await esperarDatos(pag);
+  r.ok(
+    "la sección sigue abierta tras filtrar",
+    await pag.$eval("#seccion-llegadas", (d) => d.open),
+  );
+  await pag.reload();
+  r.ok("la sección se recuerda al recargar", await pag.$eval("#seccion-llegadas", (d) => d.open));
+  await pag.click("#seccion-llegadas summary");
+
   r.seccion("Otras pantallas");
   await pag.click('nav.nav a:has-text("Reportes")');
   await pag.waitForURL("**/reportes");

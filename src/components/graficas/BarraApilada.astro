@@ -7,8 +7,11 @@ interface Segmento {
 }
 interface Props {
   segmentos: Segmento[];
+  /** En la leyenda, mostrar solo los valores mayores que cero. */
+  soloConValor?: boolean;
 }
-const { segmentos } = Astro.props;
+const { segmentos, soloConValor = false } = Astro.props;
+const leyenda = soloConValor ? segmentos.filter((s) => s.valor > 0) : segmentos;
 const total = segmentos.reduce((s, x) => s + x.valor, 0);
 const pct = (v: number) => (total ? Math.round((v / total) * 100) : 0);
 ---
@@ -30,7 +33,7 @@ const pct = (v: number) => (total ? Math.round((v / total) * 100) : 0);
   {total === 0 && <span class="seg vacio" style="flex: 1" />}
 </div>
 <ul class="leyenda">
-  {segmentos.map((s) => (
+  {leyenda.map((s) => (
     <li>
       <span class:list={["m", s.clase]} />
       <span class="et">{s.etiqueta}</span>
@@ -41,15 +44,18 @@ const pct = (v: number) => (total ? Math.round((v / total) * 100) : 0);
 </ul>
 
 <style>
+  /* Pista con relleno interior: los segmentos son píldoras dentro de la pista */
   .apilada {
     display: flex;
     height: 28px;
-    gap: 2px;
-    border-radius: var(--radio-sm);
-    overflow: hidden;
+    gap: 3px;
+    padding: 4px;
+    border-radius: 999px;
+    background: var(--color-superficie-hover);
   }
   .seg {
-    min-width: 4px;
+    min-width: 14px;
+    border-radius: 999px;
   }
   .presente {
     background: var(--color-exito);
@@ -72,9 +78,9 @@ const pct = (v: number) => (total ? Math.round((v / total) * 100) : 0);
     );
   }
   .leyenda {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
-    gap: var(--esp-2) var(--esp-4);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2) var(--esp-6);
     margin: var(--esp-4) 0 0;
     padding: 0;
     list-style: none;
@@ -93,6 +99,7 @@ const pct = (v: number) => (total ? Math.round((v / total) * 100) : 0);
   }
   .et {
     color: var(--color-texto-suave);
+    white-space: nowrap;
   }
   strong {
     font-variant-numeric: tabular-nums;

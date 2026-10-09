@@ -8,11 +8,13 @@ interface Props {
   columnas: string[];
   filas: (string | number)[][];
   class?: string;
+  /** Sin caja (dentro de una sección plegable). */
+  plana?: boolean;
 }
-const { titulo, descripcion, columnas, filas, class: clase } = Astro.props;
+const { titulo, descripcion, columnas, filas, class: clase, plana = false } = Astro.props;
 ---
 
-<figure class:list={["figura", clase]}>
+<figure class:list={["figura", plana && "plana", clase]}>
   <figcaption>
     <strong>{titulo}</strong>
     {descripcion && <span>{descripcion}</span>}
@@ -54,6 +56,18 @@ const { titulo, descripcion, columnas, filas, class: clase } = Astro.props;
     border: 1px solid var(--color-borde);
     border-radius: var(--radio);
     min-width: 0;
+  }
+  .plana {
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+  .plana figcaption strong {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
   }
   figcaption {
     display: grid;

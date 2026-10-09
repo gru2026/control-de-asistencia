@@ -1,9 +1,8 @@
 ---
 import PanelLayout from "@/layouts/PanelLayout.astro";
-import Tarjeta from "@/components/ui/Tarjeta.astro";
 import Boton from "@/components/ui/Boton.astro";
-import Alerta from "@/components/ui/Alerta.astro";
 import Icono, { type NombreIcono } from "@/components/ui/Icono.astro";
+import Seccion from "@/components/ui/Seccion.astro";
 import Figura from "@/components/graficas/Figura.astro";
 import GraficaLinea from "@/components/graficas/GraficaLinea.astro";
 import BarrasHorizontales from "@/components/graficas/BarrasHorizontales.astro";
@@ -16,16 +15,16 @@ import { aExcepcion, aJornada, type FilaHorario, type FilaJornada } from "@/lib/
 import { resolverJornada } from "@/lib/reglas/jornada";
 import {
   contar,
-  hallazgos,
+  conclusiones,
   histogramaLlegadas,
   personasCriticas,
   porCategoria,
   porDiaSemana,
   resumir,
   serieDiaria,
-  variacion,
 } from "@/lib/reglas/estadisticas";
 import { NOMBRE_DIA, type DiaSemana } from "@/types";
+import { numero, plural, porcentaje, variacionPuntos } from "@/lib/formato";
 
 const sb = Astro.locals.supabase;
 const perfil = Astro.locals.perfil!;
@@ -104,89 +103,115 @@ const cats = porCategoria(registros)
   .map((c) => ({ ...c, cat: catPorId.get(c.categoriaId) }))
   .sort((a, b) => (a.cat?.orden ?? 99) - (b.cat?.orden ?? 99));
 const criticas = personasCriticas(registros, 6);
-const lectura = hallazgos(registros, (id) => catPorId.get(id)?.nombre ?? "Una categoría");
+const UMBRAL_FALTAS = 3;
+const conFaltas = personasCriticas(registros, 1000).filter((c) => c.faltas >= UMBRAL_FALTAS);
+const concl = conclusiones(
+  registros,
+  (id) => catPorId.get(id)?.nombre ?? "Una categoría",
+  UMBRAL_FALTAS,
+);
 
 // Nómina
 const sinCuenta = personas.filter((x) => !x.usuario_id).length;
 const sinJornada = personas.filter((x) => !x.jornada_id).length;
 
-// ── Formato ──
-const fmtVar = (
-  v: number | null,
-  inverso = false,
-  unidad: [string, string] = ["punto", "puntos"],
-) => {
-  if (v === null || v === 0) return null;
-  const mejora = inverso ? v < 0 : v > 0;
-  return { texto: `${v > 0 ? "+" : ""}${v} ${Math.abs(v) === 1 ? unidad[0] : unidad[1]}`, mejora };
+// ── Nivel 1: cuatro indicadores (el detalle se descubre al pasar el mouse o tocar) ──
+type Var = { texto: string; mejora: boolean; sube: boolean } | null;
+const varPuntos = (actual: number, anterior: number | undefined): Var => {
+  if (anterior === undefined) return null;
+  const t = variacionPuntos(actual - anterior);
+  return t === "0" ? null : { texto: t, mejora: actual > anterior, sube: actual > anterior };
 };
-const pl = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+const varCantidad = (actual: number, anterior: number | undefined, menosEsMejor = true): Var => {
+  if (anterior === undefined || actual === anterior) return null;
+  const d = actual - anterior;
+  return {
+    texto: `${d > 0 ? "+" : "−"}${numero(Math.abs(d))}`,
+    mejora: menosEsMejor ? d < 0 : d > 0,
+    sube: d > 0,
+  };
+};
+const comparado = resumenAnt ? ` · período anterior: ` : "";
 const kpis: {
   titulo: string;
   valor: string;
-  detalle?: string;
   icono: NombreIcono;
-  var?: ReturnType<typeof fmtVar>;
-  enlace?: string;
+  variacion: Var;
+  detalle: string;
 }[] = [
   {
-    titulo: "Asistencia del período",
-    valor: resumen.conteo.total ? `${resumen.asistencia}%` : "—",
-    detalle: `${resumen.conteo.presente + resumen.conteo.tarde + resumen.conteo.permiso} de ${resumen.conteo.total} jornadas`,
+    titulo: "Asistencia",
+    valor: resumen.conteo.total ? porcentaje(resumen.asistencia) : "—",
     icono: "tendencia",
-    var: fmtVar(variacion(resumen.asistencia, resumenAnt?.asistencia ?? null)),
+    variacion: varPuntos(resumen.asistencia, resumenAnt?.asistencia),
+    detalle: `${numero(resumen.conteo.presente + resumen.conteo.tarde + resumen.conteo.permiso)} de ${numero(resumen.conteo.total)} jornadas cumplidas (${porcentaje(resumen.asistencia, 2)})${comparado}${resumenAnt ? porcentaje(resumenAnt.asistencia, 2) : ""}`,
   },
   {
     titulo: "Puntualidad",
-    valor: resumen.conteo.total ? `${resumen.puntualidad}%` : "—",
-    detalle: pl(resumen.conteo.tarde, "llegada tarde", "llegadas tarde"),
+    valor: resumen.conteo.total ? porcentaje(resumen.puntualidad) : "—",
     icono: "reloj",
-    var: fmtVar(variacion(resumen.puntualidad, resumenAnt?.puntualidad ?? null)),
+    variacion: varPuntos(resumen.puntualidad, resumenAnt?.puntualidad),
+    detalle: `${plural(resumen.conteo.tarde, "llegada tarde", "llegadas tarde")} · retraso promedio ${resumen.retrasoPromedioMin} min${comparado}${resumenAnt ? porcentaje(resumenAnt.puntualidad, 2) : ""}`,
   },
   {
     titulo: "Faltas",
-    valor: String(resumen.conteo.falta),
-    detalle: pl(resumen.conteo.permiso, "permiso justificado", "permisos justificados"),
+    valor: numero(resumen.conteo.falta),
     icono: "alerta",
-    var: resumenAnt
-      ? fmtVar(resumen.conteo.falta - resumenAnt.conteo.falta, true, ["falta", "faltas"])
-      : null,
+    variacion: varCantidad(resumen.conteo.falta, resumenAnt?.conteo.falta),
+    detalle: `Días laborables sin marcación ni permiso${comparado}${resumenAnt ? numero(resumenAnt.conteo.falta) : ""}`,
   },
   {
-    titulo: "Retraso promedio",
-    valor: resumen.conteo.tarde ? `${resumen.retrasoPromedioMin} min` : "—",
-    detalle: "en las llegadas tarde",
-    icono: "tendenciaBaja",
-    var: resumenAnt?.conteo.tarde
-      ? fmtVar(resumen.retrasoPromedioMin - resumenAnt.retrasoPromedioMin, true, ["min", "min"])
-      : null,
-  },
-  {
-    titulo: "Horas trabajadas",
-    valor: Math.round(resumen.horasTotales).toLocaleString("es-VE"),
-    detalle: `${resumen.personas} personas con registros`,
-    icono: "calendario",
-  },
-  {
-    titulo: "Por revisar",
-    valor: String(porRevisar + (telefonosPendientes ?? 0)),
-    detalle: `${porRevisar} marcaciones señaladas · ${telefonosPendientes ?? 0} teléfonos`,
-    icono: "escudo",
+    titulo: "Permisos",
+    valor: numero(resumen.conteo.permiso),
+    icono: "documento",
+    variacion: null,
+    detalle: `Ausencias justificadas: no cuentan como falta${comparado}${resumenAnt ? numero(resumenAnt.conteo.permiso) : ""}`,
   },
 ];
 
+// ── Nivel 2: requiere atención (solo lo que tenga pendientes) ──
+const atencion = [
+  porRevisar && {
+    texto: plural(porRevisar, "marcación por revisar", "marcaciones por revisar"),
+    enlace: "/asistencia/revision",
+    icono: "escudo" as NombreIcono,
+  },
+  telefonosPendientes && {
+    texto: plural(telefonosPendientes, "teléfono por aprobar", "teléfonos por aprobar"),
+    enlace: "/personal",
+    icono: "usuarios" as NombreIcono,
+  },
+  conFaltas.length && {
+    texto: `${plural(conFaltas.length, "persona", "personas")} con ${UMBRAL_FALTAS} o más faltas`,
+    enlace: "#seccion-personas",
+    icono: "alerta" as NombreIcono,
+  },
+  sinJornada && {
+    texto: `${plural(sinJornada, "persona", "personas")} sin jornada asignada`,
+    enlace: "/personal?jornada=no",
+    icono: "calendario" as NombreIcono,
+  },
+  sinCuenta && {
+    texto: `${plural(sinCuenta, "persona", "personas")} sin cuenta de acceso`,
+    enlace: "/personal?cuenta=no",
+    icono: "escudo" as NombreIcono,
+  },
+].filter((x): x is { texto: string; enlace: string; icono: NombreIcono } => Boolean(x));
+
+// ── Formato ──
 const dd = (f: string) => fechaCorta(f).slice(0, 5);
 const enlacePeriodo = (per: Periodo) => {
   const u = new URL(Astro.url);
   u.searchParams.set("periodo", per);
   return u.pathname + u.search;
 };
-const enlaceCategoria = (id: string | null) => {
-  const u = new URL(Astro.url);
-  if (id) u.searchParams.set("categoria", id);
-  else u.searchParams.delete("categoria");
-  return u.pathname + u.search;
-};
+const hoySegmentos = [
+  { etiqueta: "Presentes", valor: hoyConteo.presente, clase: "presente" as const },
+  { etiqueta: "Tarde", valor: hoyConteo.tarde, clase: "tarde" as const },
+  { etiqueta: "Permiso", valor: hoyConteo.permiso, clase: "permiso" as const },
+  { etiqueta: "Falta", valor: hoyConteo.falta, clase: "falta" as const },
+  { etiqueta: "Sin marcar", valor: pendientesHoy, clase: "pendiente" as const },
+];
 ---
 
 <PanelLayout titulo="Panel" subtitulo={fechaLarga(hoy)}>
@@ -204,24 +229,20 @@ const enlaceCategoria = (id: string | null) => {
   </Fragment>
 
   {esDemo && (
-    <div class="aviso">
-      <Alerta tipo="alerta">
-        <strong>Datos de demostración.</strong> La asistencia mostrada fue generada para probar el
-        sistema y no corresponde a marcaciones reales.{" "}
-        {perfil.rol === "directiva" && (
-          <a href="/configuracion#demo">Eliminar datos de demostración</a>
-        )}
-      </Alerta>
-    </div>
+    <p class="demo">
+      <Icono nombre="info" tamano={16} />
+      <span>Datos de demostración: no corresponden a marcaciones reales.</span>
+      {perfil.rol === "directiva" && <a href="/configuracion#demo">Eliminar</a>}
+    </p>
   )}
 
-  <!-- Filtros del panel -->
+  <!-- Filtros -->
   <div class="controles">
     <nav class="segmentado" aria-label="Período">
       {(
         [
           ["mes", "Este mes"],
-          ["30d", "Últimos 30 días"],
+          ["30d", "30 días"],
           ["anterior", "Mes anterior"],
         ] as [Periodo, string][]
       ).map(([v, t]) => (
@@ -247,18 +268,19 @@ const enlaceCategoria = (id: string | null) => {
         <button type="submit">Aplicar</button>
       </noscript>
     </form>
-    <p class="rango">
+    <span
+      class="rango"
+      title={
+        resumenAnt
+          ? `Comparado con ${fechaCorta(rango.anterior.desde)} – ${fechaCorta(rango.anterior.hasta)}`
+          : undefined
+      }
+    >
       {fechaCorta(rango.desde)} – {fechaCorta(rango.hasta)}
-      {resumenAnt && (
-        <span>
-          {" "}
-          · comparado con {fechaCorta(rango.anterior.desde)} – {fechaCorta(rango.anterior.hasta)}
-        </span>
-      )}
-    </p>
+    </span>
   </div>
 
-  <!-- Hoy -->
+  <!-- Nivel 1 · Hoy -->
   {mostrarHoy && (
     <section class="hoy" aria-labelledby="titulo-hoy" data-datos>
       <div class="hoy-cabeza">
@@ -266,247 +288,264 @@ const enlaceCategoria = (id: string | null) => {
         <p>
           {feriadoHoy
             ? `Feriado: ${feriadoHoy.descripcion}`
-            : `${hoyConteo.presente + hoyConteo.tarde} de ${laborablesHoy} personas han llegado`}
+            : `${numero(hoyConteo.presente + hoyConteo.tarde)} de ${numero(laborablesHoy)} han llegado`}
         </p>
       </div>
-      <BarraApilada
-        segmentos={[
-          { etiqueta: "Presentes", valor: hoyConteo.presente, clase: "presente" },
-          { etiqueta: "Tarde", valor: hoyConteo.tarde, clase: "tarde" },
-          { etiqueta: "Permiso", valor: hoyConteo.permiso, clase: "permiso" },
-          { etiqueta: "Falta", valor: hoyConteo.falta, clase: "falta" },
-          { etiqueta: "Sin marcar", valor: pendientesHoy, clase: "pendiente" },
-        ]}
-      />
+      <BarraApilada segmentos={hoySegmentos} soloConValor />
     </section>
   )}
 
-  <!-- Indicadores: una cifra principal y una fila de cifras secundarias en una sola superficie -->
-  <section class="resumen" aria-label="Indicadores del período" data-datos>
-    {(() => {
-      const [principal, ...resto] = kpis;
-      return (
-        <>
-          <div class="principal">
-            <span class="titulo">{principal!.titulo}</span>
-            <span class="valor-principal">{principal!.valor}</span>
-            <span class="detalle">{principal!.detalle}</span>
-            {principal!.var && (
-              <span class:list={["variacion", principal!.var.mejora ? "mejora" : "empeora"]}>
-                <Icono nombre={principal!.var.mejora ? "tendencia" : "tendenciaBaja"} tamano={16} />
-                {principal!.var.texto} frente al período anterior
-              </span>
-            )}
-          </div>
-          <dl class="secundarios">
-            {resto.map((k) => (
-              <div class="kpi">
-                <dt class="titulo">
-                  <Icono nombre={k.icono} tamano={16} class="kpi-icono" />
-                  {k.titulo}
-                </dt>
-                <dd class="valor">{k.valor}</dd>
-                <dd class="detalle">{k.detalle}</dd>
-                {k.var && (
-                  <dd class:list={["variacion", k.var.mejora ? "mejora" : "empeora"]}>
-                    <Icono nombre={k.var.mejora ? "tendencia" : "tendenciaBaja"} tamano={14} />
-                    {k.var.texto}
-                  </dd>
-                )}
-              </div>
-            ))}
-          </dl>
-        </>
-      );
-    })()}
+  <!-- Nivel 1 · Indicadores del período -->
+  <dl class="kpis" aria-label="Indicadores del período" data-datos>
+    {kpis.map((k) => (
+      <div class="kpi" tabindex="0" aria-describedby={`kpi-${k.titulo}`}>
+        <dt>
+          <Icono nombre={k.icono} tamano={16} class="kpi-icono" />
+          {k.titulo}
+        </dt>
+        <dd class="valor">
+          {k.valor}
+          {k.variacion && (
+            <span
+              class:list={["variacion", k.variacion.mejora ? "mejora" : "empeora"]}
+              title="Frente al período anterior"
+            >
+              <Icono nombre={k.variacion.sube ? "tendencia" : "tendenciaBaja"} tamano={14} />
+              {k.variacion.texto}
+            </span>
+          )}
+        </dd>
+        <dd class="detalle" id={`kpi-${k.titulo}`} role="tooltip">
+          {k.detalle}
+        </dd>
+      </div>
+    ))}
+  </dl>
+
+  <!-- Nivel 2 · Requiere atención -->
+  <section class="atencion" aria-labelledby="titulo-atencion" data-datos>
+    <h2 id="titulo-atencion">Requiere atención</h2>
+    {atencion.length ? (
+      <ul>
+        {atencion.map((a) => (
+          <li>
+            <a href={a.enlace}>
+              <Icono nombre={a.icono} tamano={18} />
+              <span>{a.texto}</span>
+              <Icono nombre="siguiente" tamano={16} class="ir" />
+            </a>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class="al-dia">
+        <Icono nombre="exito" tamano={18} />
+        Todo al día.
+      </p>
+    )}
   </section>
 
-  {lectura.length > 0 && (
-    <section class="lectura" aria-labelledby="titulo-lectura" data-datos>
-      <Icono nombre="info" tamano={20} class="lectura-icono" />
-      <div>
-        <h2 id="titulo-lectura">Lectura rápida</h2>
-        <ul>
-          {lectura.map((t) => (
-            <li>{t}</li>
-          ))}
-        </ul>
-      </div>
-    </section>
-  )}
-
-  {registros.length === 0 ? (
-    <Tarjeta datos>
-      <p class="vacio">
-        No hay registros de asistencia en este período. Las gráficas aparecerán cuando el personal
+  <!-- Nivel 3 · Análisis bajo demanda -->
+  <section class="analisis" aria-labelledby="titulo-analisis">
+    <h2 id="titulo-analisis">Análisis del período</h2>
+    {registros.length === 0 ? (
+      <p class="vacio" data-datos>
+        No hay registros de asistencia en este período. El análisis aparecerá cuando el personal
         empiece a marcar.
       </p>
-    </Tarjeta>
-  ) : (
-    <div class="graficas">
-      <Figura
-        class="ancha"
-        titulo="Tendencia de asistencia"
-        descripcion={`Porcentaje diario de jornadas cumplidas (presente, tarde o permiso) · ${rango.etiqueta}`}
-        columnas={["Fecha", "Asistencia", "Presentes", "Tarde", "Faltas", "Permisos"]}
-        filas={serie.map((s) => [
-          fechaCorta(s.clave),
-          `${s.valor}%`,
-          s.conteo.presente,
-          s.conteo.tarde,
-          s.conteo.falta,
-          s.conteo.permiso,
-        ])}
-      >
-        <GraficaLinea
-          puntos={serie.map((s) => ({
-            etiqueta: dd(s.clave),
-            valor: s.valor,
-            detalle: `${fechaCorta(s.clave)}: ${s.valor}% · ${s.conteo.falta} faltas, ${s.conteo.tarde} tarde`,
-          }))}
-          referencia={{ valor: resumen.asistencia, etiqueta: `Promedio ${resumen.asistencia}%` }}
-        />
-      </Figura>
+    ) : (
+      <div class="secciones">
+        <Seccion
+          id="seccion-tendencia"
+          titulo="Tendencia de asistencia"
+          resumen={concl.tendencia}
+          abierta
+        >
+          <Figura
+            plana
+            titulo="Tendencia de asistencia"
+            descripcion={`Porcentaje diario de jornadas cumplidas · ${rango.etiqueta} · ${numero(Math.round(resumen.horasTotales))} horas trabajadas`}
+            columnas={["Fecha", "Asistencia", "Presentes", "Tarde", "Faltas", "Permisos"]}
+            filas={serie.map((s) => [
+              fechaCorta(s.clave),
+              porcentaje(s.valor, 2),
+              s.conteo.presente,
+              s.conteo.tarde,
+              s.conteo.falta,
+              s.conteo.permiso,
+            ])}
+          >
+            <GraficaLinea
+              puntos={serie.map((s) => ({
+                etiqueta: dd(s.clave),
+                valor: s.valor,
+                detalle: `${fechaCorta(s.clave)}: ${porcentaje(s.valor)} · ${plural(s.conteo.falta, "falta", "faltas")}, ${s.conteo.tarde} tarde`,
+              }))}
+              referencia={{
+                valor: resumen.asistencia,
+                etiqueta: `Promedio ${porcentaje(resumen.asistencia)}`,
+              }}
+            />
+          </Figura>
+        </Seccion>
 
-      <Figura
-        titulo="Asistencia por día de la semana"
-        descripcion="Ayuda a detectar días críticos. Rayado: el día más bajo."
-        columnas={["Día", "Asistencia", "Tardanza", "Faltas"]}
-        filas={dias.map((d) => [
-          NOMBRE_DIA[d.dia as DiaSemana],
-          `${d.asistencia}%`,
-          `${d.tardanza}%`,
-          d.faltas,
-        ])}
-      >
-        <BarrasHorizontales
-          maximo={100}
-          items={dias.map((d) => ({
-            etiqueta: NOMBRE_DIA[d.dia as DiaSemana],
-            valor: d.asistencia,
-            detalle: `${pl(d.faltas, "falta", "faltas")} · ${d.tardanza}% tarde`,
-            resaltar: d.asistencia === peorDia && dias.length > 1,
-          }))}
-        />
-      </Figura>
+        <Seccion id="seccion-dias" titulo="Por día de la semana" resumen={concl.dias}>
+          <Figura
+            plana
+            titulo="Asistencia por día de la semana"
+            descripcion="Rayado: el día con la asistencia más baja."
+            columnas={["Día", "Asistencia", "Tardanza", "Faltas"]}
+            filas={dias.map((d) => [
+              NOMBRE_DIA[d.dia as DiaSemana],
+              porcentaje(d.asistencia, 2),
+              porcentaje(d.tardanza, 2),
+              d.faltas,
+            ])}
+          >
+            <BarrasHorizontales
+              maximo={100}
+              items={dias.map((d) => ({
+                etiqueta: NOMBRE_DIA[d.dia as DiaSemana],
+                valor: d.asistencia,
+                texto: porcentaje(d.asistencia),
+                detalle: `${plural(d.faltas, "falta", "faltas")} · ${porcentaje(d.tardanza)} tarde`,
+                resaltar: d.asistencia === peorDia && dias.length > 1,
+              }))}
+            />
+          </Figura>
+        </Seccion>
 
-      <Figura
-        titulo="Hora de llegada"
-        descripcion="Cuántos minutos después de la hora de entrada llega el personal. Sirve para evaluar si la tolerancia es adecuada."
-        columnas={["Tramo", "Llegadas", "Porcentaje"]}
-        filas={llegadas.map((l) => [
-          l.etiqueta,
-          l.valor,
-          `${totalLlegadas ? Math.round((l.valor / totalLlegadas) * 100) : 0}%`,
-        ])}
-      >
-        <DistribucionLlegadas tramos={llegadas} />
-      </Figura>
+        <Seccion id="seccion-llegadas" titulo="Hora de llegada" resumen={concl.llegadas}>
+          <Figura
+            plana
+            titulo="Hora de llegada"
+            descripcion={`Minutos después de la hora de entrada. Retraso promedio de quienes llegan tarde: ${resumen.retrasoPromedioMin} min.`}
+            columnas={["Tramo", "Llegadas", "Porcentaje"]}
+            filas={llegadas.map((l) => [
+              l.etiqueta,
+              l.valor,
+              porcentaje(totalLlegadas ? (l.valor / totalLlegadas) * 100 : 0),
+            ])}
+          >
+            <DistribucionLlegadas tramos={llegadas} />
+          </Figura>
+        </Seccion>
 
-      <Figura
-        titulo="Asistencia por categoría"
-        descripcion="Comparación entre docentes, secretaría, cocina, obreros y vigilancia."
-        columnas={["Categoría", "Personas", "Asistencia", "Puntualidad", "Faltas"]}
-        filas={cats.map((c) => [
-          c.cat?.nombre ?? "—",
-          c.personas,
-          `${c.asistencia}%`,
-          `${c.puntualidad}%`,
-          c.conteo.falta,
-        ])}
-      >
-        <BarrasHorizontales
-          maximo={100}
-          items={cats.map((c) => ({
-            etiqueta: c.cat?.nombre ?? "—",
-            valor: c.asistencia,
-            color: c.cat?.color,
-            detalle: `${c.personas} pers. · puntualidad ${c.puntualidad}%`,
-          }))}
-        />
-      </Figura>
+        <Seccion id="seccion-categorias" titulo="Por categoría" resumen={concl.categorias}>
+          <Figura
+            plana
+            titulo="Asistencia por categoría"
+            descripcion="Asistencia y puntualidad de cada grupo del personal."
+            columnas={["Categoría", "Personas", "Asistencia", "Puntualidad", "Faltas"]}
+            filas={cats.map((c) => [
+              c.cat?.nombre ?? "—",
+              c.personas,
+              porcentaje(c.asistencia, 2),
+              porcentaje(c.puntualidad, 2),
+              c.conteo.falta,
+            ])}
+          >
+            <BarrasHorizontales
+              maximo={100}
+              items={cats.map((c) => ({
+                etiqueta: c.cat?.nombre ?? "—",
+                valor: c.asistencia,
+                texto: porcentaje(c.asistencia),
+                color: c.cat?.color,
+                detalle: `${c.personas} pers. · puntualidad ${porcentaje(c.puntualidad)}`,
+              }))}
+            />
+          </Figura>
+        </Seccion>
 
-      <Figura
-        titulo="Seguimiento individual"
-        descripcion="Personas con más faltas y tardanzas en el período."
-        columnas={["Persona", "Faltas", "Tardanzas", "Asistencia"]}
-        filas={criticas.map((c) => {
-          const x = personaPorId.get(c.personalId);
-          return [x ? `${x.nombre} ${x.apellido}` : "—", c.faltas, c.tardanzas, `${c.asistencia}%`];
-        })}
-      >
-        {criticas.length ? (
-          <ol class="criticas">
-            {criticas.map((c) => {
+        <Seccion
+          id="seccion-personas"
+          titulo="Seguimiento individual"
+          resumen={concl.personas}
+          tono={conFaltas.length ? "alerta" : "normal"}
+        >
+          <Figura
+            plana
+            titulo="Seguimiento individual"
+            descripcion="Personas con más faltas y tardanzas en el período."
+            columnas={["Persona", "Faltas", "Tardanzas", "Asistencia"]}
+            filas={criticas.map((c) => {
               const x = personaPorId.get(c.personalId);
-              const cat = x ? catPorId.get(x.categoria_id) : undefined;
-              return (
-                <li>
-                  <span class="ini" style={`--c: ${cat?.color ?? "#64748b"}`} aria-hidden="true">
-                    {(x?.nombre[0] ?? "") + (x?.apellido[0] ?? "")}
-                  </span>
-                  <span class="quien">
-                    {x ? (
-                      <a href={`/personal/${x.id}`}>
-                        {x.nombre} {x.apellido}
-                      </a>
-                    ) : (
-                      "—"
-                    )}
-                    <small>{cat?.nombre}</small>
-                  </span>
-                  <span class="cifras">
-                    <strong>{c.faltas}</strong> {c.faltas === 1 ? "falta" : "faltas"} ·{" "}
-                    <strong>{c.tardanzas}</strong> tarde
-                  </span>
-                </li>
-              );
+              return [
+                x ? `${x.nombre} ${x.apellido}` : "—",
+                c.faltas,
+                c.tardanzas,
+                porcentaje(c.asistencia, 2),
+              ];
             })}
-          </ol>
-        ) : (
-          <p class="vacio">Nadie acumula faltas ni tardanzas en el período.</p>
-        )}
-      </Figura>
-    </div>
-  )}
-
-  <!-- Nómina -->
-  <section class="nomina" aria-labelledby="titulo-nomina" data-datos>
-    <h2 id="titulo-nomina">Nómina{categoriaId ? ` · ${catPorId.get(categoriaId)?.nombre}` : ""}</h2>
-    <ul>
-      <li>
-        <a href={`/personal${categoriaId ? `?categoria=${categoriaId}` : ""}`}>
-          <strong>{personas.length}</strong> personas activas
-        </a>
-      </li>
-      <li class:list={[sinCuenta > 0 && "atencion"]}>
-        <a href="/personal?cuenta=no">
-          <strong>{sinCuenta}</strong> sin cuenta de acceso
-        </a>
-      </li>
-      <li class:list={[sinJornada > 0 && "atencion"]}>
-        <a href="/personal?jornada=no">
-          <strong>{sinJornada}</strong> sin jornada asignada
-        </a>
-      </li>
-      <li>
-        <a href={enlaceCategoria(null)}>
-          <strong>{categorias.filter((c) => c.activa).length}</strong> categorías
-        </a>
-      </li>
-    </ul>
+          >
+            {criticas.length ? (
+              <ol class="criticas">
+                {criticas.map((c) => {
+                  const x = personaPorId.get(c.personalId);
+                  const cat = x ? catPorId.get(x.categoria_id) : undefined;
+                  return (
+                    <li>
+                      <span
+                        class="ini"
+                        style={`--c: ${cat?.color ?? "#64748b"}`}
+                        aria-hidden="true"
+                      >
+                        {(x?.nombre[0] ?? "") + (x?.apellido[0] ?? "")}
+                      </span>
+                      <span class="quien">
+                        {x ? (
+                          <a href={`/personal/${x.id}`}>
+                            {x.nombre} {x.apellido}
+                          </a>
+                        ) : (
+                          "—"
+                        )}
+                        <small>{cat?.nombre}</small>
+                      </span>
+                      <span class="cifras">
+                        <strong>{c.faltas}</strong> {c.faltas === 1 ? "falta" : "faltas"} ·{" "}
+                        <strong>{c.tardanzas}</strong> tarde
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : (
+              <p class="vacio">Nadie acumula faltas ni tardanzas en el período.</p>
+            )}
+          </Figura>
+        </Seccion>
+      </div>
+    )}
   </section>
 </PanelLayout>
 
 <style>
-  .aviso {
-    margin-bottom: var(--esp-4);
+  /* Aviso de demostración en una línea */
+  .demo {
+    display: flex;
+    align-items: baseline;
+    gap: var(--esp-2);
+    margin: 0 0 var(--esp-5);
+    font-size: var(--texto-sm);
+    color: var(--color-alerta);
   }
+  .demo :global(.icono) {
+    align-self: center;
+    flex: none;
+  }
+  .demo a {
+    font-weight: var(--peso-medio);
+    white-space: nowrap;
+  }
+
+  /* Filtros */
   .controles {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--esp-3) var(--esp-4);
+    gap: var(--esp-3);
     margin-bottom: var(--esp-6);
   }
   .segmentado {
@@ -544,10 +583,26 @@ const enlaceCategoria = (id: string | null) => {
     background: var(--color-superficie);
   }
   .rango {
-    margin: 0;
     font-size: var(--texto-sm);
     color: var(--color-texto-suave);
   }
+  @media (max-width: 600px) {
+    .segmentado {
+      flex: 1 1 100%;
+    }
+    .segmentado a {
+      flex: 1;
+      justify-content: center;
+    }
+    .filtro-cat {
+      flex: 1;
+    }
+    .filtro-cat select {
+      width: 100%;
+    }
+  }
+
+  /* Hoy */
   .hoy {
     margin-bottom: var(--esp-4);
     padding: var(--esp-5) var(--esp-6);
@@ -563,8 +618,7 @@ const enlaceCategoria = (id: string | null) => {
     gap: var(--esp-2);
     margin-bottom: var(--esp-4);
   }
-  .hoy h2,
-  .nomina h2 {
+  h2 {
     font-size: var(--texto-lg);
   }
   .hoy-cabeza p {
@@ -572,75 +626,68 @@ const enlaceCategoria = (id: string | null) => {
     color: var(--color-texto-suave);
     font-size: var(--texto-sm);
   }
-  /* ── Resumen de indicadores ── */
-  .resumen {
+
+  /* Cuatro indicadores */
+  .kpis {
     display: grid;
-    gap: var(--esp-6);
-    margin-bottom: var(--esp-6);
-    padding: var(--esp-6);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0 0 var(--separacion-bloques);
     background: var(--color-superficie);
     border: 1px solid var(--color-borde);
     border-radius: var(--radio);
   }
-  .principal {
+  .kpi {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--esp-2);
+    padding: var(--esp-5) var(--esp-6);
+    outline-offset: -4px;
+    cursor: help;
   }
-  .titulo {
-    display: inline-flex;
+  .kpi:nth-child(2n) {
+    box-shadow: inset 1px 0 0 var(--color-borde);
+  }
+  .kpi:nth-child(n + 3) {
+    box-shadow: inset 0 1px 0 var(--color-borde);
+  }
+  .kpi:nth-child(4) {
+    box-shadow:
+      inset 1px 0 0 var(--color-borde),
+      inset 0 1px 0 var(--color-borde);
+  }
+  .kpi dt {
+    display: flex;
     align-items: center;
     gap: 6px;
     font-size: var(--texto-sm);
     font-weight: var(--peso-medio);
     color: var(--color-texto-suave);
   }
-  .valor-principal {
-    font-size: var(--texto-3xl);
-    font-weight: var(--peso-titulo);
-    letter-spacing: var(--tracking-cifra);
-    line-height: 1.05;
-    font-variant-numeric: tabular-nums;
-  }
-  .secundarios {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--esp-5) var(--esp-4);
-    margin: 0;
-    padding-top: var(--esp-6);
-    border-top: 1px solid var(--color-borde);
-  }
-  .kpi {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 0;
+  .kpi :global(.kpi-icono) {
+    color: var(--color-texto-tenue);
   }
   .kpi dd {
     margin: 0;
   }
-  .kpi :global(.kpi-icono) {
-    color: var(--color-texto-tenue);
-  }
   .valor {
-    font-size: var(--texto-xl);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--esp-2) var(--esp-3);
+    font-size: var(--texto-2xl);
     font-weight: var(--peso-titulo);
-    letter-spacing: var(--tracking-titulo);
+    letter-spacing: var(--tracking-cifra);
+    line-height: 1.1;
     font-variant-numeric: tabular-nums;
-  }
-  .detalle {
-    font-size: var(--texto-sm);
-    color: var(--color-texto-suave);
   }
   .variacion {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-size: var(--texto-xs);
-    font-weight: var(--peso-fuerte);
-  }
-  .principal .variacion {
+    gap: 4px;
     font-size: var(--texto-sm);
+    font-weight: var(--peso-fuerte);
+    letter-spacing: 0;
   }
   .mejora {
     color: var(--color-exito);
@@ -648,68 +695,107 @@ const enlaceCategoria = (id: string | null) => {
   .empeora {
     color: var(--color-error);
   }
-  @media (min-width: 1000px) {
-    .resumen {
-      grid-template-columns: minmax(14rem, 1fr) 3fr;
-      gap: var(--esp-8);
-    }
-    .secundarios {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      padding-top: 0;
-      padding-left: var(--esp-8);
-      border-top: 0;
-      border-left: 1px solid var(--color-borde);
-      align-content: center;
-    }
+  /* Detalle: aparece al pasar el mouse o al enfocar/tocar el indicador */
+  .detalle {
+    position: absolute;
+    left: var(--esp-4);
+    right: var(--esp-4);
+    top: calc(100% - var(--esp-2));
+    z-index: 5;
+    padding: var(--esp-3) var(--esp-4);
+    border-radius: var(--radio-sm);
+    background: var(--color-primario);
+    color: var(--color-primario-contraste);
+    font-size: var(--texto-sm);
+    line-height: 1.45;
+    box-shadow: var(--sombra-lg);
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition:
+      opacity var(--duracion-rapida) var(--curva),
+      transform var(--duracion-rapida) var(--curva);
   }
-  @media (min-width: 1440px) {
-    .secundarios {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
+  .kpi:hover .detalle,
+  .kpi:focus-visible .detalle,
+  .kpi:focus-within .detalle {
+    opacity: 1;
+    transform: none;
   }
-  @media (min-width: 640px) and (max-width: 999px) {
-    .secundarios {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+  @media (min-width: 900px) {
+    .kpis {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .kpi:nth-child(n) {
+      box-shadow: inset 1px 0 0 var(--color-borde);
+    }
+    .kpi:first-child {
+      box-shadow: none;
     }
   }
 
-  /* ── Lectura rápida: fondo tintado, sin borde lateral ── */
-  .lectura {
-    display: flex;
-    gap: var(--esp-3);
+  /* Requiere atención */
+  .atencion {
     margin-bottom: var(--separacion-bloques);
-    padding: var(--esp-5) var(--esp-6);
-    border-radius: var(--radio);
-    background: var(--color-acento-suave);
-    color: var(--color-texto);
   }
-  .lectura :global(.lectura-icono) {
-    flex: none;
-    margin-top: 2px;
-    color: var(--color-acento-texto);
+  .atencion h2,
+  .analisis h2 {
+    margin-bottom: var(--esp-3);
   }
-  .lectura h2 {
-    font-size: var(--texto-base);
-    margin-bottom: var(--esp-2);
-  }
-  .lectura ul {
+  .atencion ul {
     margin: 0;
-    padding-left: var(--esp-5);
+    padding: 0;
+    list-style: none;
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    overflow: hidden;
+  }
+  .atencion li + li {
+    border-top: 1px solid var(--color-borde);
+  }
+  .atencion a {
     display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--esp-3);
+    min-height: 52px;
+    padding: var(--esp-3) var(--esp-6);
+    color: var(--color-texto);
+    text-decoration: none;
+    transition: background var(--duracion-rapida) var(--curva);
+  }
+  .atencion a > :global(.icono:first-child) {
+    color: var(--color-alerta);
+  }
+  .atencion a:hover {
+    background: var(--color-superficie-hover);
+  }
+  .atencion a :global(.ir) {
+    color: var(--color-texto-tenue);
+  }
+  .al-dia {
+    display: flex;
+    align-items: center;
     gap: var(--esp-2);
+    margin: 0;
+    padding: var(--esp-4) var(--esp-6);
+    border-radius: var(--radio);
+    background: var(--color-exito-suave);
+    color: var(--color-exito);
+    font-weight: var(--peso-medio);
   }
-  .graficas {
-    display: grid;
-    gap: var(--esp-5);
-    margin-bottom: var(--separacion-bloques);
+
+  /* Análisis */
+  .secciones {
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    overflow: hidden;
   }
-  @media (min-width: 1000px) {
-    .graficas {
-      grid-template-columns: 1fr 1fr;
-    }
-    .graficas > :global(.ancha) {
-      grid-column: 1 / -1;
-    }
+  .vacio {
+    margin: 0;
+    color: var(--color-texto-suave);
   }
   .criticas {
     display: grid;
@@ -745,8 +831,13 @@ const enlaceCategoria = (id: string | null) => {
     min-width: 0;
   }
   .quien a {
+    color: var(--color-texto);
     font-weight: var(--peso-fuerte);
     text-decoration: none;
+  }
+  .quien a:hover {
+    color: var(--color-acento-texto);
+    text-decoration: underline;
   }
   .quien small {
     color: var(--color-texto-suave);
@@ -758,55 +849,5 @@ const enlaceCategoria = (id: string | null) => {
   }
   .cifras strong {
     color: var(--color-texto);
-  }
-  .vacio {
-    margin: 0;
-    color: var(--color-texto-suave);
-  }
-  /* Nómina: una sola superficie dividida, no cuatro tarjetas */
-  .nomina {
-    display: grid;
-    gap: var(--esp-4);
-  }
-  .nomina ul {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    background: var(--color-superficie);
-    border: 1px solid var(--color-borde);
-    border-radius: var(--radio);
-    overflow: hidden;
-  }
-  .nomina li {
-    box-shadow: inset -1px -1px 0 var(--color-borde);
-  }
-  .nomina a {
-    display: block;
-    height: 100%;
-    padding: var(--esp-4) var(--esp-5);
-    color: var(--color-texto-suave);
-    text-decoration: none;
-    font-size: var(--texto-sm);
-    transition: background var(--duracion-rapida) var(--curva);
-  }
-  .nomina a:hover {
-    background: var(--color-superficie-hover);
-  }
-  .nomina strong {
-    display: block;
-    color: var(--color-texto);
-    font-size: var(--texto-xl);
-    font-weight: var(--peso-titulo);
-    font-variant-numeric: tabular-nums;
-  }
-  .nomina .atencion strong {
-    color: var(--color-alerta);
-  }
-  @media (min-width: 900px) {
-    .nomina ul {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
   }
 </style>

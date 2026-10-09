@@ -234,8 +234,50 @@ document.addEventListener("click", (ev) => {
   b.setAttribute("aria-expanded", String(abierto));
 });
 
+// Secciones plegables: recordar abiertas/cerradas en este navegador
+const CLAVE_SECCIONES = "gru:secciones";
+function leerSecciones(): Record<string, boolean> {
+  try {
+    return JSON.parse(localStorage.getItem(CLAVE_SECCIONES) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+document.addEventListener(
+  "toggle",
+  (ev) => {
+    const d = ev.target;
+    if (!(d instanceof HTMLDetailsElement) || !d.dataset.recordar) return;
+    const estado = leerSecciones();
+    estado[d.dataset.recordar] = d.open;
+    try {
+      localStorage.setItem(CLAVE_SECCIONES, JSON.stringify(estado));
+    } catch {
+      /* almacenamiento no disponible: no se recuerda */
+    }
+  },
+  true,
+);
+// Un enlace a una sección plegable (p. ej. «Requiere atención» → #seccion-personas) la abre
+function abrirSeccionDelAncla() {
+  const destino =
+    location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+  if (destino instanceof HTMLDetailsElement) {
+    destino.open = true;
+    destino.scrollIntoView({ block: "start" });
+  }
+}
+addEventListener("hashchange", abrirSeccionDelAncla);
+
 /** Inicializaciones que dependen de elementos concretos (se repiten tras cada reemplazo). */
 function inicializar(raiz: ParentNode) {
+  const estado = leerSecciones();
+  raiz.querySelectorAll<HTMLDetailsElement>("details[data-recordar]").forEach((d) => {
+    const guardado = estado[d.dataset.recordar!];
+    if (guardado !== undefined) d.open = guardado;
+  });
+  abrirSeccionDelAncla();
+
   // Al elegir categoría, proponer su jornada (si el usuario no eligió otra)
   raiz.querySelectorAll<HTMLSelectElement>("select[data-jornada-sugerida]").forEach((cat) => {
     const jornada = document.getElementById(

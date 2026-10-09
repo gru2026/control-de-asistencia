@@ -13,40 +13,54 @@ interface Props {
 }
 const { puntos, referencia, minimo } = Astro.props;
 
-// viewBox cercano al ancho real en PC: el texto del eje se ve a ~14 px (sin escalar).
-const AN = 900;
-const AL = 280;
-const M = { arriba: 16, derecha: 28, abajo: 34, izquierda: 60 };
-const ancho = AN - M.izquierda - M.derecha;
-const alto = AL - M.arriba - M.abajo;
-
-// Eje Y: desde un mínimo "redondo" para que las variaciones se vean (nunca engañar: se rotula).
+// Dos geometrías: PC (ancha) y celular (compacta, sin desplazamiento horizontal).
+// En ambas el viewBox se acerca al ancho real, así el texto del eje no se encoge.
 const menor = Math.min(...puntos.map((p) => p.valor), referencia?.valor ?? 100);
 const yMin = minimo ?? Math.max(0, Math.floor((menor - 5) / 10) * 10);
 const yMax = 100;
-const x = (i: number) =>
-  M.izquierda + (puntos.length <= 1 ? ancho / 2 : (i / (puntos.length - 1)) * ancho);
-const y = (v: number) => M.arriba + alto - ((v - yMin) / (yMax - yMin)) * alto;
 
-const linea = puntos.map((p, i) => `${x(i).toFixed(1)},${y(p.valor).toFixed(1)}`).join(" ");
-const area = puntos.length
-  ? `M${x(0)},${y(yMin)} L${linea.replaceAll(" ", " L")} L${x(puntos.length - 1)},${y(yMin)} Z`
-  : "";
+function geometria(
+  AN: number,
+  AL: number,
+  M: { arriba: number; derecha: number; abajo: number; izquierda: number },
+  etiquetasX: number,
+) {
+  const ancho = AN - M.izquierda - M.derecha;
+  const alto = AL - M.arriba - M.abajo;
+  const x = (i: number) =>
+    M.izquierda + (puntos.length <= 1 ? ancho / 2 : (i / (puntos.length - 1)) * ancho);
+  const y = (v: number) => M.arriba + alto - ((v - yMin) / (yMax - yMin)) * alto;
+  const linea = puntos.map((p, i) => `${x(i).toFixed(1)},${y(p.valor).toFixed(1)}`).join(" ");
+  const area = puntos.length
+    ? `M${x(0)},${y(yMin)} L${linea.replaceAll(" ", " L")} L${x(puntos.length - 1)},${y(yMin)} Z`
+    : "";
+  const cada = Math.max(1, Math.ceil(puntos.length / etiquetasX));
+  return { AN, AL, M, x, y, linea, area, cada };
+}
 const marcas = Array.from({ length: 5 }, (_, i) => yMin + ((yMax - yMin) / 4) * i);
-const cada = Math.max(1, Math.ceil(puntos.length / 8));
+const vistas = [
+  {
+    clase: "ancha",
+    g: geometria(900, 280, { arriba: 16, derecha: 28, abajo: 34, izquierda: 60 }, 8),
+  },
+  {
+    clase: "compacta",
+    g: geometria(360, 220, { arriba: 14, derecha: 14, abajo: 30, izquierda: 44 }, 4),
+  },
+];
 ---
 
-<div class="desplazable">
+{vistas.map(({ clase, g }) => (
   <svg
-    viewBox={`0 0 ${AN} ${AL}`}
-    class="linea"
+    viewBox={`0 0 ${g.AN} ${g.AL}`}
+    class:list={["linea", clase]}
     role="img"
     aria-label="Gráfica de tendencia; ver datos en la tabla debajo"
   >
     {marcas.map((m) => (
       <g>
-        <line x1={M.izquierda} x2={AN - M.derecha} y1={y(m)} y2={y(m)} class="rejilla" />
-        <text x={M.izquierda - 6} y={y(m) + 4} class="eje" text-anchor="end">
+        <line x1={g.M.izquierda} x2={g.AN - g.M.derecha} y1={g.y(m)} y2={g.y(m)} class="rejilla" />
+        <text x={g.M.izquierda - 6} y={g.y(m) + 4} class="eje" text-anchor="end">
           {Math.round(m)}%
         </text>
       </g>
@@ -54,45 +68,61 @@ const cada = Math.max(1, Math.ceil(puntos.length / 8));
     {referencia && (
       <g>
         <line
-          x1={M.izquierda}
-          x2={AN - M.derecha}
-          y1={y(referencia.valor)}
-          y2={y(referencia.valor)}
+          x1={g.M.izquierda}
+          x2={g.AN - g.M.derecha}
+          y1={g.y(referencia.valor)}
+          y2={g.y(referencia.valor)}
           class="referencia"
         />
-        <text x={M.izquierda + 6} y={y(referencia.valor) - 6} class="eje ref" text-anchor="start">
+        <text
+          x={g.M.izquierda + 6}
+          y={g.y(referencia.valor) - 6}
+          class="eje ref"
+          text-anchor="start"
+        >
           {referencia.etiqueta}
         </text>
       </g>
     )}
-    <path d={area} class="area" />
-    <polyline points={linea} class="trazo" />
+    <path d={g.area} class="area" />
+    <polyline points={g.linea} class="trazo" />
     {puntos.map((p, i) => (
       <g class="punto">
-        <circle cx={x(i)} cy={y(p.valor)} r="10" class="zona" />
-        <circle cx={x(i)} cy={y(p.valor)} r="4" class="marca" />
+        <circle cx={g.x(i)} cy={g.y(p.valor)} r="10" class="zona" />
+        <circle cx={g.x(i)} cy={g.y(p.valor)} r="4" class="marca" />
         <title>{p.detalle ?? `${p.etiqueta}: ${p.valor}%`}</title>
       </g>
     ))}
     {puntos.map((p, i) =>
-      i % cada === 0 || i === puntos.length - 1 ? (
-        <text x={x(i)} y={AL - 10} class="eje" text-anchor="middle">
+      i % g.cada === 0 ||
+      (i === puntos.length - 1 && (puntos.length - 1) % g.cada >= g.cada / 2) ? (
+        <text x={g.x(i)} y={g.AL - 10} class="eje" text-anchor="middle">
           {p.etiqueta}
         </text>
       ) : null,
     )}
   </svg>
-</div>
+))}
 
 <style>
-  .desplazable {
-    overflow-x: auto;
-  }
   .linea {
-    min-width: 780px;
     width: 100%;
     height: auto;
     overflow: visible;
+  }
+  .compacta .eje {
+    font-size: 13px;
+  }
+  .compacta {
+    display: none;
+  }
+  @media (max-width: 600px) {
+    .ancha {
+      display: none;
+    }
+    .compacta {
+      display: block;
+    }
   }
   .rejilla {
     stroke: var(--color-borde);

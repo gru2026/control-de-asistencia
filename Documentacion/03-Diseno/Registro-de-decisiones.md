@@ -42,6 +42,7 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-29 | 2026-10-09 | Panel en tres niveles: Hoy + 4 indicadores · Requiere atención · Análisis en secciones plegables con su conclusión en el título | ✅ Vigente |
 | D-28 | 2026-10-08 | Skill de diseño **Impeccable** (reemplaza a ui-ux-pro-max): tipografía Onest, tokens refinados, `DESIGN.md`/`PRODUCT.md` y revisión automática `npm run diseno:revisar` | ✅ Vigente |
 | D-27 | 2026-10-08 | Filtros y paginación actualizan solo el contenido (navegación parcial); pruebas de navegador con Playwright | ✅ Vigente |
 | D-26 | 2026-10-08 | Nómina real cargada por importación (`origen = importado`) y asistencia de **demostración** (`es_demo`), ambas eliminables desde Ajustes | ✅ Vigente |
@@ -73,6 +74,13 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 - Vigilancia trabaja de noche: la jornada nocturna termina al día siguiente; una marca de madrugada pertenece a la jornada que empezó la noche anterior.
 - La planilla oficial no lleva firmas por persona (el sistema registra la hora). Solo se imprime y firma si la dirección lo desea.
 - La nómina real (51 personas) se cargó desde un CSV **privado** (no está en el repositorio). La asistencia de demostración es simulada; el panel lo indica con un aviso.
+
+### D-29 · Panel con divulgación progresiva
+- **Nivel 1 (de un vistazo):** barra de Hoy (leyenda solo con valores > 0) y 4 indicadores redondeados (Asistencia, Puntualidad, Faltas, Permisos) con flecha de variación. El detalle aparece al pasar el mouse o al tocar.
+- **Nivel 2 (qué hacer):** «Requiere atención» lista solo lo pendiente con enlace directo; si no hay nada, «Todo al día».
+- **Nivel 3 (análisis):** 5 secciones plegables (`<details>`) cuyo título incluye la conclusión, de modo que casi nunca hace falta abrirlas. El estado abierto se recuerda por navegador y se conserva al filtrar.
+- Se eliminó la tarjeta «Lectura rápida» (sus frases pasan a los títulos), la nómina y los indicadores de horas y retraso (pasan a su sección).
+- Formato venezolano: coma decimal, porcentajes enteros en la vista general; decimales solo en «Ver datos» y en el detalle.
 
 ### D-28 · Refinamiento visual con Impeccable
 - ui-ux-pro-max queda archivada en `.opencode/skills-archivo/`; la skill activa es Impeccable (Apache 2.0), modo *Operate*.

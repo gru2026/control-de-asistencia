@@ -1,0 +1,320 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Alerta from "@/components/ui/Alerta.astro";
+import Input from "@/components/ui/Input.astro";
+import Select from "@/components/ui/Select.astro";
+import Modal from "@/components/ui/Modal.astro";
+import Icono from "@/components/ui/Icono.astro";
+import { esUuid, MOTIVOS_PERMISO, texto, validarPermiso, type Errores } from "@/lib/validacion";
+import { eliminarPermiso, guardarPermiso } from "@/lib/servicios/permisos";
+import { ponerFlash } from "@/lib/flash";
+import { hoyEnZona } from "@/lib/fecha";
+import { plural } from "@/lib/formato";
+
+const { id = "" } = Astro.params;
+const esNuevo = id === "nuevo";
+if (!esNuevo && !esUuid(id)) return Astro.rewrite("/404");
+
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+const volverA = (() => {
+  const v = Astro.url.searchParams.get("volver");
+  return v && /^\/personal\/[0-9a-f-]{36}$/.test(v) ? v : "/permisos";
+})();
+
+interface FilaPermiso {
+  id: string;
+  personal_id: string;
+  fecha_desde: string;
+  fecha_hasta: string;
+  motivo: string;
+  observacion: string | null;
+  creado_en: string;
+}
+let actual: FilaPermiso | null = null;
+if (!esNuevo) {
+  const { data } = await sb
+    .from("permisos")
+    .select("id, personal_id, fecha_desde, fecha_hasta, motivo, observacion, creado_en")
+    .eq("id", id)
+    .maybeSingle<FilaPermiso>();
+  if (!data) return Astro.rewrite("/404");
+  actual = data;
+}
+
+let errores: Errores = {};
+let mensaje: string | null = null;
+let valores: Record<string, string> = {};
+
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  valores = Object.fromEntries([...f.entries()].map(([k, v]) => [k, String(v)]));
+  try {
+    if (texto(f, "accion") === "eliminar" && actual) {
+      const r = await eliminarPermiso(sb, actual.id);
+      if (r.ok) {
+        ponerFlash(
+          Astro.cookies,
+          "exito",
+          r.cambios
+            ? `Permiso eliminado. ${plural(r.cambios, "día volvió", "días volvieron")} a falta.`
+            : "Permiso eliminado.",
+        );
+        return Astro.redirect(volverA, 303);
+      }
+      mensaje = r.mensaje;
+    } else {
+      const v = validarPermiso(f);
+      if (!v.ok) errores = v.errores;
+      else {
+        const r = await guardarPermiso(sb, v.datos, perfil.id, actual?.id);
+        if (r.ok) {
+          const extra = r.cambios
+            ? ` ${plural(r.cambios, "falta pasó", "faltas pasaron")} a permiso.`
+            : "";
+          ponerFlash(
+            Astro.cookies,
+            "exito",
+            `${esNuevo ? "Permiso cargado." : "Permiso actualizado."}${extra}`,
+          );
+          return Astro.redirect(volverA, 303);
+        }
+        if (r.campo) errores = { [r.campo]: r.mensaje };
+        else mensaje = r.mensaje;
+      }
+    }
+  } catch (e) {
+    console.error("[permisos]", e);
+    mensaje = "Ocurrió un error al guardar. Intente de nuevo.";
+  }
+  mensaje ??= "Revise los campos marcados.";
+  Astro.response.status = 400;
+}
+
+const { data: gente } = await sb
+  .from("personal")
+  .select("id, nombre, apellido, cedula")
+  .eq("estado", "activo")
+  .order("apellido")
+  .order("nombre");
+const personas = (gente ?? []) as {
+  id: string;
+  nombre: string;
+  apellido: string;
+  cedula: string;
+}[];
+
+const hoy = hoyEnZona();
+const inicial: Record<string, string> = actual
+  ? {
+      personal_id: actual.personal_id,
+      fecha_desde: actual.fecha_desde,
+      fecha_hasta: actual.fecha_hasta,
+      motivo: actual.motivo,
+      observacion: actual.observacion ?? "",
+    }
+  : {
+      personal_id: Astro.url.searchParams.get("persona") ?? "",
+      fecha_desde: hoy,
+      fecha_hasta: hoy,
+      motivo: "",
+      observacion: "",
+    };
+const v = (k: string) =>
+  Astro.request.method === "POST" ? (valores[k] ?? "") : (inicial[k] ?? "");
+// Si la persona ya no está activa, igual se muestra para poder editar su permiso.
+const opcionesPersonas = personas.map((x) => ({
+  valor: x.id,
+  texto: `${x.apellido}, ${x.nombre} · ${x.cedula}`,
+}));
+if (actual && !personas.some((x) => x.id === actual!.personal_id)) {
+  const { data: x } = await sb
+    .from("personal")
+    .select("nombre, apellido, cedula")
+    .eq("id", actual.personal_id)
+    .single();
+  if (x)
+    opcionesPersonas.unshift({
+      valor: actual.personal_id,
+      texto: `${x.apellido}, ${x.nombre} · ${x.cedula} (inactivo)`,
+    });
+}
+const motivoEsLista = (MOTIVOS_PERMISO as readonly string[]).includes(v("motivo")) || !v("motivo");
+const opcionesMotivo = [
+  ...MOTIVOS_PERMISO.map((m) => ({ valor: m, texto: m })),
+  ...(motivoEsLista ? [] : [{ valor: v("motivo"), texto: v("motivo") }]),
+];
+---
+
+<PanelLayout
+  titulo={esNuevo ? "Nuevo permiso" : "Editar permiso"}
+  migas={[{ texto: "Permisos", href: "/permisos" }, { texto: esNuevo ? "Nuevo" : "Editar" }]}
+>
+  <div class="pila">
+    {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
+    <Tarjeta>
+      <form method="post" class="rejilla" novalidate data-avisar-cambios>
+        <div class="ancho">
+          <Select
+            etiqueta="Persona"
+            nombre="personal_id"
+            opciones={opcionesPersonas}
+            valor={v("personal_id")}
+            vacia="Seleccione…"
+            error={errores.personal_id}
+            required
+          />
+        </div>
+        <Input
+          etiqueta="Desde"
+          nombre="fecha_desde"
+          type="date"
+          value={v("fecha_desde")}
+          error={errores.fecha_desde}
+          required
+        />
+        <Input
+          etiqueta="Hasta"
+          nombre="fecha_hasta"
+          type="date"
+          value={v("fecha_hasta")}
+          error={errores.fecha_hasta}
+          ayuda="Para un solo día, deje la misma fecha."
+        />
+        <div class="ancho">
+          <Select
+            etiqueta="Motivo"
+            nombre="motivo"
+            opciones={opcionesMotivo}
+            valor={v("motivo")}
+            vacia="Seleccione…"
+            error={errores.motivo}
+            required
+          />
+        </div>
+        <div class="campo ancho">
+          <label for="observacion">Observación</label>
+          <textarea
+            id="observacion"
+            name="observacion"
+            rows="3"
+            maxlength="500"
+            aria-invalid={errores.observacion ? "true" : undefined}
+            aria-describedby={errores.observacion ? "observacion-error" : "observacion-ayuda"}
+          >{v("observacion")}</textarea>
+          {errores.observacion ? (
+            <small id="observacion-error" class="error">
+              {errores.observacion}
+            </small>
+          ) : (
+            <small id="observacion-ayuda">
+              Opcional. Por ejemplo, el número del reposo o quién lo autorizó.
+            </small>
+          )}
+        </div>
+        <p class="nota ancho">
+          Si la persona ya tiene faltas registradas en esas fechas, pasan a permiso al guardar.
+        </p>
+        <div class="final ancho">
+          {!esNuevo && (
+            <Boton variante="fantasma" data-abrir-modal="modal-eliminar" class="eliminar">
+              <Icono nombre="papelera" tamano={18} />
+              Eliminar
+            </Boton>
+          )}
+          <Boton href={volverA} variante="secundario">
+            Cancelar
+          </Boton>
+          <Boton type="submit" data-texto-cargando="Guardando…">
+            {esNuevo ? "Cargar permiso" : "Guardar cambios"}
+          </Boton>
+        </div>
+      </form>
+    </Tarjeta>
+  </div>
+
+  {!esNuevo && (
+    <Modal id="modal-eliminar" titulo="¿Eliminar este permiso?">
+      <p>Los días que ya pasaron y no tienen marcación volverán a contar como falta.</p>
+      <form method="post" slot="acciones">
+        <input type="hidden" name="accion" value="eliminar" />
+        <Boton type="submit" variante="peligro">
+          Eliminar
+        </Boton>
+      </form>
+    </Modal>
+  )}
+</PanelLayout>
+
+<script>
+  // «Hasta» nunca antes de «Desde».
+  const desde = document.querySelector<HTMLInputElement>('input[name="fecha_desde"]');
+  const hasta = document.querySelector<HTMLInputElement>('input[name="fecha_hasta"]');
+  desde?.addEventListener("change", () => {
+    if (!hasta) return;
+    hasta.min = desde.value;
+    if (!hasta.value || hasta.value < desde.value) hasta.value = desde.value;
+  });
+</script>
+
+<style>
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+    max-width: 44rem;
+  }
+  .rejilla {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  @media (min-width: 640px) {
+    .rejilla {
+      grid-template-columns: 1fr 1fr;
+    }
+    .ancho {
+      grid-column: 1 / -1;
+    }
+  }
+  .campo {
+    display: grid;
+    gap: 6px;
+  }
+  .campo label {
+    font-weight: var(--peso-medio);
+    font-size: var(--texto-sm);
+  }
+  textarea {
+    padding: var(--esp-3);
+    border: 1px solid var(--color-borde-fuerte);
+    border-radius: var(--radio-sm);
+    resize: vertical;
+    font-family: inherit;
+  }
+  textarea[aria-invalid="true"] {
+    border-color: var(--color-error);
+  }
+  small {
+    color: var(--color-texto-suave);
+  }
+  .error {
+    color: var(--color-error);
+    font-weight: 600;
+  }
+  .nota {
+    margin: 0;
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .final {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--esp-2);
+  }
+  .final :global(.eliminar) {
+    margin-right: auto;
+    color: var(--color-error);
+  }
+</style>

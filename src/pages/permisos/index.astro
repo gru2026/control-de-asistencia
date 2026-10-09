@@ -1,0 +1,210 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Tabla from "@/components/ui/Tabla.astro";
+import Badge from "@/components/ui/Badge.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Icono from "@/components/ui/Icono.astro";
+import Paginacion from "@/components/ui/Paginacion.astro";
+import BarraFiltros from "@/components/ui/BarraFiltros.astro";
+import ChipCategoria from "@/components/ui/ChipCategoria.astro";
+import { listarCategorias } from "@/lib/datos/categorias";
+import { MOTIVOS_PERMISO, terminosBusqueda } from "@/lib/validacion";
+import { fechaCorta, hoyEnZona } from "@/lib/fecha";
+import { diasDelPermiso, vigenciaPermiso } from "@/lib/reglas/permisos";
+import { plural } from "@/lib/formato";
+
+const sb = Astro.locals.supabase;
+const p = Astro.url.searchParams;
+const hoy = hoyEnZona();
+const categorias = await listarCategorias(sb);
+const catPorId = new Map(categorias.map((c) => [c.id, c]));
+
+const uno = <T extends string>(nombre: string, validos: readonly T[]) =>
+  validos.includes(p.get(nombre) as T) ? (p.get(nombre) as T) : null;
+const q = (p.get("q") ?? "").slice(0, 80);
+const vigencia = uno("vigencia", ["actuales", "pasados", "todos"] as const) ?? "actuales";
+const categoria = uno(
+  "categoria",
+  categorias.map((c) => c.id),
+);
+const motivo = uno("motivo", MOTIVOS_PERMISO);
+const porPagina = 20;
+const pagina = Math.max(1, Number.parseInt(p.get("pagina") ?? "1", 10) || 1);
+
+let consulta = sb
+  .from("permisos")
+  .select(
+    "id, fecha_desde, fecha_hasta, motivo, observacion, es_demo, personal!inner(id, nombre, apellido, categoria_id)",
+    { count: "exact" },
+  )
+  .range((pagina - 1) * porPagina, pagina * porPagina - 1);
+
+if (vigencia === "actuales") consulta = consulta.gte("fecha_hasta", hoy).order("fecha_desde");
+else if (vigencia === "pasados")
+  consulta = consulta.lt("fecha_hasta", hoy).order("fecha_desde", { ascending: false });
+else consulta = consulta.order("fecha_desde", { ascending: false });
+for (const t of terminosBusqueda(q)) {
+  consulta = consulta.or(`nombre.ilike.*${t}*,apellido.ilike.*${t}*,cedula.ilike.*${t}*`, {
+    referencedTable: "personal",
+  });
+}
+if (categoria) consulta = consulta.eq("personal.categoria_id", categoria);
+if (motivo) consulta = consulta.eq("motivo", motivo);
+
+interface Fila {
+  id: string;
+  fecha_desde: string;
+  fecha_hasta: string;
+  motivo: string;
+  observacion: string | null;
+  es_demo: boolean;
+  personal: { id: string; nombre: string; apellido: string; categoria_id: string };
+}
+const { data, count, error } = await consulta;
+if (error) console.error("[permisos] listado:", error);
+const filas = (data ?? []) as unknown as Fila[];
+const total = count ?? 0;
+const hayFiltros = Boolean(q || categoria || motivo || vigencia !== "actuales");
+const NOMBRE_VIGENCIA = { proximo: "Próximo", vigente: "Vigente", pasado: "Terminado" } as const;
+const TIPO_VIGENCIA = { proximo: "info", vigente: "activo", pasado: "inactivo" } as const;
+---
+
+<PanelLayout
+  titulo="Permisos"
+  subtitulo="Ausencias justificadas: esos días no cuentan como falta."
+  migas={[{ texto: "Panel", href: "/panel" }, { texto: "Permisos" }]}
+>
+  <Fragment slot="acciones">
+    <Boton href="/permisos/nuevo">
+      <Icono nombre="mas" tamano={18} />
+      Nuevo permiso
+    </Boton>
+  </Fragment>
+
+  <Tarjeta>
+    <BarraFiltros
+      busqueda={{ placeholder: "Nombre, apellido o cédula" }}
+      total={total}
+      unidad={["permiso", "permisos"]}
+      conservar={[]}
+      filtros={[
+        {
+          nombre: "vigencia",
+          etiqueta: "Mostrar",
+          porDefecto: "actuales",
+          opciones: [
+            { valor: "actuales", texto: "Vigentes y próximos" },
+            { valor: "pasados", texto: "Terminados" },
+            { valor: "todos", texto: "Todos" },
+          ],
+        },
+        {
+          nombre: "categoria",
+          etiqueta: "Categoría",
+          vacia: "Todas",
+          opciones: categorias.map((c) => ({ valor: c.id, texto: c.nombre })),
+        },
+        {
+          nombre: "motivo",
+          etiqueta: "Motivo",
+          vacia: "Todos",
+          opciones: MOTIVOS_PERMISO.map((m) => ({ valor: m, texto: m })),
+        },
+      ]}
+    />
+
+    {error && <p class="error">No se pudo cargar la lista. Recargue la página.</p>}
+
+    <Tabla
+      titulo="Lista de permisos"
+      tarjetas
+      hayFilas={filas.length > 0}
+      vacio={
+        hayFiltros ? "No hay permisos con esos filtros." : "No hay permisos vigentes ni próximos."
+      }
+    >
+      <Fragment slot="vacio">
+        {hayFiltros ? (
+          <a href="/permisos">Limpiar filtros</a>
+        ) : (
+          <a href="/permisos/nuevo">Cargar un permiso</a>
+        )}
+      </Fragment>
+      <thead>
+        <tr>
+          <th scope="col">Persona</th>
+          <th scope="col">Fechas</th>
+          <th scope="col">Motivo</th>
+          <th scope="col" class="col-obs">
+            Observación
+          </th>
+          <th scope="col">Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {filas.map((f) => {
+          const c = catPorId.get(f.personal.categoria_id);
+          const v = vigenciaPermiso(f.fecha_desde, f.fecha_hasta, hoy);
+          const dias = diasDelPermiso(f.fecha_desde, f.fecha_hasta);
+          return (
+            <tr>
+              <td class="principal">
+                <a href={`/permisos/${f.id}`} class="nombre">
+                  {f.personal.apellido}, {f.personal.nombre}
+                </a>
+                {c && <ChipCategoria nombre={c.nombre} color={c.color} />}
+              </td>
+              <td data-etiqueta="Fechas" class="num">
+                <span>
+                  {f.fecha_desde === f.fecha_hasta
+                    ? fechaCorta(f.fecha_desde)
+                    : `${fechaCorta(f.fecha_desde)} – ${fechaCorta(f.fecha_hasta)}`}
+                  <span class="suave"> · {plural(dias, "día", "días")}</span>
+                </span>
+              </td>
+              <td data-etiqueta="Motivo">
+                <span>
+                  {f.motivo}
+                  {f.es_demo && <span class="suave"> (demostración)</span>}
+                </span>
+              </td>
+              <td data-etiqueta="Observación" class="col-obs suave">
+                <span class="obs">{f.observacion ?? "—"}</span>
+              </td>
+              <td data-etiqueta="Estado">
+                <Badge tipo={TIPO_VIGENCIA[v]}>{NOMBRE_VIGENCIA[v]}</Badge>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </Tabla>
+    <Paginacion pagina={pagina} total={total} porPagina={porPagina} />
+  </Tarjeta>
+</PanelLayout>
+
+<style>
+  .suave {
+    color: var(--color-texto-suave);
+  }
+  .error {
+    color: var(--color-error);
+  }
+  .nombre {
+    font-weight: var(--peso-fuerte);
+    margin-right: var(--esp-2);
+  }
+  .obs {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-width: 22rem;
+  }
+  @media (min-width: 701px) and (max-width: 1100px) {
+    .col-obs {
+      display: none;
+    }
+  }
+</style>

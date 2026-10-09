@@ -41,6 +41,7 @@ import { resumir, type RegistroEstadistica } from "@/lib/reglas/estadisticas";
 import { diferenciaMin } from "@/lib/reglas/estados";
 import { horaEnZona, sumarDias } from "@/lib/reglas/tiempo";
 import { hoyEnZona } from "@/lib/fecha";
+import { vigenciaPermiso } from "@/lib/reglas/permisos";
 import {
   aprobarDispositivo,
   COLUMNAS_DISPOSITIVO,
@@ -293,6 +294,18 @@ const resumen30 = resumir(
   })),
 );
 const ultimos = registros.slice(0, 10);
+const { data: perms } = await sb
+  .from("permisos")
+  .select("id, fecha_desde, fecha_hasta, motivo")
+  .eq("personal_id", id)
+  .gte("fecha_hasta", sumarDias(hoy, -90))
+  .order("fecha_desde", { ascending: false });
+const permisos = (perms ?? []) as {
+  id: string;
+  fecha_desde: string;
+  fecha_hasta: string;
+  motivo: string;
+}[];
 const NOMBRE_ESTADO_FICHA = {
   presente: "Presente",
   tarde: "Tarde",
@@ -388,6 +401,7 @@ const valorExc = (k: string, porDefecto: string) =>
       <a href="#datos">Datos</a>
       <a href="#horario">Horario</a>
       <a href="#historial">Asistencia</a>
+      <a href="#permisos">Permisos</a>
       <a href="#cuenta">Cuenta</a>
       <a href="#dispositivo">Teléfono</a>
       {esDirectiva && <a href="#estado">Estado</a>}
@@ -533,6 +547,46 @@ const valorExc = (k: string, porDefecto: string) =>
         </ul>
       ) : (
         <p class="nota">Aún no hay registros de asistencia.</p>
+      )}
+    </Tarjeta>
+
+    <Tarjeta
+      titulo="Permisos"
+      id="permisos"
+      descripcion="Ausencias justificadas de los últimos 90 días y las próximas."
+    >
+      <Boton
+        slot="acciones"
+        href={`/permisos/nuevo?persona=${ficha.id}&volver=/personal/${ficha.id}`}
+        variante="secundario"
+        tamano="pequeno"
+      >
+        <Icono nombre="mas" tamano={16} />
+        Cargar permiso
+      </Boton>
+      {permisos.length ? (
+        <ul class="historial">
+          {permisos.map((x) => {
+            const vig = vigenciaPermiso(x.fecha_desde, x.fecha_hasta, hoy);
+            return (
+              <li>
+                <a class="fecha" href={`/permisos/${x.id}?volver=/personal/${ficha!.id}`}>
+                  {x.fecha_desde === x.fecha_hasta
+                    ? fechaCorta(x.fecha_desde)
+                    : `${fechaCorta(x.fecha_desde)} – ${fechaCorta(x.fecha_hasta)}`}
+                </a>
+                <span class="horas">{x.motivo}</span>
+                <Badge
+                  tipo={vig === "vigente" ? "activo" : vig === "proximo" ? "info" : "inactivo"}
+                >
+                  {vig === "vigente" ? "Vigente" : vig === "proximo" ? "Próximo" : "Terminado"}
+                </Badge>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p class="nota">Sin permisos en este período.</p>
       )}
     </Tarjeta>
 
@@ -819,6 +873,11 @@ const valorExc = (k: string, porDefecto: string) =>
   .historial .fecha {
     width: 6rem;
     font-variant-numeric: tabular-nums;
+  }
+  .historial a.fecha {
+    width: auto;
+    min-width: 6rem;
+    font-weight: var(--peso-medio);
   }
   .historial .horas {
     color: var(--color-texto-suave);

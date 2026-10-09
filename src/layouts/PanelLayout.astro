@@ -11,9 +11,11 @@ interface Props {
   subtitulo?: string;
   /** Migas de pan: el último elemento es la página actual (sin href). */
   migas?: { texto: string; href?: string }[];
+  /** Contenido más ancho (panel con columna lateral). */
+  amplio?: boolean;
 }
 
-const { titulo, subtitulo, migas } = Astro.props;
+const { titulo, subtitulo, migas, amplio = false } = Astro.props;
 const perfil = Astro.locals.perfil!;
 const flash = Astro.locals.flash;
 const ruta = Astro.url.pathname;
@@ -87,7 +89,7 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
       </ul>
     </nav>
 
-    <main id="contenido" class:list={[visibles.length < 2 && "sin-barra"]}>
+    <main id="contenido" class:list={[visibles.length < 2 && "sin-barra", amplio && "amplio"]}>
       {migas && migas.length > 1 && (
         <nav class="migas" aria-label="Ruta">
           <ol>
@@ -230,6 +232,9 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     margin: 0 auto;
     padding: var(--esp-5) calc(var(--esp-4) + var(--seguro-der)) calc(88px + var(--seguro-abajo))
       calc(var(--esp-4) + var(--seguro-izq));
+  }
+  main.amplio {
+    max-width: 96rem;
   }
   .encabezado {
     display: flex;

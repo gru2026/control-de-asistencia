@@ -1,0 +1,174 @@
+---
+/** Calendario del período: cada día laborable coloreado según su asistencia. Clic → planilla del día. */
+import type { CeldaCalendario } from "@/lib/reglas/estadisticas";
+import { porcentaje } from "@/lib/formato";
+import { fechaCorta } from "@/lib/fecha";
+
+interface Props {
+  semanas: (CeldaCalendario | null)[][];
+}
+const { semanas } = Astro.props;
+const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
+const NOMBRE_NIVEL = {
+  alto: "95 % o más",
+  medio: "85 a 94 %",
+  bajo: "menos de 85 %",
+  "sin-datos": "sin registros",
+  "no-laborable": "no laborable",
+  futuro: "",
+} as const;
+---
+
+<div class="calendario">
+  <table>
+    <thead>
+      <tr>
+        {DIAS.map((d) => (
+          <th scope="col" abbr={d}>
+            {d}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {semanas.map((s) => (
+        <tr>
+          {s.map((c) =>
+            !c ? (
+              <td />
+            ) : (
+              <td>
+                {c.valor !== null ? (
+                  <a
+                    href={`/reportes?fecha=${c.fecha}`}
+                    class:list={["dia", c.nivel]}
+                    title={`${fechaCorta(c.fecha)}: ${porcentaje(c.valor)} de asistencia`}
+                    aria-label={`${fechaCorta(c.fecha)}: ${porcentaje(c.valor)} de asistencia. Ver planilla`}
+                  >
+                    {c.dia}
+                  </a>
+                ) : (
+                  <span
+                    class:list={["dia", c.nivel]}
+                    title={
+                      NOMBRE_NIVEL[c.nivel]
+                        ? `${fechaCorta(c.fecha)}: ${NOMBRE_NIVEL[c.nivel]}`
+                        : undefined
+                    }
+                  >
+                    {c.dia}
+                  </span>
+                )}
+              </td>
+            ),
+          )}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <ul class="leyenda" aria-label="Leyenda">
+    <li>
+      <span class="m alto"></span>≥ 95 %
+    </li>
+    <li>
+      <span class="m medio"></span>85–94 %
+    </li>
+    <li>
+      <span class="m bajo"></span>&lt; 85 %
+    </li>
+  </ul>
+</div>
+
+<style>
+  .calendario {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 4px;
+    margin: -4px;
+    width: calc(100% + 8px);
+    table-layout: fixed;
+  }
+  th {
+    font-size: var(--texto-xs);
+    font-weight: var(--peso-medio);
+    color: var(--color-texto-suave);
+    padding-bottom: 2px;
+  }
+  td {
+    padding: 0;
+  }
+  .dia {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    min-height: 32px;
+    border-radius: 8px;
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+    color: var(--color-texto-suave);
+    transition:
+      transform var(--duracion-rapida) var(--curva),
+      box-shadow var(--duracion-rapida) var(--curva);
+  }
+  a.dia:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--sombra);
+  }
+  .alto {
+    background: var(--color-exito-suave);
+    color: #14532d;
+  }
+  .medio {
+    background: var(--color-alerta-suave);
+    color: #78350f;
+  }
+  .bajo {
+    background: var(--color-error-suave);
+    color: #7f1d1d;
+    font-weight: var(--peso-titulo);
+  }
+  .sin-datos {
+    box-shadow: inset 0 0 0 1px var(--color-borde-fuerte);
+  }
+  .no-laborable {
+    color: var(--color-texto-tenue);
+  }
+  .futuro {
+    color: var(--color-borde-fuerte);
+  }
+  .leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2) var(--esp-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--texto-xs);
+    color: var(--color-texto-suave);
+  }
+  .leyenda li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .m {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+  .m.alto {
+    background: #86efac;
+  }
+  .m.medio {
+    background: #fcd34d;
+  }
+  .m.bajo {
+    background: #fca5a5;
+  }
+</style>

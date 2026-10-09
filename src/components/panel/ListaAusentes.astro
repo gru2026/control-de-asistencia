@@ -1,0 +1,139 @@
+---
+/** Permisos vigentes y próximos (7 días) + el próximo feriado. */
+interface Ausente {
+  personalId: string;
+  nombre: string;
+  color: string;
+  motivo: string;
+  desde: string;
+  hasta: string;
+}
+interface Props {
+  ausentes: Ausente[];
+  total: number;
+  hoy: string;
+  feriado: { fecha: string; descripcion: string } | null;
+}
+const { ausentes, total, hoy, feriado } = Astro.props;
+
+const DIA = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const corta = (f: string) => {
+  const d = new Date(`${f}T00:00:00Z`);
+  return `${DIA[d.getUTCDay()]} ${d.getUTCDate()}`;
+};
+const cuando = (a: Ausente) => {
+  if (a.desde > hoy)
+    return a.desde === a.hasta
+      ? `el ${corta(a.desde)}`
+      : `del ${corta(a.desde)} al ${corta(a.hasta)}`;
+  return a.hasta === hoy ? "hoy" : `hasta el ${corta(a.hasta)}`;
+};
+const iniciales = (n: string) =>
+  n
+    .split(" ")
+    .slice(0, 2)
+    .map((p) => p[0] ?? "")
+    .join("");
+---
+
+{ausentes.length ? (
+  <ul class="ausentes">
+    {ausentes.map((a) => (
+      <li>
+        <span class="ini" style={`--c: ${a.color}`} aria-hidden="true">
+          {iniciales(a.nombre)}
+        </span>
+        <span class="quien">
+          <a href={`/personal/${a.personalId}`}>{a.nombre}</a>
+          <small>
+            {a.motivo} · {cuando(a)}
+          </small>
+        </span>
+      </li>
+    ))}
+  </ul>
+) : (
+  <p class="vacio">No hay permisos esta semana.</p>
+)}
+{total > ausentes.length && <p class="mas">y {total - ausentes.length} más</p>}
+{feriado && (
+  <p class="feriado">
+    <span>Próximo feriado</span>
+    <strong>
+      {corta(feriado.fecha)} · {feriado.descripcion}
+    </strong>
+  </p>
+)}
+
+<style>
+  .ausentes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: var(--esp-3);
+  }
+  .ini {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--c) 14%, white);
+    color: color-mix(in srgb, var(--c) 65%, black);
+    font-size: var(--texto-xs);
+    font-weight: var(--peso-titulo);
+  }
+  .quien {
+    display: grid;
+    min-width: 0;
+    line-height: 1.35;
+  }
+  .quien a {
+    color: var(--color-texto);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .quien a:hover {
+    color: var(--color-acento-texto);
+    text-decoration: underline;
+  }
+  .quien small {
+    color: var(--color-texto-suave);
+  }
+  .vacio,
+  .mas {
+    margin: 0;
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .mas {
+    margin-top: var(--esp-2);
+  }
+  .feriado {
+    display: grid;
+    gap: 2px;
+    margin: var(--esp-5) 0 0;
+    padding-top: var(--esp-4);
+    border-top: 1px solid var(--color-borde);
+    font-size: var(--texto-sm);
+  }
+  .feriado span {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-xs);
+  }
+  .feriado strong {
+    font-weight: var(--peso-medio);
+  }
+</style>

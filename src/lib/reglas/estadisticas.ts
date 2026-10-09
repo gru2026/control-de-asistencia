@@ -3,7 +3,7 @@
  * La entrada es una lista compacta de registros ya consolidados por día.
  */
 import type { DiaSemana, EstadoAsistencia } from "@/types";
-import { diaSemanaISO, redondear2 } from "./tiempo";
+import { diaSemanaISO, redondear2, sumarDias } from "./tiempo";
 
 export interface RegistroEstadistica {
   fecha: string;
@@ -327,4 +327,84 @@ export function conclusiones(
     : "Nadie con faltas repetidas";
 
   return { tendencia, dias, llegadas, categorias, personas };
+}
+
+// ── Calendario del período (tarjeta lateral del panel) ──
+
+export type NivelDia = "alto" | "medio" | "bajo" | "sin-datos" | "no-laborable" | "futuro";
+
+export interface CeldaCalendario {
+  fecha: string;
+  dia: number;
+  nivel: NivelDia;
+  valor: number | null;
+}
+
+/** Nivel de un día según su % de asistencia: ≥ 95 alto · 85–94 medio · < 85 bajo. */
+export function nivelAsistencia(valor: number): Extract<NivelDia, "alto" | "medio" | "bajo"> {
+  return valor >= 95 ? "alto" : valor >= 85 ? "medio" : "bajo";
+}
+
+/**
+ * Semanas (lunes a domingo) que cubren el período. `null` = celda fuera del período.
+ * Días con registros → nivel según su %; feriados y fines de semana sin registros → no laborable;
+ * días posteriores a `hoy` → futuro.
+ */
+export function calendarioPeriodo(
+  desde: string,
+  hasta: string,
+  serie: PuntoSerie[],
+  feriados: string[],
+  hoy: string,
+): (CeldaCalendario | null)[][] {
+  const porFecha = new Map(serie.map((p) => [p.clave, p.valor]));
+  const celdas: (CeldaCalendario | null)[] = Array.from(
+    { length: diaSemanaISO(desde) - 1 },
+    () => null,
+  );
+  for (let f = desde; f <= hasta; f = sumarDias(f, 1)) {
+    const valor = porFecha.get(f) ?? null;
+    const dia = Number(f.slice(8, 10));
+    let nivel: NivelDia;
+    if (valor !== null) nivel = nivelAsistencia(valor);
+    else if (f > hoy) nivel = "futuro";
+    else if (feriados.includes(f) || diaSemanaISO(f) >= 6) nivel = "no-laborable";
+    else nivel = "sin-datos";
+    celdas.push({ fecha: f, dia, nivel, valor });
+  }
+  while (celdas.length % 7) celdas.push(null);
+  const semanas: (CeldaCalendario | null)[][] = [];
+  for (let i = 0; i < celdas.length; i += 7) semanas.push(celdas.slice(i, i + 7));
+  return semanas;
+}
+
+// ── Hoy por categoría ──
+
+export interface ProgresoCategoria {
+  categoriaId: string;
+  llegaron: number;
+  esperados: number;
+}
+
+/**
+ * Por categoría: cuántas personas con jornada hoy ya llegaron (presente o tarde).
+ * `esperados`: una entrada por persona con día laborable hoy.
+ */
+export function hoyPorCategoria(
+  esperados: { personalId: string; categoriaId: string }[],
+  registrosHoy: Pick<RegistroEstadistica, "personalId" | "estado">[],
+): ProgresoCategoria[] {
+  const llegaron = new Set(
+    registrosHoy
+      .filter((r) => r.estado === "presente" || r.estado === "tarde")
+      .map((r) => r.personalId),
+  );
+  const m = new Map<string, ProgresoCategoria>();
+  for (const e of esperados) {
+    const p = m.get(e.categoriaId) ?? { categoriaId: e.categoriaId, llegaron: 0, esperados: 0 };
+    p.esperados++;
+    if (llegaron.has(e.personalId)) p.llegaron++;
+    m.set(e.categoriaId, p);
+  }
+  return [...m.values()];
 }

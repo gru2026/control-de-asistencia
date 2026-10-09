@@ -135,6 +135,30 @@ try {
   r.ok("la sección se recuerda al recargar", await pag.$eval("#seccion-llegadas", (d) => d.open));
   await pag.click("#seccion-llegadas summary");
 
+  r.seccion("Panel: columna lateral");
+  const diasCal = await pag.$$eval("aside.lateral .calendario .dia", (d) => d.length);
+  r.ok("calendario con los días del período", diasCal > 0, `${diasCal} días`);
+  r.ok(
+    "tarjeta de ausentes presente",
+    Boolean(await pag.$('aside.lateral h2:has-text("Ausentes")')),
+  );
+  const enlaceDia = await pag.$("aside.lateral a.dia");
+  if (enlaceDia) {
+    const destino = await enlaceDia.getAttribute("href");
+    r.ok(
+      "un día del calendario lleva a su planilla",
+      /\/reportes\?fecha=\d{4}-\d{2}-\d{2}$/.test(destino ?? ""),
+      destino,
+    );
+  }
+  await pag.click('.segmentado a:has-text("30 días")');
+  await pag.waitForFunction(() => location.search.includes("periodo=30d"));
+  await esperarDatos(pag);
+  r.ok(
+    "el calendario se actualiza con el período",
+    (await pag.$$eval("aside.lateral .calendario .dia", (d) => d.length)) === 30,
+  );
+
   r.seccion("Otras pantallas");
   await pag.click('nav.nav a:has-text("Reportes")');
   await pag.waitForURL("**/reportes");

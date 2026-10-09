@@ -3,6 +3,11 @@ import PanelLayout from "@/layouts/PanelLayout.astro";
 import Boton from "@/components/ui/Boton.astro";
 import Icono, { type NombreIcono } from "@/components/ui/Icono.astro";
 import Seccion from "@/components/ui/Seccion.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import CalendarioPeriodo from "@/components/panel/CalendarioPeriodo.astro";
+import HoyPorCategoria from "@/components/panel/HoyPorCategoria.astro";
+import ListaAusentes from "@/components/panel/ListaAusentes.astro";
+import { sumarDias } from "@/lib/reglas/tiempo";
 import Figura from "@/components/graficas/Figura.astro";
 import GraficaLinea from "@/components/graficas/GraficaLinea.astro";
 import BarrasHorizontales from "@/components/graficas/BarrasHorizontales.astro";
@@ -15,7 +20,9 @@ import { aExcepcion, aJornada, type FilaHorario, type FilaJornada } from "@/lib/
 import { resolverJornada } from "@/lib/reglas/jornada";
 import {
   contar,
+  calendarioPeriodo,
   conclusiones,
+  hoyPorCategoria,
   histogramaLlegadas,
   personasCriticas,
   porCategoria,
@@ -62,12 +69,40 @@ const [
   anteriores,
   { data: personalData },
   { data: feriadoHoy },
+  { data: feriadosPeriodo },
+  { data: proximoFeriado },
+  { data: permisosData, count: totalAusentes },
   { count: telefonosPendientes },
 ] = await Promise.all([
   cargarRegistros(sb, rango.desde, rango.hasta, categoriaId),
   cargarRegistros(sb, rango.anterior.desde, rango.anterior.hasta, categoriaId),
   qPersonal.limit(1000),
   sb.from("feriados").select("descripcion").eq("fecha", hoy).maybeSingle(),
+  sb.from("feriados").select("fecha").gte("fecha", rango.desde).lte("fecha", rango.hasta),
+  sb
+    .from("feriados")
+    .select("fecha, descripcion")
+    .gt("fecha", hoy)
+    .order("fecha")
+    .limit(1)
+    .maybeSingle(),
+  (() => {
+    let q = sb
+      .from("permisos")
+      .select(
+        "personal_id, motivo, fecha_desde, fecha_hasta, personal!inner(nombre, apellido, categoria_id, estado)",
+        {
+          count: "exact",
+        },
+      )
+      .lte("fecha_desde", sumarDias(hoy, 7))
+      .gte("fecha_hasta", hoy)
+      .eq("personal.estado", "activo")
+      .order("fecha_desde")
+      .limit(5);
+    if (categoriaId) q = q.eq("personal.categoria_id", categoriaId);
+    return q;
+  })(),
   sb.from("dispositivos").select("id", { count: "exact", head: true }).eq("estado", "pendiente"),
 ]);
 const personas = (personalData ?? []) as unknown as FilaPersona[];
@@ -91,6 +126,50 @@ const laborablesHoy = feriadoHoy
       }),
     ).length;
 const pendientesHoy = Math.max(0, laborablesHoy - hoyConteo.total);
+
+// ── Columna lateral ──
+const semanas = calendarioPeriodo(
+  rango.desde,
+  rango.hasta,
+  serieDiaria(registros),
+  ((feriadosPeriodo ?? []) as { fecha: string }[]).map((f) => f.fecha),
+  hoy,
+);
+const esperadosHoy = feriadoHoy
+  ? []
+  : personas
+      .filter((x) =>
+        resolverJornada({
+          fecha: hoy,
+          jornada: x.jornadas ? aJornada(x.jornadas) : null,
+          excepciones: x.horarios.map(aExcepcion),
+        }),
+      )
+      .map((x) => ({ personalId: x.id, categoriaId: x.categoria_id }));
+const progresoHoy = hoyPorCategoria(esperadosHoy, deHoy)
+  .map((p) => ({ ...p, cat: catPorId.get(p.categoriaId) }))
+  .sort((a, b) => (a.cat?.orden ?? 99) - (b.cat?.orden ?? 99))
+  .map((p) => ({
+    nombre: p.cat?.nombre ?? "—",
+    color: p.cat?.color ?? "#64748b",
+    llegaron: p.llegaron,
+    esperados: p.esperados,
+  }));
+interface FilaPermiso {
+  personal_id: string;
+  motivo: string;
+  fecha_desde: string;
+  fecha_hasta: string;
+  personal: { nombre: string; apellido: string; categoria_id: string };
+}
+const ausentes = ((permisosData ?? []) as unknown as FilaPermiso[]).map((p) => ({
+  personalId: p.personal_id,
+  nombre: `${p.personal.nombre} ${p.personal.apellido}`,
+  color: catPorId.get(p.personal.categoria_id)?.color ?? "#64748b",
+  motivo: p.motivo,
+  desde: p.fecha_desde,
+  hasta: p.fecha_hasta,
+}));
 const mostrarHoy = rango.hasta === hoy;
 
 // Gráficas
@@ -214,7 +293,7 @@ const hoySegmentos = [
 ];
 ---
 
-<PanelLayout titulo="Panel" subtitulo={fechaLarga(hoy)}>
+<PanelLayout titulo="Panel" subtitulo={fechaLarga(hoy)} amplio>
   <Fragment slot="acciones">
     <Boton href={`/reportes?fecha=${hoy}`} variante="secundario">
       <Icono nombre="documento" tamano={18} />
@@ -280,248 +359,311 @@ const hoySegmentos = [
     </span>
   </div>
 
-  <!-- Nivel 1 · Hoy -->
-  {mostrarHoy && (
-    <section class="hoy" aria-labelledby="titulo-hoy" data-datos>
-      <div class="hoy-cabeza">
-        <h2 id="titulo-hoy">Hoy</h2>
-        <p>
-          {feriadoHoy
-            ? `Feriado: ${feriadoHoy.descripcion}`
-            : `${numero(hoyConteo.presente + hoyConteo.tarde)} de ${numero(laborablesHoy)} han llegado`}
-        </p>
-      </div>
-      <BarraApilada segmentos={hoySegmentos} soloConValor />
-    </section>
-  )}
-
-  <!-- Nivel 1 · Indicadores del período -->
-  <dl class="kpis" aria-label="Indicadores del período" data-datos>
-    {kpis.map((k) => (
-      <div class="kpi" tabindex="0" aria-describedby={`kpi-${k.titulo}`}>
-        <dt>
-          <Icono nombre={k.icono} tamano={16} class="kpi-icono" />
-          {k.titulo}
-        </dt>
-        <dd class="valor">
-          {k.valor}
-          {k.variacion && (
-            <span
-              class:list={["variacion", k.variacion.mejora ? "mejora" : "empeora"]}
-              title="Frente al período anterior"
-            >
-              <Icono nombre={k.variacion.sube ? "tendencia" : "tendenciaBaja"} tamano={14} />
-              {k.variacion.texto}
-            </span>
-          )}
-        </dd>
-        <dd class="detalle" id={`kpi-${k.titulo}`} role="tooltip">
-          {k.detalle}
-        </dd>
-      </div>
-    ))}
-  </dl>
-
-  <!-- Nivel 2 · Requiere atención -->
-  <section class="atencion" aria-labelledby="titulo-atencion" data-datos>
-    <h2 id="titulo-atencion">Requiere atención</h2>
-    {atencion.length ? (
-      <ul>
-        {atencion.map((a) => (
-          <li>
-            <a href={a.enlace}>
-              <Icono nombre={a.icono} tamano={18} />
-              <span>{a.texto}</span>
-              <Icono nombre="siguiente" tamano={16} class="ir" />
-            </a>
-          </li>
-        ))}
-      </ul>
-    ) : (
-      <p class="al-dia">
-        <Icono nombre="exito" tamano={18} />
-        Todo al día.
-      </p>
+  <div class="tablero">
+    <!-- Nivel 1 · Hoy -->
+    {mostrarHoy && (
+      <section class="hoy" aria-labelledby="titulo-hoy" data-datos>
+        <div class="hoy-cabeza">
+          <h2 id="titulo-hoy">Hoy</h2>
+          <p>
+            {feriadoHoy
+              ? `Feriado: ${feriadoHoy.descripcion}`
+              : `${numero(hoyConteo.presente + hoyConteo.tarde)} de ${numero(laborablesHoy)} han llegado`}
+          </p>
+        </div>
+        <BarraApilada segmentos={hoySegmentos} soloConValor />
+      </section>
     )}
-  </section>
 
-  <!-- Nivel 3 · Análisis bajo demanda -->
-  <section class="analisis" aria-labelledby="titulo-analisis">
-    <h2 id="titulo-analisis">Análisis del período</h2>
-    {registros.length === 0 ? (
-      <p class="vacio" data-datos>
-        No hay registros de asistencia en este período. El análisis aparecerá cuando el personal
-        empiece a marcar.
-      </p>
-    ) : (
-      <div class="secciones">
-        <Seccion
-          id="seccion-tendencia"
-          titulo="Tendencia de asistencia"
-          resumen={concl.tendencia}
-          abierta
-        >
-          <Figura
-            plana
-            titulo="Tendencia de asistencia"
-            descripcion={`Porcentaje diario de jornadas cumplidas · ${rango.etiqueta} · ${numero(Math.round(resumen.horasTotales))} horas trabajadas`}
-            columnas={["Fecha", "Asistencia", "Presentes", "Tarde", "Faltas", "Permisos"]}
-            filas={serie.map((s) => [
-              fechaCorta(s.clave),
-              porcentaje(s.valor, 2),
-              s.conteo.presente,
-              s.conteo.tarde,
-              s.conteo.falta,
-              s.conteo.permiso,
-            ])}
-          >
-            <GraficaLinea
-              puntos={serie.map((s) => ({
-                etiqueta: dd(s.clave),
-                valor: s.valor,
-                detalle: `${fechaCorta(s.clave)}: ${porcentaje(s.valor)} · ${plural(s.conteo.falta, "falta", "faltas")}, ${s.conteo.tarde} tarde`,
-              }))}
-              referencia={{
-                valor: resumen.asistencia,
-                etiqueta: `Promedio ${porcentaje(resumen.asistencia)}`,
-              }}
-            />
-          </Figura>
-        </Seccion>
-
-        <Seccion id="seccion-dias" titulo="Por día de la semana" resumen={concl.dias}>
-          <Figura
-            plana
-            titulo="Asistencia por día de la semana"
-            descripcion="Rayado: el día con la asistencia más baja."
-            columnas={["Día", "Asistencia", "Tardanza", "Faltas"]}
-            filas={dias.map((d) => [
-              NOMBRE_DIA[d.dia as DiaSemana],
-              porcentaje(d.asistencia, 2),
-              porcentaje(d.tardanza, 2),
-              d.faltas,
-            ])}
-          >
-            <BarrasHorizontales
-              maximo={100}
-              items={dias.map((d) => ({
-                etiqueta: NOMBRE_DIA[d.dia as DiaSemana],
-                valor: d.asistencia,
-                texto: porcentaje(d.asistencia),
-                detalle: `${plural(d.faltas, "falta", "faltas")} · ${porcentaje(d.tardanza)} tarde`,
-                resaltar: d.asistencia === peorDia && dias.length > 1,
-              }))}
-            />
-          </Figura>
-        </Seccion>
-
-        <Seccion id="seccion-llegadas" titulo="Hora de llegada" resumen={concl.llegadas}>
-          <Figura
-            plana
-            titulo="Hora de llegada"
-            descripcion={`Minutos después de la hora de entrada. Retraso promedio de quienes llegan tarde: ${resumen.retrasoPromedioMin} min.`}
-            columnas={["Tramo", "Llegadas", "Porcentaje"]}
-            filas={llegadas.map((l) => [
-              l.etiqueta,
-              l.valor,
-              porcentaje(totalLlegadas ? (l.valor / totalLlegadas) * 100 : 0),
-            ])}
-          >
-            <DistribucionLlegadas tramos={llegadas} />
-          </Figura>
-        </Seccion>
-
-        <Seccion id="seccion-categorias" titulo="Por categoría" resumen={concl.categorias}>
-          <Figura
-            plana
-            titulo="Asistencia por categoría"
-            descripcion="Asistencia y puntualidad de cada grupo del personal."
-            columnas={["Categoría", "Personas", "Asistencia", "Puntualidad", "Faltas"]}
-            filas={cats.map((c) => [
-              c.cat?.nombre ?? "—",
-              c.personas,
-              porcentaje(c.asistencia, 2),
-              porcentaje(c.puntualidad, 2),
-              c.conteo.falta,
-            ])}
-          >
-            <BarrasHorizontales
-              maximo={100}
-              items={cats.map((c) => ({
-                etiqueta: c.cat?.nombre ?? "—",
-                valor: c.asistencia,
-                texto: porcentaje(c.asistencia),
-                color: c.cat?.color,
-                detalle: `${c.personas} pers. · puntualidad ${porcentaje(c.puntualidad)}`,
-              }))}
-            />
-          </Figura>
-        </Seccion>
-
-        <Seccion
-          id="seccion-personas"
-          titulo="Seguimiento individual"
-          resumen={concl.personas}
-          tono={conFaltas.length ? "alerta" : "normal"}
-        >
-          <Figura
-            plana
-            titulo="Seguimiento individual"
-            descripcion="Personas con más faltas y tardanzas en el período."
-            columnas={["Persona", "Faltas", "Tardanzas", "Asistencia"]}
-            filas={criticas.map((c) => {
-              const x = personaPorId.get(c.personalId);
-              return [
-                x ? `${x.nombre} ${x.apellido}` : "—",
-                c.faltas,
-                c.tardanzas,
-                porcentaje(c.asistencia, 2),
-              ];
-            })}
-          >
-            {criticas.length ? (
-              <ol class="criticas">
-                {criticas.map((c) => {
-                  const x = personaPorId.get(c.personalId);
-                  const cat = x ? catPorId.get(x.categoria_id) : undefined;
-                  return (
-                    <li>
-                      <span
-                        class="ini"
-                        style={`--c: ${cat?.color ?? "#64748b"}`}
-                        aria-hidden="true"
-                      >
-                        {(x?.nombre[0] ?? "") + (x?.apellido[0] ?? "")}
-                      </span>
-                      <span class="quien">
-                        {x ? (
-                          <a href={`/personal/${x.id}`}>
-                            {x.nombre} {x.apellido}
-                          </a>
-                        ) : (
-                          "—"
-                        )}
-                        <small>{cat?.nombre}</small>
-                      </span>
-                      <span class="cifras">
-                        <strong>{c.faltas}</strong> {c.faltas === 1 ? "falta" : "faltas"} ·{" "}
-                        <strong>{c.tardanzas}</strong> tarde
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-            ) : (
-              <p class="vacio">Nadie acumula faltas ni tardanzas en el período.</p>
+    <!-- Nivel 1 · Indicadores del período -->
+    <dl class="kpis" aria-label="Indicadores del período" data-datos>
+      {kpis.map((k) => (
+        <div class="kpi" tabindex="0" aria-describedby={`kpi-${k.titulo}`}>
+          <dt>
+            <Icono nombre={k.icono} tamano={16} class="kpi-icono" />
+            {k.titulo}
+          </dt>
+          <dd class="valor">
+            {k.valor}
+            {k.variacion && (
+              <span
+                class:list={["variacion", k.variacion.mejora ? "mejora" : "empeora"]}
+                title="Frente al período anterior"
+              >
+                <Icono nombre={k.variacion.sube ? "tendencia" : "tendenciaBaja"} tamano={14} />
+                {k.variacion.texto}
+              </span>
             )}
-          </Figura>
-        </Seccion>
-      </div>
-    )}
-  </section>
+          </dd>
+          <dd class="detalle" id={`kpi-${k.titulo}`} role="tooltip">
+            {k.detalle}
+          </dd>
+        </div>
+      ))}
+    </dl>
+
+    <!-- Nivel 2 · Requiere atención -->
+    <section class="atencion" aria-labelledby="titulo-atencion" data-datos>
+      <h2 id="titulo-atencion">Requiere atención</h2>
+      {atencion.length ? (
+        <ul>
+          {atencion.map((a) => (
+            <li>
+              <a href={a.enlace}>
+                <Icono nombre={a.icono} tamano={18} />
+                <span>{a.texto}</span>
+                <Icono nombre="siguiente" tamano={16} class="ir" />
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="al-dia">
+          <Icono nombre="exito" tamano={18} />
+          Todo al día.
+        </p>
+      )}
+    </section>
+
+    <!-- Columna lateral (en laptops y celular: entre «Requiere atención» y el análisis) -->
+    <aside class="lateral" aria-label="Resumen complementario">
+      <Tarjeta
+        titulo={periodo === "30d" ? "Últimos 30 días" : `Calendario · ${rango.etiqueta}`}
+        datos
+      >
+        <CalendarioPeriodo semanas={semanas} />
+      </Tarjeta>
+      {mostrarHoy && !feriadoHoy && (
+        <Tarjeta titulo="Llegadas de hoy" descripcion="Por categoría" datos>
+          <HoyPorCategoria filas={progresoHoy} />
+        </Tarjeta>
+      )}
+      <Tarjeta
+        titulo="Ausentes esta semana"
+        descripcion="Permisos de hoy y de los próximos 7 días"
+        datos
+      >
+        <ListaAusentes
+          ausentes={ausentes}
+          total={totalAusentes ?? ausentes.length}
+          hoy={hoy}
+          feriado={proximoFeriado}
+        />
+      </Tarjeta>
+    </aside>
+
+    <!-- Nivel 3 · Análisis bajo demanda -->
+    <section class="analisis" aria-labelledby="titulo-analisis">
+      <h2 id="titulo-analisis">Análisis del período</h2>
+      {registros.length === 0 ? (
+        <p class="vacio" data-datos>
+          No hay registros de asistencia en este período. El análisis aparecerá cuando el personal
+          empiece a marcar.
+        </p>
+      ) : (
+        <div class="secciones">
+          <Seccion
+            id="seccion-tendencia"
+            titulo="Tendencia de asistencia"
+            resumen={concl.tendencia}
+            abierta
+          >
+            <Figura
+              plana
+              titulo="Tendencia de asistencia"
+              descripcion={`Porcentaje diario de jornadas cumplidas · ${rango.etiqueta} · ${numero(Math.round(resumen.horasTotales))} horas trabajadas`}
+              columnas={["Fecha", "Asistencia", "Presentes", "Tarde", "Faltas", "Permisos"]}
+              filas={serie.map((s) => [
+                fechaCorta(s.clave),
+                porcentaje(s.valor, 2),
+                s.conteo.presente,
+                s.conteo.tarde,
+                s.conteo.falta,
+                s.conteo.permiso,
+              ])}
+            >
+              <GraficaLinea
+                puntos={serie.map((s) => ({
+                  etiqueta: dd(s.clave),
+                  valor: s.valor,
+                  detalle: `${fechaCorta(s.clave)}: ${porcentaje(s.valor)} · ${plural(s.conteo.falta, "falta", "faltas")}, ${s.conteo.tarde} tarde`,
+                }))}
+                referencia={{
+                  valor: resumen.asistencia,
+                  etiqueta: `Promedio ${porcentaje(resumen.asistencia)}`,
+                }}
+              />
+            </Figura>
+          </Seccion>
+
+          <Seccion id="seccion-dias" titulo="Por día de la semana" resumen={concl.dias}>
+            <Figura
+              plana
+              titulo="Asistencia por día de la semana"
+              descripcion="Rayado: el día con la asistencia más baja."
+              columnas={["Día", "Asistencia", "Tardanza", "Faltas"]}
+              filas={dias.map((d) => [
+                NOMBRE_DIA[d.dia as DiaSemana],
+                porcentaje(d.asistencia, 2),
+                porcentaje(d.tardanza, 2),
+                d.faltas,
+              ])}
+            >
+              <BarrasHorizontales
+                maximo={100}
+                items={dias.map((d) => ({
+                  etiqueta: NOMBRE_DIA[d.dia as DiaSemana],
+                  valor: d.asistencia,
+                  texto: porcentaje(d.asistencia),
+                  detalle: `${plural(d.faltas, "falta", "faltas")} · ${porcentaje(d.tardanza)} tarde`,
+                  resaltar: d.asistencia === peorDia && dias.length > 1,
+                }))}
+              />
+            </Figura>
+          </Seccion>
+
+          <Seccion id="seccion-llegadas" titulo="Hora de llegada" resumen={concl.llegadas}>
+            <Figura
+              plana
+              titulo="Hora de llegada"
+              descripcion={`Minutos después de la hora de entrada. Retraso promedio de quienes llegan tarde: ${resumen.retrasoPromedioMin} min.`}
+              columnas={["Tramo", "Llegadas", "Porcentaje"]}
+              filas={llegadas.map((l) => [
+                l.etiqueta,
+                l.valor,
+                porcentaje(totalLlegadas ? (l.valor / totalLlegadas) * 100 : 0),
+              ])}
+            >
+              <DistribucionLlegadas tramos={llegadas} />
+            </Figura>
+          </Seccion>
+
+          <Seccion id="seccion-categorias" titulo="Por categoría" resumen={concl.categorias}>
+            <Figura
+              plana
+              titulo="Asistencia por categoría"
+              descripcion="Asistencia y puntualidad de cada grupo del personal."
+              columnas={["Categoría", "Personas", "Asistencia", "Puntualidad", "Faltas"]}
+              filas={cats.map((c) => [
+                c.cat?.nombre ?? "—",
+                c.personas,
+                porcentaje(c.asistencia, 2),
+                porcentaje(c.puntualidad, 2),
+                c.conteo.falta,
+              ])}
+            >
+              <BarrasHorizontales
+                maximo={100}
+                items={cats.map((c) => ({
+                  etiqueta: c.cat?.nombre ?? "—",
+                  valor: c.asistencia,
+                  texto: porcentaje(c.asistencia),
+                  color: c.cat?.color,
+                  detalle: `${c.personas} pers. · puntualidad ${porcentaje(c.puntualidad)}`,
+                }))}
+              />
+            </Figura>
+          </Seccion>
+
+          <Seccion
+            id="seccion-personas"
+            titulo="Seguimiento individual"
+            resumen={concl.personas}
+            tono={conFaltas.length ? "alerta" : "normal"}
+          >
+            <Figura
+              plana
+              titulo="Seguimiento individual"
+              descripcion="Personas con más faltas y tardanzas en el período."
+              columnas={["Persona", "Faltas", "Tardanzas", "Asistencia"]}
+              filas={criticas.map((c) => {
+                const x = personaPorId.get(c.personalId);
+                return [
+                  x ? `${x.nombre} ${x.apellido}` : "—",
+                  c.faltas,
+                  c.tardanzas,
+                  porcentaje(c.asistencia, 2),
+                ];
+              })}
+            >
+              {criticas.length ? (
+                <ol class="criticas">
+                  {criticas.map((c) => {
+                    const x = personaPorId.get(c.personalId);
+                    const cat = x ? catPorId.get(x.categoria_id) : undefined;
+                    return (
+                      <li>
+                        <span
+                          class="ini"
+                          style={`--c: ${cat?.color ?? "#64748b"}`}
+                          aria-hidden="true"
+                        >
+                          {(x?.nombre[0] ?? "") + (x?.apellido[0] ?? "")}
+                        </span>
+                        <span class="quien">
+                          {x ? (
+                            <a href={`/personal/${x.id}`}>
+                              {x.nombre} {x.apellido}
+                            </a>
+                          ) : (
+                            "—"
+                          )}
+                          <small>{cat?.nombre}</small>
+                        </span>
+                        <span class="cifras">
+                          <strong>{c.faltas}</strong> {c.faltas === 1 ? "falta" : "faltas"} ·{" "}
+                          <strong>{c.tardanzas}</strong> tarde
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : (
+                <p class="vacio">Nadie acumula faltas ni tardanzas en el período.</p>
+              )}
+            </Figura>
+          </Seccion>
+        </div>
+      )}
+    </section>
+  </div>
 </PanelLayout>
 
 <style>
+  /* ── Cuadrícula del panel ──
+   * Orden en el DOM: hoy · indicadores · atención · lateral · análisis.
+   * Pantalla ancha: la lateral ocupa su propia columna, fija al desplazarse. */
+  .tablero {
+    display: flex;
+    flex-direction: column;
+  }
+  .lateral {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+    gap: var(--esp-4);
+    align-items: start;
+    margin-bottom: var(--separacion-bloques);
+  }
+  @media (min-width: 1400px) {
+    .tablero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 21rem;
+      grid-template-rows: auto auto auto auto 1fr;
+      column-gap: var(--esp-6);
+    }
+    .tablero > :not(.lateral) {
+      grid-column: 1;
+    }
+    .lateral {
+      grid-column: 2;
+      grid-row: 1 / span 5;
+      grid-template-columns: 1fr;
+      position: sticky;
+      top: calc(56px + var(--esp-6));
+      align-self: start;
+      margin-bottom: 0;
+    }
+  }
   /* Aviso de demostración en una línea */
   .demo {
     display: flex;

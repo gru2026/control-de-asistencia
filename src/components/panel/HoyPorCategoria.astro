@@ -1,0 +1,86 @@
+---
+/** Llegadas de hoy por categoría: «llegaron / esperados» con una barra fina. */
+interface Fila {
+  nombre: string;
+  color: string;
+  llegaron: number;
+  esperados: number;
+}
+interface Props {
+  filas: Fila[];
+}
+const { filas } = Astro.props;
+---
+
+{filas.length ? (
+  <ul class="lista-llegadas">
+    {filas.map((f) => {
+      const completo = f.llegaron >= f.esperados;
+      return (
+        <li style={`--c: ${f.color}`}>
+          <span class="nombre">{f.nombre}</span>
+          <span class:list={["cifra", completo && "completo"]}>
+            <strong>{f.llegaron}</strong>/{f.esperados}
+          </span>
+          <span class="pista" aria-hidden="true">
+            <span
+              class="relleno"
+              style={`width: ${f.esperados ? (f.llegaron / f.esperados) * 100 : 0}%`}
+            />
+          </span>
+        </li>
+      );
+    })}
+  </ul>
+) : (
+  <p class="vacio">Nadie tiene jornada hoy.</p>
+)}
+
+<style>
+  .lista-llegadas {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  li {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    row-gap: 6px;
+    font-size: var(--texto-sm);
+  }
+  .nombre {
+    color: var(--color-texto);
+  }
+  .cifra {
+    color: var(--color-texto-suave);
+    font-variant-numeric: tabular-nums;
+  }
+  .cifra strong {
+    color: var(--color-texto);
+  }
+  .completo strong {
+    color: var(--color-exito);
+  }
+  .pista {
+    grid-column: 1 / -1;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--color-superficie-hover);
+    overflow: hidden;
+  }
+  .relleno {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--c);
+    transition: width var(--duracion) var(--curva);
+  }
+  .vacio {
+    margin: 0;
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+</style>

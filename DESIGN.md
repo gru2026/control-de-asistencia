@@ -55,6 +55,7 @@ Ritmo: dentro de un grupo 6–12 px; entre controles 16 px; entre bloques 32 px 
 - Tablas: encabezado en zona hundida, ordenables, en celular como lista.
 - Navegación: barra superior azul noche; lateral en capa neutra con el ítem actual como superficie blanca; barra inferior translúcida en celular.
 - Panel en tres niveles: Hoy y 4 indicadores (detalle en tooltip) · «Requiere atención» (lista de pendientes con enlace) · Análisis en secciones plegables con la conclusión en el título.
+- Columna lateral del panel (≥ 1400 px, fija al desplazarse; en laptops y celular va entre «Requiere atención» y el análisis): calendario coloreado por asistencia (≥ 95 % verde · 85–94 % ámbar · < 85 % rojo), llegadas de hoy por categoría y ausentes de la semana con el próximo feriado.
 - Secciones plegables (`Seccion.astro`): `<details>` nativo, estado recordado por navegador.
 
 ## Motion

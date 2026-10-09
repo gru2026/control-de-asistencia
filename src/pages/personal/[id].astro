@@ -42,6 +42,12 @@ import { diferenciaMin } from "@/lib/reglas/estados";
 import { horaEnZona, sumarDias } from "@/lib/reglas/tiempo";
 import { hoyEnZona } from "@/lib/fecha";
 import {
+  aprobarDispositivo,
+  COLUMNAS_DISPOSITIVO,
+  revocarDispositivo,
+  type FilaDispositivo,
+} from "@/lib/servicios/dispositivos";
+import {
   NOMBRE_DIA,
   NOMBRE_ROL,
   NOMBRE_VINCULO,
@@ -100,14 +106,46 @@ let errores: Errores = {};
 let mensaje: string | null = null;
 let valoresForm: Record<string, string> = {};
 
+// Secretaría también aprueba o revoca teléfonos (R11); el resto es solo de la directiva.
+const ACCIONES_ADMIN = ["disp_aprobar", "disp_revocar"];
+
 if (Astro.request.method === "POST") {
-  if (!esDirectiva) return new Response("Prohibido", { status: 403 });
   const f = await Astro.request.formData();
-  valoresForm = Object.fromEntries([...f.entries()].map(([k, v]) => [k, String(v)]));
   seccion = texto(f, "accion");
+  if (!esDirectiva && !ACCIONES_ADMIN.includes(seccion)) {
+    return new Response("Prohibido", { status: 403 });
+  }
+  valoresForm = Object.fromEntries([...f.entries()].map(([k, v]) => [k, String(v)]));
   let exito: string | null = null;
 
   switch (seccion) {
+    case "disp_aprobar":
+    case "disp_revocar": {
+      const dispId = texto(f, "dispositivo_id");
+      if (!esUuid(dispId) || !ficha.usuarios) break;
+      // El teléfono debe pertenecer a la cuenta de esta ficha.
+      const { data: propio } = await sb
+        .from("dispositivos")
+        .select("id")
+        .eq("id", dispId)
+        .eq("usuario_id", ficha.usuarios.id)
+        .maybeSingle();
+      if (!propio) {
+        mensaje = "El teléfono no pertenece a esta persona.";
+        break;
+      }
+      const res =
+        seccion === "disp_aprobar"
+          ? await aprobarDispositivo(sb, dispId, perfil.id)
+          : await revocarDispositivo(sb, dispId);
+      if (res.ok)
+        exito =
+          seccion === "disp_aprobar"
+            ? "Teléfono aprobado. Ya puede marcar desde él."
+            : "Teléfono revocado. Ya no puede marcar desde él.";
+      else mensaje = res.mensaje;
+      break;
+    }
     case "datos": {
       const r = validarPersonal(f);
       if (!r.ok) {
@@ -199,7 +237,26 @@ if (Astro.request.method === "POST") {
   ficha = (await cargar()) ?? ficha;
 }
 
-const [jornadas, categorias] = await Promise.all([listarJornadas(sb), listarCategorias(sb)]);
+const [jornadas, categorias, { data: disps }] = await Promise.all([
+  listarJornadas(sb),
+  listarCategorias(sb),
+  ficha.usuarios
+    ? sb
+        .from("dispositivos")
+        .select(COLUMNAS_DISPOSITIVO)
+        .eq("usuario_id", ficha.usuarios.id)
+        .eq("tipo", "celular")
+        .order("creado_en", { ascending: false })
+    : Promise.resolve({ data: [] }),
+]);
+const ORDEN_DISP = { pendiente: 0, aprobado: 1, revocado: 2 } as const;
+const dispositivos = ((disps ?? []) as FilaDispositivo[]).sort(
+  (a, b) => ORDEN_DISP[a.estado] - ORDEN_DISP[b.estado],
+);
+const NOMBRE_DISP = { aprobado: "Aprobado", pendiente: "Pendiente", revocado: "Revocado" };
+const TIPO_DISP = { aprobado: "activo", pendiente: "pendiente", revocado: "inactivo" } as const;
+const fechaHora = (iso: string | null) =>
+  iso ? `${fechaCorta(hoyEnZona(undefined, new Date(iso)))} ${horaEnZona(iso)}` : "—";
 const categoria = categorias.find((c) => c.id === ficha!.categoria_id);
 
 // Resumen de los últimos 30 días e historial reciente
@@ -332,7 +389,7 @@ const valorExc = (k: string, porDefecto: string) =>
       <a href="#horario">Horario</a>
       <a href="#historial">Asistencia</a>
       <a href="#cuenta">Cuenta</a>
-      <a href="#dispositivo">Teléfono y PIN</a>
+      <a href="#dispositivo">Teléfono</a>
       {esDirectiva && <a href="#estado">Estado</a>}
     </nav>
 
@@ -552,11 +609,52 @@ const valorExc = (k: string, porDefecto: string) =>
     </Tarjeta>
 
     <Tarjeta
-      titulo="Teléfono y PIN"
+      titulo="Teléfono de marcación"
       id="dispositivo"
-      descripcion="Aprobación del teléfono de marcación y PIN del kiosco."
+      descripcion="Solo un teléfono aprobado por persona. El primero se aprueba solo al marcar por primera vez."
     >
-      <p class="nota">Disponible próximamente (Semanas 2 y 3).</p>
+      {!ficha.usuarios ? (
+        <p class="nota">Necesita una cuenta de acceso para marcar con el teléfono.</p>
+      ) : dispositivos.length === 0 ? (
+        <p class="nota">Todavía no ha marcado desde ningún teléfono.</p>
+      ) : (
+        <ul class="dispositivos">
+          {dispositivos.map((d) => (
+            <li>
+              <div class="disp-dato">
+                <strong>{d.descripcion ?? "Teléfono"}</strong>
+                <span class="nota">
+                  Registrado {fechaHora(d.creado_en)}
+                  {d.ultimo_uso && <> · último uso {fechaHora(d.ultimo_uso)}</>}
+                </span>
+              </div>
+              <Badge tipo={TIPO_DISP[d.estado]}>{NOMBRE_DISP[d.estado]}</Badge>
+              <form method="post" class="disp-accion">
+                <input type="hidden" name="dispositivo_id" value={d.id} />
+                {d.estado === "aprobado" ? (
+                  <Boton
+                    type="submit"
+                    name="accion"
+                    value="disp_revocar"
+                    variante="secundario"
+                    tamano="pequeno"
+                  >
+                    Revocar
+                  </Boton>
+                ) : (
+                  <Boton type="submit" name="accion" value="disp_aprobar" tamano="pequeno">
+                    Aprobar
+                  </Boton>
+                )}
+              </form>
+            </li>
+          ))}
+        </ul>
+      )}
+      {dispositivos.some((d) => d.estado === "pendiente") &&
+        dispositivos.some((d) => d.estado === "aprobado") && (
+          <p class="nota disp-aviso">Al aprobar el teléfono nuevo, el anterior queda revocado.</p>
+        )}
     </Tarjeta>
 
     {esDirectiva && (
@@ -743,6 +841,35 @@ const valorExc = (k: string, porDefecto: string) =>
     display: flex;
     justify-content: flex-end;
     margin-top: var(--esp-4);
+  }
+  .dispositivos {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .dispositivos li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-3);
+    padding: var(--esp-3) 0;
+    border-top: 1px solid var(--color-borde);
+  }
+  .dispositivos li:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .disp-dato {
+    display: grid;
+    flex: 1;
+    min-width: 12rem;
+  }
+  .disp-dato .nota,
+  .disp-aviso {
+    margin: 0;
+  }
+  .disp-aviso {
+    margin-top: var(--esp-3);
   }
   .nota {
     margin: 0 0 var(--esp-3);

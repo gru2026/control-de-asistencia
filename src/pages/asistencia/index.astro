@@ -3,92 +3,230 @@ import PanelLayout from "@/layouts/PanelLayout.astro";
 import Tarjeta from "@/components/ui/Tarjeta.astro";
 import Alerta from "@/components/ui/Alerta.astro";
 import Boton from "@/components/ui/Boton.astro";
+import Badge from "@/components/ui/Badge.astro";
 import Icono from "@/components/ui/Icono.astro";
 import { fechaLarga, hoyEnZona } from "@/lib/fecha";
-import { resolverJornada } from "@/lib/reglas/jornada";
-import {
-  aExcepcion,
-  aJornada,
-  COLUMNAS_JORNADA,
-  type FilaHorario,
-  type FilaJornada,
-} from "@/lib/datos/jornadas";
+import { horaEnZona } from "@/lib/reglas/tiempo";
+import { cargarFicha, contextoDelDia } from "@/lib/servicios/marcacion";
+import { leerConfigMarcacion } from "@/lib/datos/marcacion";
+import { motivoDispositivo, uidValido } from "@/lib/reglas/dispositivos";
+import { NOMBRE_ESTADO, type EstadoAsistencia, type EstadoDispositivo } from "@/types";
 
 const sb = Astro.locals.supabase;
 const perfil = Astro.locals.perfil!;
-const hoy = hoyEnZona();
+const ficha = await cargarFicha(sb, perfil.id);
+const ctx = ficha ? await contextoDelDia(sb, ficha) : null;
+const cfg = await leerConfigMarcacion(sb);
 
-const { data: ficha } = await sb
-  .from("personal")
-  .select(
-    `id, estado, jornadas(${COLUMNAS_JORNADA}), horarios(dia_semana, hora_entrada, hora_salida, tolerancia_min, libre)`,
-  )
-  .eq("usuario_id", perfil.id)
-  .maybeSingle<{
-    id: string;
-    estado: string;
-    jornadas: FilaJornada | null;
-    horarios: FilaHorario[];
-  }>();
+// Estado del teléfono (cookie escrita por el navegador con su identificador)
+const uid = Astro.cookies.get("gru_disp")?.value;
+let estadoTelefono: EstadoDispositivo | null = null;
+if (uidValido(uid)) {
+  const { data } = await sb
+    .from("dispositivos")
+    .select("estado")
+    .eq("usuario_id", perfil.id)
+    .eq("dispositivo_uid", uid)
+    .maybeSingle<{ estado: EstadoDispositivo }>();
+  estadoTelefono = data?.estado ?? null;
+}
+const avisoTelefono =
+  estadoTelefono && estadoTelefono !== "aprobado" ? motivoDispositivo(estadoTelefono) : null;
 
-const { data: feriado } = await sb
-  .from("feriados")
-  .select("descripcion")
-  .eq("fecha", hoy)
-  .maybeSingle();
+interface FilaUltimo {
+  fecha: string;
+  estado: EstadoAsistencia;
+  hora_entrada: string | null;
+  hora_salida: string | null;
+  horas_trabajadas: number | null;
+  salida_no_registrada: boolean;
+}
+const { data: ult } = ficha
+  ? await sb
+      .from("registros_asistencia")
+      .select("fecha, estado, hora_entrada, hora_salida, horas_trabajadas, salida_no_registrada")
+      .eq("personal_id", ficha.id)
+      .neq("fecha", ctx!.fecha)
+      .eq("es_demo", false)
+      .order("fecha", { ascending: false })
+      .limit(5)
+  : { data: [] };
+const ultimos = (ult ?? []) as FilaUltimo[];
 
-const regla = ficha
-  ? resolverJornada({
-      fecha: hoy,
-      jornada: ficha.jornadas ? aJornada(ficha.jornadas) : null,
-      excepciones: ficha.horarios.map(aExcepcion),
-      feriados: feriado ? [hoy] : [],
-    })
-  : null;
+const reg = ctx?.registro && !ctx.registro.es_demo ? ctx.registro : null;
+const sig = ctx?.siguiente ?? null;
+const inactiva = ficha?.estado === "inactivo";
+const puedeMarcar =
+  !!ctx && !inactiva && !avisoTelefono && (sig === "salida" || (sig === "entrada" && !!ctx.regla));
+const esOtroDia = !!ctx && ctx.fecha !== hoyEnZona(undefined, ctx.ahora);
+const corta = (f: string) =>
+  new Intl.DateTimeFormat("es-VE", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  })
+    .format(new Date(`${f}T00:00:00Z`))
+    .replace(".", "");
+const horas = (n: number | null) =>
+  n === null ? "" : `${Number(n).toFixed(1).replace(".", ",")} h`;
 ---
 
-<PanelLayout titulo={`Hola, ${perfil.nombre}`} subtitulo={fechaLarga(hoy)}>
+<PanelLayout titulo={`Hola, ${perfil.nombre}`} subtitulo={ctx ? fechaLarga(ctx.fecha) : undefined}>
   <div class="pila">
-    {!ficha ? (
+    {!ficha || !ctx ? (
       <Alerta tipo="info">
         Su cuenta no tiene una ficha de personal asociada, por lo que no registra asistencia.
       </Alerta>
     ) : (
-      <Tarjeta titulo="Su jornada de hoy">
-        {feriado ? (
-          <p class="grande">Hoy es feriado: {feriado.descripcion}.</p>
-        ) : regla ? (
-          <dl class="jornada">
-            <div>
-              <dt>Entrada</dt>
-              <dd>{regla.horaEntrada}</dd>
-            </div>
-            <div>
-              <dt>Salida</dt>
-              <dd>{regla.horaSalida}</dd>
-            </div>
-            <div>
-              <dt>Tolerancia</dt>
-              <dd>{regla.toleranciaMin} min</dd>
-            </div>
-          </dl>
-        ) : !ficha.jornadas ? (
-          <p>Aún no tiene una jornada asignada. Consulte con la directiva.</p>
-        ) : (
-          <p class="grande">Hoy no es día laborable para usted.</p>
+      <>
+        <div hidden data-sin-conexion>
+          <Alerta tipo="alerta">
+            Sin conexión. Conéctese a internet para marcar o diríjase a secretaría.
+          </Alerta>
+        </div>
+        {inactiva && (
+          <Alerta tipo="alerta">
+            Su ficha de personal está inactiva. Consulte con la directiva.
+          </Alerta>
         )}
-      </Tarjeta>
-    )}
+        {avisoTelefono && <Alerta tipo="alerta">{avisoTelefono}</Alerta>}
 
-    <Tarjeta titulo="Marcar asistencia">
-      <Boton tamano="grande" bloque disabled>
-        <Icono nombre="qr" tamano={22} />
-        Marcar entrada
-      </Boton>
-      <p class="nota">La marcación con código QR y ubicación estará disponible próximamente.</p>
-    </Tarjeta>
+        <section class="marcar" aria-labelledby="titulo-marcar">
+          <h2 id="titulo-marcar" class="sr-only">
+            Marcar asistencia
+          </h2>
+          <p class="reloj" data-reloj data-servidor={ctx.ahora.getTime()} aria-live="off">
+            {ctx.horaLocal}
+          </p>
+          {ctx.regla ? (
+            <p class="jornada">
+              {esOtroDia ? "Jornada iniciada ayer" : "Su jornada"}: {ctx.regla.horaEntrada} a{" "}
+              {ctx.regla.horaSalida}
+              <span class="tenue"> · tolerancia {ctx.regla.toleranciaMin} min</span>
+            </p>
+          ) : (
+            <p class="jornada">
+              {ctx.feriado
+                ? `Hoy es feriado: ${ctx.feriado}.`
+                : !ficha.jornadas && !ficha.horarios.length
+                  ? "Aún no tiene una jornada asignada. Consulte con la directiva."
+                  : "Hoy no es día laborable para usted."}
+            </p>
+          )}
+
+          {reg?.hora_entrada && (
+            <dl class="hoy">
+              <div>
+                <dt>Entrada</dt>
+                <dd>{horaEnZona(reg.hora_entrada)}</dd>
+              </div>
+              <div>
+                <dt>Salida</dt>
+                <dd>{reg.hora_salida ? horaEnZona(reg.hora_salida) : "—"}</dd>
+              </div>
+              <div>
+                <dt>Estado</dt>
+                <dd>
+                  <Badge tipo={reg.estado}>{NOMBRE_ESTADO[reg.estado]}</Badge>
+                </dd>
+              </div>
+            </dl>
+          )}
+
+          {sig === "completa" ? (
+            <p class="listo">
+              <Icono nombre="exito" tamano={22} /> Jornada completa
+              {reg?.horas_trabajadas !== null && reg?.horas_trabajadas !== undefined && (
+                <span class="tenue">· {horas(reg.horas_trabajadas)}</span>
+              )}
+            </p>
+          ) : sig === "cerrada" ? (
+            <p class="listo">
+              Día registrado como{" "}
+              <strong>{NOMBRE_ESTADO[ctx.registro!.estado].toLowerCase()}</strong>. Si es un error,
+              diríjase a secretaría.
+            </p>
+          ) : puedeMarcar ? (
+            <Boton
+              tamano="grande"
+              bloque
+              variante={sig === "salida" ? "secundario" : "primario"}
+              data-marcar={sig}
+              data-geocerca={cfg.geocerca_activa ? "1" : "0"}
+            >
+              <Icono nombre="qr" tamano={22} />
+              {sig === "salida" ? "Marcar salida" : "Marcar entrada"}
+            </Boton>
+          ) : null}
+          {puedeMarcar && (
+            <p class="ayuda">
+              Se le pedirá la ubicación y la cámara para escanear el código de la entrada.
+            </p>
+          )}
+        </section>
+
+        {ultimos.length > 0 && (
+          <Tarjeta titulo="Últimos días">
+            <ul class="ultimos">
+              {ultimos.map((u) => (
+                <li>
+                  <span class="dia">{corta(u.fecha)}</span>
+                  <span class="tenue horas">
+                    {u.hora_entrada ? horaEnZona(u.hora_entrada) : ""}
+                    {u.hora_salida
+                      ? ` – ${horaEnZona(u.hora_salida)}`
+                      : u.salida_no_registrada
+                        ? " – sin salida"
+                        : ""}
+                  </span>
+                  <Badge tipo={u.estado}>{NOMBRE_ESTADO[u.estado]}</Badge>
+                </li>
+              ))}
+            </ul>
+          </Tarjeta>
+        )}
+      </>
+    )}
   </div>
+
+  <dialog class="escaner" data-escaner aria-labelledby="escaner-titulo">
+    <div class="vista" data-vista="camara">
+      <p id="escaner-titulo" class="escaner-titulo" data-titulo>
+        Escanee el código de la entrada
+      </p>
+      <div class="visor">
+        <video playsinline muted data-video></video>
+        <span class="marco" aria-hidden="true"></span>
+      </div>
+      <p class="escaner-estado" data-estado role="status">
+        Abriendo la cámara…
+      </p>
+      <button type="button" class="cerrar" data-cerrar>
+        Cancelar
+      </button>
+    </div>
+    <div class="vista resultado" data-vista="resultado" hidden>
+      <span class="sello" data-sello aria-hidden="true"></span>
+      <p class="res-titulo" data-res-titulo></p>
+      <p class="res-hora" data-res-hora></p>
+      <p class="res-detalle" data-res-detalle></p>
+      <div class="res-acciones">
+        <button type="button" class="reintentar" data-reintentar hidden>
+          Intentar de nuevo
+        </button>
+        <button type="button" class="aceptar" data-aceptar>
+          Listo
+        </button>
+      </div>
+    </div>
+  </dialog>
 </PanelLayout>
+
+<script>
+  import { iniciarMarcacion } from "@/scripts/marcar";
+  iniciarMarcacion();
+</script>
 
 <style>
   .pila {
@@ -96,29 +234,213 @@ const regla = ficha
     gap: var(--esp-4);
     max-width: 32rem;
   }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .marcar {
+    display: grid;
+    gap: var(--esp-4);
+    padding: var(--esp-6) var(--esp-5);
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio-lg);
+    text-align: center;
+  }
+  .reloj {
+    margin: 0;
+    font-size: 3.5rem;
+    font-weight: var(--peso-titulo);
+    letter-spacing: var(--tracking-cifra);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
   .jornada {
+    margin: 0;
+  }
+  .tenue {
+    color: var(--color-texto-suave);
+  }
+  .hoy {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: var(--esp-3);
     margin: 0;
+    padding: var(--esp-4) 0;
+    border-block: 1px solid var(--color-borde);
   }
-  dt {
+  .hoy dt {
     font-size: var(--texto-sm);
     color: var(--color-texto-suave);
   }
-  dd {
-    margin: 0;
+  .hoy dd {
+    margin: var(--esp-1) 0 0;
     font-size: var(--texto-xl);
-    font-weight: 700;
+    font-weight: var(--peso-fuerte);
+    font-variant-numeric: tabular-nums;
   }
-  .grande {
-    font-size: var(--texto-lg);
+  .listo {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: var(--esp-2);
     margin: 0;
+    color: var(--color-exito);
+    font-weight: var(--peso-fuerte);
   }
-  .nota {
-    margin: var(--esp-3) 0 0;
-    color: var(--color-texto-suave);
+  .ayuda {
+    margin: 0;
     font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .ultimos {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .ultimos li {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-3);
+    padding: var(--esp-3) 0;
+    border-top: 1px solid var(--color-borde);
+  }
+  .ultimos li:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .dia {
+    min-width: 5.5rem;
+    font-weight: var(--peso-medio);
+  }
+  .horas {
+    flex: 1;
+    font-size: var(--texto-sm);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Escáner a pantalla completa */
+  .escaner {
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: #0b1220;
+    color: #fff;
+  }
+  .escaner::backdrop {
+    background: #0b1220;
+  }
+  .vista {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: var(--esp-5);
+    min-height: 100%;
+    padding: calc(var(--esp-6) + var(--seguro-arriba)) var(--esp-5)
+      calc(var(--esp-6) + var(--seguro-abajo));
     text-align: center;
+  }
+  .vista[hidden] {
+    display: none;
+  }
+  .escaner-titulo {
+    margin: 0;
+    font-size: var(--texto-lg);
+    font-weight: var(--peso-fuerte);
+  }
+  .visor {
+    position: relative;
+    width: min(100%, 22rem);
+    aspect-ratio: 1;
+    border-radius: var(--radio-lg);
+    overflow: hidden;
+    background: #000;
+  }
+  .visor video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .marco {
+    position: absolute;
+    inset: 14%;
+    border: 3px solid rgb(255 255 255 / 0.9);
+    border-radius: var(--radio);
+    box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.35);
+  }
+  .escaner-estado {
+    margin: 0;
+    min-height: 3em;
+    color: #cbd5e1;
+  }
+  .escaner button {
+    min-height: var(--toque-min);
+    padding: 0 var(--esp-6);
+    border-radius: var(--radio);
+    font: inherit;
+    font-weight: var(--peso-fuerte);
+    cursor: pointer;
+  }
+  .cerrar,
+  .reintentar {
+    border: 1px solid rgb(255 255 255 / 0.35);
+    background: transparent;
+    color: #fff;
+  }
+  .aceptar {
+    border: 0;
+    background: #fff;
+    color: #0b1220;
+    min-width: 10rem;
+  }
+  .sello {
+    display: grid;
+    place-items: center;
+    width: 6rem;
+    height: 6rem;
+    border-radius: 50%;
+    background: var(--c, #15803d);
+  }
+  .sello :global(svg) {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+  .res-titulo {
+    margin: 0;
+    font-size: var(--texto-2xl);
+    font-weight: var(--peso-titulo);
+    letter-spacing: var(--tracking-titulo);
+  }
+  .res-hora {
+    margin: 0;
+    font-size: 3rem;
+    font-weight: var(--peso-titulo);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .res-hora:empty,
+  .res-detalle:empty {
+    display: none;
+  }
+  .res-detalle {
+    margin: 0;
+    max-width: 22rem;
+    color: #cbd5e1;
+    font-size: var(--texto-base);
+  }
+  .res-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--esp-3);
   }
 </style>

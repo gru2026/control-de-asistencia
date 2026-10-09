@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { numero, plural, porcentaje, variacionPuntos } from "@/lib/formato";
+import { numero, plural, porcentaje, textoDuracion, variacionPuntos } from "@/lib/formato";
 
 describe("formato venezolano", () => {
   it("números y porcentajes", () => {
@@ -16,5 +16,13 @@ describe("formato venezolano", () => {
   it("plural", () => {
     expect(plural(1, "falta", "faltas")).toBe("1 falta");
     expect(plural(1500, "falta", "faltas")).toBe("1.500 faltas");
+  });
+});
+
+describe("textoDuracion", () => {
+  it("minutos y horas", () => {
+    expect(textoDuracion(45)).toBe("45 min");
+    expect(textoDuracion(60)).toBe("1 h");
+    expect(textoDuracion(583)).toBe("9 h 43 min");
   });
 });

@@ -73,7 +73,7 @@ const [
   { data: feriadosPeriodo },
   { data: proximoFeriado },
   { data: permisosData, count: totalAusentes },
-  { count: telefonosPendientes },
+  { data: primerTelefono, count: telefonosPendientes },
 ] = await Promise.all([
   cargarRegistros(sb, rango.desde, rango.hasta, categoriaId),
   cargarRegistros(sb, rango.anterior.desde, rango.anterior.hasta, categoriaId),
@@ -104,7 +104,12 @@ const [
     if (categoriaId) q = q.eq("personal.categoria_id", categoriaId);
     return q;
   })(),
-  sb.from("dispositivos").select("id", { count: "exact", head: true }).eq("estado", "pendiente"),
+  sb
+    .from("dispositivos")
+    .select("usuario_id", { count: "exact" })
+    .eq("estado", "pendiente")
+    .order("creado_en")
+    .limit(1),
 ]);
 const personas = (personalData ?? []) as unknown as FilaPersona[];
 const personaPorId = new Map(personas.map((x) => [x.id, x]));
@@ -252,6 +257,12 @@ const kpis: {
   },
 ];
 
+// El aviso de teléfonos lleva a la ficha del primero pendiente.
+const usuarioTelefono = (primerTelefono as { usuario_id: string }[] | null)?.[0]?.usuario_id;
+const { data: fichaTelefono } = usuarioTelefono
+  ? await sb.from("personal").select("id").eq("usuario_id", usuarioTelefono).maybeSingle()
+  : { data: null };
+
 // ── Nivel 2: requiere atención (solo lo que tenga pendientes) ──
 const atencion = [
   porRevisar && {
@@ -261,7 +272,7 @@ const atencion = [
   },
   telefonosPendientes && {
     texto: plural(telefonosPendientes, "teléfono por aprobar", "teléfonos por aprobar"),
-    enlace: "/personal",
+    enlace: fichaTelefono ? `/personal/${fichaTelefono.id}#dispositivo` : "/personal",
     icono: "usuarios" as NombreIcono,
   },
   conFaltas.length && {

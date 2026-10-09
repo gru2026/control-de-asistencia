@@ -28,3 +28,12 @@ export function variacionPuntos(v: number): string {
 export function plural(n: number, uno: string, varios: string): string {
   return `${numero(n)} ${n === 1 ? uno : varios}`;
 }
+
+/** 45 → "45 min" · 60 → "1 h" · 583 → "9 h 43 min" */
+export function textoDuracion(minutos: number): string {
+  const m = Math.max(0, Math.round(minutos));
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r ? `${h} h ${r} min` : `${h} h`;
+}

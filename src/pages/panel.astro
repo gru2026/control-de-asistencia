@@ -29,6 +29,7 @@ import {
   porDiaSemana,
   resumir,
   serieDiaria,
+  serieRepresentativa,
 } from "@/lib/reglas/estadisticas";
 import { NOMBRE_DIA, type DiaSemana } from "@/types";
 import { numero, plural, porcentaje, variacionPuntos } from "@/lib/formato";
@@ -174,6 +175,9 @@ const mostrarHoy = rango.hasta === hoy;
 
 // Gráficas
 const serie = serieDiaria(registros);
+// Tendencia sin días de personal mínimo (fines de semana con solo vigilancia)
+const serieTendencia = serieRepresentativa(serie);
+const omitidosTendencia = serie.length - serieTendencia.length;
 const dias = porDiaSemana(registros);
 const peorDia = dias.length ? Math.min(...dias.map((d) => d.asistencia)) : null;
 const llegadas = histogramaLlegadas(registros);
@@ -278,7 +282,23 @@ const atencion = [
 ].filter((x): x is { texto: string; enlace: string; icono: NombreIcono } => Boolean(x));
 
 // ── Formato ──
-const dd = (f: string) => fechaCorta(f).slice(0, 5);
+const DIAS_CORTOS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const MESES_CORTOS = [
+  "ene",
+  "feb",
+  "mar",
+  "abr",
+  "may",
+  "jun",
+  "jul",
+  "ago",
+  "sep",
+  "oct",
+  "nov",
+  "dic",
+];
+const dd = (f: string) => `${Number(f.slice(8, 10))} ${MESES_CORTOS[Number(f.slice(5, 7)) - 1]}`;
+const diaTexto = (f: string) => `${DIAS_CORTOS[new Date(`${f}T00:00:00Z`).getUTCDay()]} ${dd(f)}`;
 const enlacePeriodo = (per: Periodo) => {
   const u = new URL(Astro.url);
   u.searchParams.set("periodo", per);
@@ -471,7 +491,7 @@ const hoySegmentos = [
             <Figura
               plana
               titulo="Tendencia de asistencia"
-              descripcion={`Porcentaje diario de jornadas cumplidas · ${rango.etiqueta} · ${numero(Math.round(resumen.horasTotales))} horas trabajadas`}
+              descripcion={`Porcentaje diario de jornadas cumplidas · ${rango.etiqueta} · ${numero(Math.round(resumen.horasTotales))} horas trabajadas${omitidosTendencia ? ` · ${plural(omitidosTendencia, "día", "días")} con poco personal programado no se grafica${omitidosTendencia === 1 ? "" : "n"}` : ""}`}
               columnas={["Fecha", "Asistencia", "Presentes", "Tarde", "Faltas", "Permisos"]}
               filas={serie.map((s) => [
                 fechaCorta(s.clave),
@@ -483,14 +503,15 @@ const hoySegmentos = [
               ])}
             >
               <GraficaLinea
-                puntos={serie.map((s) => ({
+                puntos={serieTendencia.map((s) => ({
                   etiqueta: dd(s.clave),
+                  fecha: s.clave,
                   valor: s.valor,
-                  detalle: `${fechaCorta(s.clave)}: ${porcentaje(s.valor)} · ${plural(s.conteo.falta, "falta", "faltas")}, ${s.conteo.tarde} tarde`,
+                  detalle: `${diaTexto(s.clave)} · ${plural(s.conteo.falta, "falta", "faltas")}, ${s.conteo.tarde} tarde`,
                 }))}
                 referencia={{
                   valor: resumen.asistencia,
-                  etiqueta: `Promedio ${porcentaje(resumen.asistencia)}`,
+                  etiqueta: `Prom. ${porcentaje(resumen.asistencia)}`,
                 }}
               />
             </Figura>

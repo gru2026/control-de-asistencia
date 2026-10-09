@@ -102,6 +102,19 @@ export function serieDiaria(registros: RegistroEstadistica[]): PuntoSerie[] {
     });
 }
 
+/**
+ * Días comparables para la tendencia: se omiten los que tienen muy poco personal
+ * programado (p. ej. un domingo con solo 2 vigilantes, donde una falta es un 50 %).
+ * Umbral: 30 % de la mediana diaria, mínimo 3 jornadas.
+ */
+export function serieRepresentativa(serie: PuntoSerie[]): PuntoSerie[] {
+  if (!serie.length) return serie;
+  const totales = serie.map((p) => p.conteo.total).sort((a, b) => a - b);
+  const mediana = totales[Math.floor(totales.length / 2)]!;
+  const minimo = Math.max(3, Math.round(mediana * 0.3));
+  return serie.filter((p) => p.conteo.total >= minimo);
+}
+
 /** % de asistencia y de tardanza por día de la semana (solo días con datos). */
 export function porDiaSemana(registros: RegistroEstadistica[]) {
   const grupos = agrupar(registros, (r) => diaSemanaISO(r.fecha));
@@ -279,7 +292,7 @@ export function conclusiones(
   }
 
   // Tendencia: compara la primera y la segunda mitad del período
-  const serie = serieDiaria(registros);
+  const serie = serieRepresentativa(serieDiaria(registros));
   let tendencia = `Promedio ${redondo(general.asistencia)}`;
   if (serie.length >= 4) {
     const mitad = Math.floor(serie.length / 2);

@@ -1,150 +1,178 @@
 ---
-/** Línea de tendencia (0–100 %) con área, línea de referencia y puntos con tooltip nativo. */
+/**
+ * Tendencia (0–100 %). Solo la línea y el área son SVG (se estiran con el ancho);
+ * ejes, promedio, puntos y tooltips son HTML: el texto mantiene la tipografía del
+ * sistema en cualquier tamaño y los puntos siguen siendo círculos.
+ * Con `fecha`, la posición horizontal respeta los días reales (los fines de semana
+ * dejan su hueco).
+ */
 interface Punto {
   etiqueta: string; // texto del eje X
   valor: number;
-  detalle?: string; // tooltip
+  fecha?: string; // AAAA-MM-DD
+  detalle?: string; // segunda línea del tooltip
 }
 interface Props {
   puntos: Punto[];
-  /** Línea de referencia horizontal (p. ej. la meta o el promedio). */
+  /** Línea de referencia horizontal (p. ej. el promedio). */
   referencia?: { valor: number; etiqueta: string };
-  minimo?: number;
+  /** Formato del valor en tooltips y etiquetas. */
+  formato?: (v: number) => string;
 }
-const { puntos, referencia, minimo } = Astro.props;
+const { puntos, referencia, formato = (v: number) => `${Math.round(v)} %` } = Astro.props;
 
-// Dos geometrías: PC (ancha) y celular (compacta, sin desplazamiento horizontal).
-// En ambas el viewBox se acerca al ancho real, así el texto del eje no se encoge.
+// Eje Y ajustado a los datos en pasos de 5 (siempre rotulado: no exagera sin avisar)
 const menor = Math.min(...puntos.map((p) => p.valor), referencia?.valor ?? 100);
-const yMin = minimo ?? Math.max(0, Math.floor((menor - 5) / 10) * 10);
+const yMin = Math.max(0, Math.floor((menor - 2) / 5) * 5);
 const yMax = 100;
+const yPct = (v: number) => ((yMax - v) / (yMax - yMin)) * 100; // 0 arriba, 100 abajo
+// marca intermedia redondeada a 5 (p. ej. 45–100 → 70)
+const marcas = [yMax, yMin + Math.round((yMax - yMin) / 2 / 5) * 5, yMin];
 
-function geometria(
-  AN: number,
-  AL: number,
-  M: { arriba: number; derecha: number; abajo: number; izquierda: number },
-  etiquetasX: number,
-) {
-  const ancho = AN - M.izquierda - M.derecha;
-  const alto = AL - M.arriba - M.abajo;
-  const x = (i: number) =>
-    M.izquierda + (puntos.length <= 1 ? ancho / 2 : (i / (puntos.length - 1)) * ancho);
-  const y = (v: number) => M.arriba + alto - ((v - yMin) / (yMax - yMin)) * alto;
-  const linea = puntos.map((p, i) => `${x(i).toFixed(1)},${y(p.valor).toFixed(1)}`).join(" ");
-  const area = puntos.length
-    ? `M${x(0)},${y(yMin)} L${linea.replaceAll(" ", " L")} L${x(puntos.length - 1)},${y(yMin)} Z`
-    : "";
-  const cada = Math.max(1, Math.ceil(puntos.length / etiquetasX));
-  return { AN, AL, M, x, y, linea, area, cada };
-}
-const marcas = Array.from({ length: 5 }, (_, i) => yMin + ((yMax - yMin) / 4) * i);
-const vistas = [
-  {
-    clase: "ancha",
-    g: geometria(900, 280, { arriba: 16, derecha: 28, abajo: 34, izquierda: 60 }, 8),
-  },
-  {
-    clase: "compacta",
-    g: geometria(360, 220, { arriba: 14, derecha: 14, abajo: 30, izquierda: 44 }, 4),
-  },
-];
+// Eje X: por fecha real si existe; si no, por posición
+const dias = (f: string) => Date.parse(`${f}T00:00:00Z`) / 86_400_000;
+const conFecha = puntos.every((p) => p.fecha);
+const inicio = conFecha && puntos.length ? dias(puntos[0]!.fecha!) : 0;
+const fin = conFecha && puntos.length ? dias(puntos[puntos.length - 1]!.fecha!) : puntos.length - 1;
+const xPct = (p: Punto, i: number) => {
+  const v = conFecha ? dias(p.fecha!) : i;
+  return fin === inicio ? 50 : ((v - inicio) / (fin - inicio)) * 100;
+};
+
+const coords = puntos.map((p, i) => ({ ...p, x: xPct(p, i), y: yPct(p.valor) }));
+const linea = coords.map((c) => `${(c.x * 10).toFixed(1)},${c.y.toFixed(2)}`).join(" ");
+const area = coords.length
+  ? `M0,100 L${(coords[0]!.x * 10).toFixed(1)},${coords[0]!.y.toFixed(2)} L${linea.replaceAll(" ", " L")} L1000,100 Z`
+  : "";
+
+// Etiquetas X: como mucho 6, repartidas; siempre la primera y la última
+const maxEtiquetas = 6;
+const paso = Math.max(1, Math.ceil(coords.length / maxEtiquetas));
+const etiquetasX = coords.filter(
+  (_, i) =>
+    i === 0 || i === coords.length - 1 || (i % paso === 0 && coords.length - 1 - i >= paso / 2),
+);
+const ultimo = coords[coords.length - 1];
+const nivel = (v: number) => (v >= 95 ? "alto" : v >= 85 ? "medio" : "bajo");
 ---
 
-{vistas.map(({ clase, g }) => (
-  <svg
-    viewBox={`0 0 ${g.AN} ${g.AL}`}
-    class:list={["linea", clase]}
-    role="img"
-    aria-label="Gráfica de tendencia; ver datos en la tabla debajo"
-  >
+<div
+  class="tendencia"
+  role="img"
+  aria-label="Gráfica de tendencia de asistencia; los datos están en «Ver datos»"
+>
+  <div class="eje-y" aria-hidden="true">
     {marcas.map((m) => (
-      <g>
-        <line x1={g.M.izquierda} x2={g.AN - g.M.derecha} y1={g.y(m)} y2={g.y(m)} class="rejilla" />
-        <text x={g.M.izquierda - 6} y={g.y(m) + 4} class="eje" text-anchor="end">
-          {Math.round(m)}%
-        </text>
-      </g>
+      <span style={`top: ${yPct(m)}%`}>{m}%</span>
     ))}
+  </div>
+
+  <div class="trazado">
+    {marcas.map((m) => (
+      <span class="rejilla" style={`top: ${yPct(m)}%`} aria-hidden="true" />
+    ))}
+
+    <svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="relleno-tendencia" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stop-color="var(--color-acento)" stop-opacity="0.16" />
+          <stop offset="1" stop-color="var(--color-acento)" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill="url(#relleno-tendencia)" />
+      <polyline points={linea} class="trazo" vector-effect="non-scaling-stroke" />
+    </svg>
+
     {referencia && (
-      <g>
-        <line
-          x1={g.M.izquierda}
-          x2={g.AN - g.M.derecha}
-          y1={g.y(referencia.valor)}
-          y2={g.y(referencia.valor)}
-          class="referencia"
-        />
-        <text
-          x={g.M.izquierda + 6}
-          y={g.y(referencia.valor) - 6}
-          class="eje ref"
-          text-anchor="start"
-        >
-          {referencia.etiqueta}
-        </text>
-      </g>
+      <div class="referencia" style={`top: ${yPct(referencia.valor)}%`} aria-hidden="true" />
     )}
-    <path d={g.area} class="area" />
-    <polyline points={g.linea} class="trazo" />
-    {puntos.map((p, i) => (
-      <g class="punto">
-        <circle cx={g.x(i)} cy={g.y(p.valor)} r="10" class="zona" />
-        <circle cx={g.x(i)} cy={g.y(p.valor)} r="4" class="marca" />
-        <title>{p.detalle ?? `${p.etiqueta}: ${p.valor}%`}</title>
-      </g>
+
+    {coords.map((c, i) => (
+      <span
+        class:list={[
+          "punto",
+          nivel(c.valor),
+          i === coords.length - 1 && "ultimo",
+          c.x > 70 && "a-la-izquierda",
+        ]}
+        style={`left: ${c.x}%; top: ${c.y}%`}
+        tabindex="0"
+        aria-label={`${c.etiqueta}: ${formato(c.valor)}`}
+      >
+        <span class="globo" role="tooltip">
+          <strong>{formato(c.valor)}</strong>
+          <span>{c.detalle ?? c.etiqueta}</span>
+        </span>
+      </span>
     ))}
-    {puntos.map((p, i) =>
-      i % g.cada === 0 ||
-      (i === puntos.length - 1 && (puntos.length - 1) % g.cada >= g.cada / 2) ? (
-        <text x={g.x(i)} y={g.AL - 10} class="eje" text-anchor="middle">
-          {p.etiqueta}
-        </text>
-      ) : null,
+
+    {ultimo && (
+      <span class="valor-final" style={`left: ${ultimo.x}%; top: ${ultimo.y}%`} aria-hidden="true">
+        {formato(ultimo.valor)}
+      </span>
     )}
-  </svg>
-))}
+  </div>
+
+  <div class="eje-ref" aria-hidden="true">
+    {referencia && <span style={`top: ${yPct(referencia.valor)}%`}>{referencia.etiqueta}</span>}
+  </div>
+
+  <div class="eje-x" aria-hidden="true">
+    {etiquetasX.map((c, i) => (
+      <span
+        class:list={[i === 0 && "primera", i === etiquetasX.length - 1 && "final"]}
+        style={`left: ${c.x}%`}
+      >
+        {c.etiqueta}
+      </span>
+    ))}
+  </div>
+</div>
 
 <style>
-  .linea {
-    width: 100%;
-    height: auto;
-    overflow: visible;
-  }
-  .compacta .eje {
-    font-size: 13px;
-  }
-  .compacta {
-    display: none;
-  }
-  @media (max-width: 600px) {
-    .ancha {
-      display: none;
-    }
-    .compacta {
-      display: block;
-    }
-  }
-  .rejilla {
-    stroke: var(--color-borde);
-    stroke-width: 1;
-  }
-  .eje {
-    font-size: 16px;
-    fill: var(--color-texto-suave);
+  .tendencia {
+    --alto: 220px;
+    display: grid;
+    grid-template-columns: 2.75rem 1fr auto;
+    grid-template-rows: var(--alto) auto;
+    column-gap: var(--esp-2);
+    padding-top: var(--esp-6); /* espacio para el valor final y los globos */
+    font-size: var(--texto-xs);
+    color: var(--color-texto-suave);
     font-variant-numeric: tabular-nums;
   }
-  .ref {
-    fill: var(--color-alerta);
-    font-weight: 600;
+
+  /* Eje Y */
+  .eje-y {
+    position: relative;
   }
-  .referencia {
-    stroke: var(--color-alerta);
-    stroke-dasharray: 6 4;
-    stroke-width: 1.5;
+  .eje-y span {
+    position: absolute;
+    right: 0;
+    transform: translateY(-50%);
+    line-height: 1;
   }
-  .area {
-    fill: var(--color-acento);
-    opacity: 0.08;
+
+  /* Área de trazado */
+  .trazado {
+    position: relative;
+    margin-inline: 6px; /* los puntos de los extremos no se cortan */
+  }
+  .rejilla {
+    position: absolute;
+    left: -6px;
+    right: -6px;
+    border-top: 1px solid var(--color-borde);
+  }
+  .rejilla:last-of-type {
+    border-top-color: var(--color-borde-fuerte);
+  }
+  svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
   }
   .trazo {
     fill: none;
@@ -153,15 +181,160 @@ const vistas = [
     stroke-linejoin: round;
     stroke-linecap: round;
   }
-  .marca {
-    fill: var(--color-superficie);
-    stroke: var(--color-acento);
-    stroke-width: 2;
+
+  /* Promedio: línea discreta con su etiqueta al final, fuera del trazo */
+  .referencia {
+    position: absolute;
+    left: -6px;
+    right: -14px;
+    border-top: 1.5px dashed var(--color-texto-tenue);
   }
-  .zona {
-    fill: transparent;
+  /* Etiqueta del promedio en su propia columna: nunca tapa la línea */
+  .eje-ref {
+    position: relative;
+    width: 5.25rem;
   }
-  .punto:hover .marca {
-    fill: var(--color-acento);
+  .eje-ref span {
+    position: absolute;
+    left: 0;
+    transform: translateY(-50%);
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--color-superficie-hover);
+    color: var(--color-texto-suave);
+    font-weight: var(--peso-medio);
+    white-space: nowrap;
+  }
+
+  /* Puntos (HTML: siempre redondos) con zona de toque generosa */
+  .punto {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    margin: -14px 0 0 -14px;
+    border-radius: 50%;
+    cursor: default;
+    outline-offset: -6px;
+  }
+  .punto::before {
+    content: "";
+    position: absolute;
+    inset: 9px;
+    border-radius: 50%;
+    background: var(--color-superficie);
+    border: 2px solid var(--color-acento);
+    transition: transform var(--duracion-rapida) var(--curva);
+  }
+  .punto.bajo::before {
+    border-color: var(--color-error);
+    background: var(--color-error);
+  }
+  .punto.ultimo::before {
+    inset: 8px;
+    background: var(--color-acento);
+    box-shadow: 0 0 0 4px rgb(37 99 235 / 0.15);
+  }
+  .punto:hover::before,
+  .punto:focus-visible::before {
+    transform: scale(1.35);
+  }
+
+  /* Tooltip */
+  .globo {
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    z-index: 3;
+    display: grid;
+    gap: 2px;
+    min-width: max-content;
+    padding: var(--esp-2) var(--esp-3);
+    border-radius: var(--radio-sm);
+    background: var(--color-primario);
+    color: var(--color-primario-contraste);
+    font-size: var(--texto-xs);
+    line-height: 1.35;
+    box-shadow: var(--sombra-lg);
+    transform: translate(-50%, 4px);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity var(--duracion-rapida) var(--curva),
+      transform var(--duracion-rapida) var(--curva);
+  }
+  .globo strong {
+    font-size: var(--texto-sm);
+  }
+  .globo span {
+    opacity: 0.8;
+  }
+  .a-la-izquierda .globo {
+    left: auto;
+    right: 50%;
+    transform: translate(14px, 4px);
+  }
+  .punto:hover .globo,
+  .punto:focus-visible .globo {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  .a-la-izquierda:hover .globo,
+  .a-la-izquierda:focus-visible .globo {
+    transform: translate(14px, 0);
+  }
+
+  /* Valor del último día, siempre visible */
+  .valor-final {
+    position: absolute;
+    transform: translate(-50%, calc(-100% - 12px));
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--color-acento);
+    color: #fff;
+    font-weight: var(--peso-fuerte);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .trazado:has(.punto:hover, .punto:focus-visible) .valor-final {
+    opacity: 0;
+  }
+
+  /* Eje X */
+  .eje-x {
+    grid-column: 2;
+    position: relative;
+    height: 1.5rem;
+    margin: var(--esp-2) 6px 0;
+  }
+  .eje-x span {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+  .eje-x .primera {
+    transform: translateX(-6px);
+  }
+  .eje-x .final {
+    transform: translateX(calc(-100% + 6px));
+  }
+
+  /* Celular: sin columna del promedio (ya está en el título de la sección)
+     y la mitad de las fechas del eje X */
+  @media (max-width: 600px) {
+    .tendencia {
+      --alto: 180px;
+      grid-template-columns: 2.25rem 1fr;
+    }
+    .eje-ref {
+      display: none;
+    }
+    .referencia {
+      right: -6px;
+    }
+    .eje-x span:nth-child(even):not(.final),
+    .eje-x .cerca-borde {
+      display: none;
+    }
   }
 </style>

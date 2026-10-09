@@ -1,4 +1,4 @@
 {
   "regions": ["pdx1"],
-  "crons": [{ "path": "/api/cierre-diario", "schedule": "0 22 * * 1-5" }]
+  "crons": [{ "path": "/api/cierre-diario", "schedule": "0 22 * * *" }]
 }

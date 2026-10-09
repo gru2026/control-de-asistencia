@@ -15,8 +15,10 @@ import {
   type Errores,
 } from "@/lib/validacion";
 import { ponerFlash } from "@/lib/flash";
-import { horaCorta } from "@/lib/fecha";
-import { numero } from "@/lib/formato";
+import { fechaCorta, horaCorta, hoyEnZona } from "@/lib/fecha";
+import { numero, plural } from "@/lib/formato";
+import { ejecutarCierre, type ResumenCierre } from "@/lib/servicios/cierre";
+import { horaEnZona } from "@/lib/reglas/tiempo";
 import { enlaceMapa, leerConfigMarcacion, type FilaUbicacion } from "@/lib/datos/marcacion";
 
 const sb = Astro.locals.supabase;
@@ -78,6 +80,27 @@ if (Astro.request.method === "POST") {
         if (error) throw error;
         exito = "Franjas horarias guardadas.";
       }
+    } else if (accion === "inicio_control") {
+      const fecha = texto(f, "inicio_control");
+      if (fecha && !/^\d{4}-\d{2}-\d{2}$/.test(fecha))
+        errores = { inicio_control: "Fecha no válida." };
+      else {
+        const { error } = await sb
+          .from("configuracion")
+          .update({ inicio_control: fecha || null, actualizado_por: perfil.id })
+          .eq("id", 1);
+        if (error) throw error;
+        exito = fecha
+          ? `El control de asistencia rige desde el ${fechaCorta(fecha)}.`
+          : "Cierre automático desactivado.";
+      }
+    } else if (accion === "cierre") {
+      const r = await ejecutarCierre({ origen: "manual", usuarioId: perfil.id });
+      exito = r.desactivado
+        ? "El cierre no creó faltas porque falta definir la fecha de inicio del control."
+        : r.faltas + r.permisos + r.sinSalida === 0
+          ? "Cierre ejecutado: no había nada pendiente por cerrar."
+          : `Cierre ejecutado: ${plural(r.faltas, "falta", "faltas")}, ${plural(r.permisos, "permiso", "permisos")} y ${plural(r.sinSalida, "salida sin marcar", "salidas sin marcar")}.`;
     } else mensaje = "Acción no reconocida.";
   } catch (e) {
     console.error("[configuracion/marcacion]", e);
@@ -92,12 +115,18 @@ if (Astro.request.method === "POST") {
   Astro.response.status = 400;
 }
 
-const [cfg, { data: filas }] = await Promise.all([
+const [cfg, { data: filas }, { data: ultimoCierre }] = await Promise.all([
   leerConfigMarcacion(sb),
   sb
     .from("ubicaciones")
     .select("id, nombre, lat, lng, radio_m, es_prueba, activa, creado_en")
     .order("creado_en"),
+  sb
+    .from("cierres_diarios")
+    .select("ejecutado_en, origen, resumen")
+    .order("ejecutado_en", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ ejecutado_en: string; origen: "cron" | "manual"; resumen: ResumenCierre }>(),
 ]);
 const ubicaciones = (filas ?? []) as FilaUbicacion[];
 
@@ -369,6 +398,64 @@ const activasPrueba = ubicaciones.filter((u) => u.activa && u.es_prueba).length;
         </div>
       </form>
     </Tarjeta>
+
+    <Tarjeta
+      titulo="Cierre diario"
+      descripcion="Todos los días a las 18:00 el sistema cierra las jornadas terminadas: quien no marcó queda con falta (o permiso, si tiene uno) y quien no marcó la salida queda pendiente para secretaría."
+      id="cierre"
+    >
+      {!cfg.inicio_control && (
+        <Alerta tipo="alerta">
+          El cierre automático está en pausa: no crea faltas hasta que indique desde qué fecha rige
+          el control de asistencia.
+        </Alerta>
+      )}
+      <form method="post" class="rejilla inicio" novalidate>
+        <input type="hidden" name="accion" value="inicio_control" />
+        <Input
+          etiqueta="Inicio del control de asistencia"
+          nombre="inicio_control"
+          type="date"
+          value={
+            accion === "inicio_control"
+              ? (valores.inicio_control ?? "")
+              : (cfg.inicio_control ?? "")
+          }
+          error={e("inicio_control").inicio_control}
+          ayuda="Desde ese día, quien no marque queda con falta. Déjelo vacío para pausar el cierre."
+        />
+        <div class="final">
+          <Boton type="submit" variante="secundario">
+            Guardar fecha
+          </Boton>
+        </div>
+      </form>
+      <p class="estado-cierre">
+        {ultimoCierre ? (
+          <>
+            Última ejecución:{" "}
+            {fechaCorta(hoyEnZona(undefined, new Date(ultimoCierre.ejecutado_en)))} a las{" "}
+            {horaEnZona(ultimoCierre.ejecutado_en)}
+            {ultimoCierre.origen === "manual" ? " (manual)" : " (automática)"} ·{" "}
+            {plural(ultimoCierre.resumen.faltas ?? 0, "falta", "faltas")},{" "}
+            {plural(ultimoCierre.resumen.permisos ?? 0, "permiso", "permisos")},{" "}
+            {plural(ultimoCierre.resumen.sinSalida ?? 0, "salida sin marcar", "salidas sin marcar")}
+            .
+          </>
+        ) : (
+          "Aún no se ha ejecutado."
+        )}
+      </p>
+      <form method="post">
+        <input type="hidden" name="accion" value="cierre" />
+        <Boton type="submit" variante="secundario" data-texto-cargando="Cerrando…">
+          Ejecutar cierre ahora
+        </Boton>
+      </form>
+      <p class="nota espacio">
+        Solo cierra jornadas que ya terminaron; ejecutarlo varias veces no duplica faltas ni avisos.
+      </p>
+    </Tarjeta>
   </div>
 </PanelLayout>
 
@@ -456,6 +543,17 @@ const activasPrueba = ubicaciones.filter((u) => u.activa && u.es_prueba).length;
   }
   .nota {
     margin: 0;
+  }
+  .estado-cierre {
+    margin: var(--esp-5) 0 var(--esp-4);
+    padding-top: var(--esp-5);
+    border-top: 1px solid var(--color-borde);
+  }
+  .inicio {
+    margin-top: var(--esp-4);
+  }
+  .espacio {
+    margin-top: var(--esp-3);
   }
   .nota:empty {
     display: none;

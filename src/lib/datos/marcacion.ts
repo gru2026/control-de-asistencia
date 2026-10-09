@@ -16,10 +16,11 @@ export interface ConfigMarcacion {
   franja_salida_hasta: string | null;
   hora_cierre_diario: string;
   zona_horaria: string;
+  inicio_control: string | null;
 }
 
 export const COLUMNAS_CONFIG_MARCACION =
-  "nombre_institucion, nombre_planilla, colegio_lat, colegio_lng, radio_m, precision_max_m, geocerca_activa, franja_entrada_desde, franja_entrada_hasta, franja_salida_desde, franja_salida_hasta, hora_cierre_diario, zona_horaria";
+  "nombre_institucion, nombre_planilla, colegio_lat, colegio_lng, radio_m, precision_max_m, geocerca_activa, franja_entrada_desde, franja_entrada_hasta, franja_salida_desde, franja_salida_hasta, hora_cierre_diario, zona_horaria, inicio_control";
 
 export interface FilaUbicacion {
   id: string;

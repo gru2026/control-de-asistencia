@@ -1,0 +1,247 @@
+---
+/**
+ * Distribución de las horas de llegada respecto a la hora de entrada.
+ * 1) Resumen en tres grupos (lo que la directiva necesita leer primero).
+ * 2) Detalle por tramo en barras horizontales: etiquetas completas en una línea,
+ *    cifras alineadas a la derecha y porcentaje de cada tramo.
+ */
+interface Tramo {
+  clave: string;
+  valor: number;
+}
+interface Props {
+  tramos: Tramo[];
+}
+const { tramos } = Astro.props;
+
+const valor = (...claves: string[]) =>
+  tramos.filter((t) => claves.includes(t.clave)).reduce((s, t) => s + t.valor, 0);
+const total = tramos.reduce((s, t) => s + t.valor, 0);
+const pct = (v: number) => (total ? Math.round((v / total) * 100) : 0);
+
+const grupos = [
+  { clase: "puntual", etiqueta: "A la hora o antes", valor: valor("antes", "0-5") },
+  { clase: "tolerancia", etiqueta: "Usaron la tolerancia", valor: valor("6-15") },
+  { clase: "tarde", etiqueta: "Más de 15 min tarde", valor: valor("16-30", "31-60", "60+") },
+];
+
+const DETALLE: Record<string, { etiqueta: string; clase: string }> = {
+  antes: { etiqueta: "Antes de la hora", clase: "puntual" },
+  "0-5": { etiqueta: "Hasta 5 min después", clase: "puntual" },
+  "6-15": { etiqueta: "De 6 a 15 min", clase: "tolerancia" },
+  "16-30": { etiqueta: "De 16 a 30 min", clase: "tarde" },
+  "31-60": { etiqueta: "De 31 a 60 min", clase: "muy-tarde" },
+  "60+": { etiqueta: "Más de 60 min", clase: "muy-tarde" },
+};
+const max = Math.max(1, ...tramos.map((t) => t.valor));
+---
+
+<div class="llegadas">
+  <dl class="grupos">
+    {grupos.map((g) => (
+      <div class:list={["grupo", g.clase]}>
+        <dt>
+          <span class="punto" aria-hidden="true" />
+          {g.etiqueta}
+        </dt>
+        <dd>
+          <strong>{pct(g.valor)}%</strong>
+          <span>{g.valor} llegadas</span>
+        </dd>
+      </div>
+    ))}
+  </dl>
+
+  <div class="proporcion" aria-hidden="true">
+    {grupos
+      .filter((g) => g.valor > 0)
+      .map((g) => (
+        <span class:list={["seg", g.clase]} style={`flex: ${g.valor}`} />
+      ))}
+  </div>
+
+  <ul class="tramos" aria-label={`Detalle de ${total} llegadas por tramo`}>
+    {tramos.map((t) => {
+      const d = DETALLE[t.clave] ?? { etiqueta: t.clave, clase: "puntual" };
+      return (
+        <li class={d.clase}>
+          <span class="etiqueta">{d.etiqueta}</span>
+          <span class="pista" aria-hidden="true">
+            <span
+              class="relleno"
+              style={`width: ${t.valor ? Math.max(1.5, (t.valor / max) * 100) : 0}%`}
+            />
+          </span>
+          <span class="cifra">
+            <strong>{t.valor}</strong>
+            <span>{pct(t.valor)}%</span>
+          </span>
+        </li>
+      );
+    })}
+  </ul>
+</div>
+
+<style>
+  .llegadas {
+    --puntual: var(--color-exito);
+    --tolerancia: #0f766e;
+    --tarde: var(--color-alerta);
+    --muy-tarde: var(--color-error);
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-5);
+  }
+  .puntual {
+    --c: var(--puntual);
+  }
+  .tolerancia {
+    --c: var(--tolerancia);
+  }
+  .tarde {
+    --c: var(--tarde);
+  }
+  .muy-tarde {
+    --c: var(--muy-tarde);
+  }
+
+  /* Resumen en tres grupos */
+  .grupos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--esp-4);
+    margin: 0;
+  }
+  /* Las cifras quedan alineadas aunque la etiqueta ocupe dos líneas */
+  .grupo {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 6px;
+    min-width: 0;
+  }
+  .grupo + .grupo {
+    padding-left: var(--esp-4);
+    box-shadow: inset 1px 0 0 var(--color-borde);
+  }
+  dt {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+    line-height: 1.3;
+  }
+  .punto {
+    flex: none;
+    margin-top: 4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background: var(--c);
+  }
+  dd {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+  }
+  dd strong {
+    font-size: var(--texto-xl);
+    font-weight: var(--peso-titulo);
+    letter-spacing: var(--tracking-titulo);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  dd span {
+    font-size: var(--texto-xs);
+    color: var(--color-texto-suave);
+  }
+
+  /* Proporción total */
+  .proporcion {
+    display: flex;
+    gap: 2px;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--color-superficie-hover);
+  }
+  .seg {
+    min-width: 4px;
+    background: var(--c);
+  }
+
+  /* Detalle por tramo */
+  .tramos {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-3);
+    margin: 0;
+    padding: var(--esp-4) 0 0;
+    list-style: none;
+    border-top: 1px solid var(--color-borde);
+  }
+  .tramos li {
+    display: grid;
+    grid-template-columns: 9.5rem 1fr 5.5rem;
+    align-items: center;
+    gap: var(--esp-3);
+    font-size: var(--texto-sm);
+  }
+  .etiqueta {
+    color: var(--color-texto);
+    white-space: nowrap;
+  }
+  .pista {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--color-superficie-hover);
+    overflow: hidden;
+  }
+  .relleno {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--c);
+  }
+  /* Muy tarde: rayado, para no depender solo del color */
+  .muy-tarde .relleno {
+    background: repeating-linear-gradient(
+      135deg,
+      var(--c) 0 4px,
+      color-mix(in srgb, var(--c) 55%, white) 4px 7px
+    );
+  }
+  .cifra {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: var(--esp-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .cifra span {
+    width: 2.75rem;
+    text-align: right;
+    color: var(--color-texto-suave);
+  }
+
+  @media (max-width: 480px) {
+    .grupos {
+      gap: var(--esp-3);
+    }
+    .grupo + .grupo {
+      padding-left: var(--esp-3);
+    }
+    dd strong {
+      font-size: var(--texto-lg);
+    }
+    .tramos li {
+      grid-template-columns: 1fr 4.5rem;
+      row-gap: 6px;
+    }
+    .pista {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
+</style>

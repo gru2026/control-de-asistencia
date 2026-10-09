@@ -7,7 +7,7 @@ import Icono, { type NombreIcono } from "@/components/ui/Icono.astro";
 import Figura from "@/components/graficas/Figura.astro";
 import GraficaLinea from "@/components/graficas/GraficaLinea.astro";
 import BarrasHorizontales from "@/components/graficas/BarrasHorizontales.astro";
-import Histograma from "@/components/graficas/Histograma.astro";
+import DistribucionLlegadas from "@/components/graficas/DistribucionLlegadas.astro";
 import BarraApilada from "@/components/graficas/BarraApilada.astro";
 import { fechaCorta, fechaLarga, hoyEnZona } from "@/lib/fecha";
 import { listarCategorias } from "@/lib/datos/categorias";
@@ -99,6 +99,7 @@ const serie = serieDiaria(registros);
 const dias = porDiaSemana(registros);
 const peorDia = dias.length ? Math.min(...dias.map((d) => d.asistencia)) : null;
 const llegadas = histogramaLlegadas(registros);
+const totalLlegadas = llegadas.reduce((s, l) => s + l.valor, 0);
 const cats = porCategoria(registros)
   .map((c) => ({ ...c, cat: catPorId.get(c.categoriaId) }))
   .sort((a, b) => (a.cat?.orden ?? 99) - (b.cat?.orden ?? 99));
@@ -391,22 +392,15 @@ const enlaceCategoria = (id: string | null) => {
 
       <Figura
         titulo="Hora de llegada"
-        descripcion="Minutos respecto a la hora de entrada. Sirve para evaluar la tolerancia."
-        columnas={["Tramo", "Llegadas"]}
-        filas={llegadas.map((l) => [l.etiqueta, l.valor])}
+        descripcion="Cuántos minutos después de la hora de entrada llega el personal. Sirve para evaluar si la tolerancia es adecuada."
+        columnas={["Tramo", "Llegadas", "Porcentaje"]}
+        filas={llegadas.map((l) => [
+          l.etiqueta,
+          l.valor,
+          `${totalLlegadas ? Math.round((l.valor / totalLlegadas) * 100) : 0}%`,
+        ])}
       >
-        <Histograma
-          columnas={llegadas.map((l) => ({
-            etiqueta: l.etiqueta,
-            valor: l.valor,
-            tipo:
-              l.clave === "antes" || l.clave === "0-5" || l.clave === "6-15"
-                ? "bien"
-                : l.clave === "16-30"
-                  ? "alerta"
-                  : "mal",
-          }))}
-        />
+        <DistribucionLlegadas tramos={llegadas} />
       </Figura>
 
       <Figura

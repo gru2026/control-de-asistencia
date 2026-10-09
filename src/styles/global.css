@@ -179,7 +179,7 @@ html.cargando [data-datos]::after {
   background:
     linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.7) 50%, transparent 70%) 0 0 / 300%
       100%,
-    repeating-linear-gradient(180deg, var(--color-superficie-hover) 0 14px, transparent 14px 30px);
+    repeating-linear-gradient(180deg, var(--color-borde) 0 14px, transparent 14px 30px);
   animation: esqueleto 1.3s ease-in-out infinite;
 }
 /* Zonas pequeñas (contadores, cifras): un solo bloque */
@@ -188,7 +188,7 @@ html.cargando [data-datos="linea"]::after {
   background:
     linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.7) 50%, transparent 70%) 0 0 / 300%
       100%,
-    var(--color-superficie-hover);
+    var(--color-borde);
 }
 @keyframes esqueleto {
   from {

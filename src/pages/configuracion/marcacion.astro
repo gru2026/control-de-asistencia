@@ -1,0 +1,515 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Alerta from "@/components/ui/Alerta.astro";
+import Input from "@/components/ui/Input.astro";
+import Badge from "@/components/ui/Badge.astro";
+import Icono from "@/components/ui/Icono.astro";
+import {
+  esUuid,
+  texto,
+  validarFranjas,
+  validarGeocerca,
+  validarUbicacion,
+  type Errores,
+} from "@/lib/validacion";
+import { ponerFlash } from "@/lib/flash";
+import { horaCorta } from "@/lib/fecha";
+import { numero } from "@/lib/formato";
+import { enlaceMapa, leerConfigMarcacion, type FilaUbicacion } from "@/lib/datos/marcacion";
+
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+let errores: Errores = {};
+let mensaje: string | null = null;
+let accion: string | null = null;
+let valores: Record<string, string> = {};
+
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  accion = texto(f, "accion");
+  valores = Object.fromEntries([...f.entries()].map(([k, v]) => [k, String(v)]));
+  let exito: string | null = null;
+  const id = texto(f, "id");
+
+  try {
+    if (accion === "geocerca") {
+      const r = validarGeocerca(f);
+      if (!r.ok) errores = r.errores;
+      else {
+        const { lat, lng, ...resto } = r.datos;
+        const { error } = await sb
+          .from("configuracion")
+          .update({ colegio_lat: lat, colegio_lng: lng, ...resto, actualizado_por: perfil.id })
+          .eq("id", 1);
+        if (error) throw error;
+        exito = "Ubicación del colegio guardada.";
+      }
+    } else if (accion === "ubicacion_crear") {
+      const r = validarUbicacion(f);
+      if (!r.ok) errores = r.errores;
+      else {
+        const { error } = await sb
+          .from("ubicaciones")
+          .insert({ ...r.datos, creado_por: perfil.id });
+        if (error) throw error;
+        exito = `Ubicación de prueba «${r.datos.nombre}» agregada.`;
+      }
+    } else if (accion === "ubicacion_alternar" && esUuid(id)) {
+      const activa = texto(f, "activa") === "si";
+      const { error } = await sb.from("ubicaciones").update({ activa }).eq("id", id);
+      if (error) throw error;
+      exito = activa
+        ? "Ubicación activada."
+        : "Ubicación desactivada: ya no se puede marcar desde allí.";
+    } else if (accion === "ubicacion_eliminar" && esUuid(id)) {
+      const { error } = await sb.from("ubicaciones").delete().eq("id", id);
+      if (error) throw error;
+      exito = "Ubicación eliminada.";
+    } else if (accion === "franjas") {
+      const r = validarFranjas(f);
+      if (!r.ok) errores = r.errores;
+      else {
+        const { error } = await sb
+          .from("configuracion")
+          .update({ ...r.datos, actualizado_por: perfil.id })
+          .eq("id", 1);
+        if (error) throw error;
+        exito = "Franjas horarias guardadas.";
+      }
+    } else mensaje = "Acción no reconocida.";
+  } catch (e) {
+    console.error("[configuracion/marcacion]", e);
+    mensaje = "Ocurrió un error al guardar. Intente de nuevo.";
+  }
+
+  if (exito) {
+    ponerFlash(Astro.cookies, "exito", exito);
+    return Astro.redirect("/configuracion/marcacion", 303);
+  }
+  mensaje ??= "Revise los campos marcados.";
+  Astro.response.status = 400;
+}
+
+const [cfg, { data: filas }] = await Promise.all([
+  leerConfigMarcacion(sb),
+  sb
+    .from("ubicaciones")
+    .select("id, nombre, lat, lng, radio_m, es_prueba, activa, creado_en")
+    .order("creado_en"),
+]);
+const ubicaciones = (filas ?? []) as FilaUbicacion[];
+
+const inicial: Record<string, string> = {
+  lat: cfg.colegio_lat?.toString() ?? "",
+  lng: cfg.colegio_lng?.toString() ?? "",
+  radio_m: String(cfg.radio_m),
+  precision_max_m: String(cfg.precision_max_m),
+  geocerca_activa: cfg.geocerca_activa ? "si" : "",
+  franja_entrada_desde: horaCorta(cfg.franja_entrada_desde),
+  franja_entrada_hasta: horaCorta(cfg.franja_entrada_hasta),
+  franja_salida_desde: horaCorta(cfg.franja_salida_desde),
+  franja_salida_hasta: horaCorta(cfg.franja_salida_hasta),
+};
+const v = (a: string, k: string) =>
+  accion === a ? (valores[k] ?? "") : a === "ubicacion_crear" ? "" : (inicial[k] ?? "");
+const e = (a: string) => (accion === a ? errores : {});
+const activasPrueba = ubicaciones.filter((u) => u.activa && u.es_prueba).length;
+---
+
+<PanelLayout
+  titulo="Marcación"
+  subtitulo="Dónde y cuándo se puede marcar asistencia con el teléfono."
+  migas={[{ texto: "Ajustes", href: "/configuracion" }, { texto: "Marcación" }]}
+>
+  <div class="pila">
+    {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
+    {!cfg.geocerca_activa && (
+      <Alerta tipo="alerta">
+        La verificación de ubicación está desactivada: se puede marcar desde cualquier lugar con el
+        QR.
+      </Alerta>
+    )}
+
+    <Tarjeta
+      titulo="Ubicación del colegio"
+      descripcion="Centro y radio de la zona donde se permite marcar."
+      id="geocerca"
+    >
+      <form method="post" class="rejilla" novalidate data-avisar-cambios>
+        <input type="hidden" name="accion" value="geocerca" />
+        <Input
+          id="g-lat"
+          etiqueta="Latitud"
+          nombre="lat"
+          inputmode="decimal"
+          value={v("geocerca", "lat")}
+          error={e("geocerca").lat}
+          required
+          placeholder="10.17043"
+          ayuda="También puede pegar aquí las dos cifras juntas, como las copia Google Maps."
+        />
+        <Input
+          id="g-lng"
+          etiqueta="Longitud"
+          nombre="lng"
+          inputmode="decimal"
+          value={v("geocerca", "lng")}
+          error={e("geocerca").lng}
+          placeholder="-66.88341"
+          ayuda="En Venezuela siempre es negativa."
+        />
+        <Input
+          etiqueta="Radio permitido (m)"
+          nombre="radio_m"
+          type="number"
+          min="30"
+          max="2000"
+          value={v("geocerca", "radio_m")}
+          error={e("geocerca").radio_m}
+        />
+        <Input
+          etiqueta="Precisión máxima del GPS (m)"
+          nombre="precision_max_m"
+          type="number"
+          min="10"
+          max="1000"
+          value={v("geocerca", "precision_max_m")}
+          error={e("geocerca").precision_max_m}
+          ayuda="Si el GPS es menos preciso, la marcación se acepta pero queda señalada."
+        />
+        <label class="ancho casilla">
+          <input
+            type="checkbox"
+            name="geocerca_activa"
+            value="si"
+            checked={v("geocerca", "geocerca_activa") === "si"}
+          />
+          <span>
+            <strong>Verificar la ubicación al marcar</strong>
+            <small>Desactívelo solo si el GPS falla en el colegio; el QR se sigue exigiendo.</small>
+          </span>
+        </label>
+        <div class="final ancho">
+          <Boton
+            variante="fantasma"
+            data-usar-ubicacion
+            data-destino-lat="g-lat"
+            data-destino-lng="g-lng"
+          >
+            <Icono nombre="ubicacion" tamano={18} />
+            Usar mi ubicación actual
+          </Boton>
+          {cfg.colegio_lat !== null && cfg.colegio_lng !== null && (
+            <Boton
+              variante="fantasma"
+              href={enlaceMapa(cfg.colegio_lat, cfg.colegio_lng)}
+              target="_blank"
+              rel="noopener"
+            >
+              Ver en el mapa
+            </Boton>
+          )}
+          <Boton type="submit">Guardar ubicación</Boton>
+        </div>
+        <p class="ancho nota" data-estado-ubicacion role="status"></p>
+      </form>
+    </Tarjeta>
+
+    <Tarjeta
+      titulo="Ubicaciones de prueba"
+      descripcion="Lugares adicionales donde se permite marcar mientras se ensaya el sistema. Las marcaciones hechas en ellas quedan señaladas para revisión."
+      id="ubicaciones"
+    >
+      {activasPrueba > 0 && (
+        <Alerta tipo="info">
+          {activasPrueba === 1
+            ? "Hay 1 ubicación de prueba activa."
+            : `Hay ${activasPrueba} ubicaciones de prueba activas.`}{" "}
+          Desactívelas cuando el sistema esté en uso real.
+        </Alerta>
+      )}
+      {ubicaciones.length > 0 && (
+        <ul class="lista">
+          {ubicaciones.map((u) => (
+            <li>
+              <div class="dato">
+                <strong>{u.nombre}</strong>
+                <a href={enlaceMapa(u.lat, u.lng)} target="_blank" rel="noopener">
+                  {u.lat.toFixed(5)}, {u.lng.toFixed(5)}
+                </a>
+                <span class="tenue">Radio {numero(u.radio_m)} m</span>
+              </div>
+              <Badge tipo={u.activa ? "activo" : "inactivo"}>
+                {u.activa ? "Activa" : "Inactiva"}
+              </Badge>
+              <div class="acciones-fila">
+                <form method="post">
+                  <input type="hidden" name="accion" value="ubicacion_alternar" />
+                  <input type="hidden" name="id" value={u.id} />
+                  <input type="hidden" name="activa" value={u.activa ? "" : "si"} />
+                  <Boton type="submit" variante="secundario" tamano="pequeno">
+                    {u.activa ? "Desactivar" : "Activar"}
+                  </Boton>
+                </form>
+                <form method="post" data-confirmar={`¿Eliminar la ubicación «${u.nombre}»?`}>
+                  <input type="hidden" name="accion" value="ubicacion_eliminar" />
+                  <input type="hidden" name="id" value={u.id} />
+                  <Boton
+                    type="submit"
+                    variante="fantasma"
+                    tamano="pequeno"
+                    aria-label={`Eliminar ${u.nombre}`}
+                  >
+                    <Icono nombre="papelera" tamano={16} />
+                  </Boton>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <details class="agregar" open={accion === "ubicacion_crear" || ubicaciones.length === 0}>
+        <summary>
+          <Icono nombre="mas" tamano={18} /> Agregar ubicación de prueba
+        </summary>
+        <form method="post" class="rejilla" novalidate>
+          <input type="hidden" name="accion" value="ubicacion_crear" />
+          <div class="ancho">
+            <Input
+              etiqueta="Nombre"
+              nombre="nombre"
+              value={v("ubicacion_crear", "nombre")}
+              error={e("ubicacion_crear").nombre}
+              required
+              placeholder="Casa de Schormeiker"
+            />
+          </div>
+          <Input
+            id="u-lat"
+            etiqueta="Latitud"
+            nombre="lat"
+            inputmode="decimal"
+            value={v("ubicacion_crear", "lat")}
+            error={e("ubicacion_crear").lat}
+            required
+          />
+          <Input
+            id="u-lng"
+            etiqueta="Longitud"
+            nombre="lng"
+            inputmode="decimal"
+            value={v("ubicacion_crear", "lng")}
+            error={e("ubicacion_crear").lng}
+          />
+          <Input
+            etiqueta="Radio (m)"
+            nombre="radio_m"
+            type="number"
+            min="30"
+            max="2000"
+            value={v("ubicacion_crear", "radio_m") || "100"}
+            error={e("ubicacion_crear").radio_m}
+          />
+          <div class="final">
+            <Boton
+              variante="fantasma"
+              data-usar-ubicacion
+              data-destino-lat="u-lat"
+              data-destino-lng="u-lng"
+            >
+              <Icono nombre="ubicacion" tamano={18} />
+              Usar mi ubicación actual
+            </Boton>
+            <Boton type="submit">Agregar</Boton>
+          </div>
+          <p class="ancho nota" data-estado-ubicacion role="status"></p>
+        </form>
+      </details>
+    </Tarjeta>
+
+    <Tarjeta
+      titulo="Franjas horarias"
+      descripcion="Opcional. Fuera de estas horas el teléfono no permite marcar. Déjelas vacías para no limitar. No se aplican a las jornadas nocturnas."
+      id="franjas"
+    >
+      <form method="post" class="rejilla" novalidate data-avisar-cambios>
+        <input type="hidden" name="accion" value="franjas" />
+        <Input
+          etiqueta="Entrada desde"
+          nombre="franja_entrada_desde"
+          type="time"
+          value={v("franjas", "franja_entrada_desde")}
+          error={e("franjas").franja_entrada_desde}
+        />
+        <Input
+          etiqueta="Entrada hasta"
+          nombre="franja_entrada_hasta"
+          type="time"
+          value={v("franjas", "franja_entrada_hasta")}
+          error={e("franjas").franja_entrada_hasta}
+        />
+        <Input
+          etiqueta="Salida desde"
+          nombre="franja_salida_desde"
+          type="time"
+          value={v("franjas", "franja_salida_desde")}
+          error={e("franjas").franja_salida_desde}
+        />
+        <Input
+          etiqueta="Salida hasta"
+          nombre="franja_salida_hasta"
+          type="time"
+          value={v("franjas", "franja_salida_hasta")}
+          error={e("franjas").franja_salida_hasta}
+        />
+        <div class="final ancho">
+          <Boton type="submit">Guardar franjas</Boton>
+        </div>
+      </form>
+    </Tarjeta>
+  </div>
+</PanelLayout>
+
+<script>
+  // Rellena latitud y longitud con la posición del navegador.
+  document.addEventListener("click", (ev) => {
+    const boton = (ev.target as HTMLElement).closest<HTMLButtonElement>("[data-usar-ubicacion]");
+    if (!boton) return;
+    ev.preventDefault();
+    const form = boton.closest("form");
+    const estado = form?.querySelector<HTMLElement>("[data-estado-ubicacion]");
+    const lat = document.getElementById(boton.dataset.destinoLat ?? "") as HTMLInputElement | null;
+    const lng = document.getElementById(boton.dataset.destinoLng ?? "") as HTMLInputElement | null;
+    const avisar = (t: string) => {
+      if (estado) estado.textContent = t;
+    };
+    if (!("geolocation" in navigator))
+      return avisar("Este navegador no permite obtener la ubicación.");
+    boton.disabled = true;
+    avisar("Obteniendo ubicación…");
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        boton.disabled = false;
+        if (lat) lat.value = p.coords.latitude.toFixed(6);
+        if (lng) lng.value = p.coords.longitude.toFixed(6);
+        lat?.dispatchEvent(new Event("input", { bubbles: true }));
+        avisar(
+          `Ubicación obtenida con una precisión de ${Math.round(p.coords.accuracy)} m. Revise y guarde.`,
+        );
+      },
+      (err) => {
+        boton.disabled = false;
+        avisar(
+          err.code === err.PERMISSION_DENIED
+            ? "Permiso de ubicación denegado. Actívelo en el navegador para usar este botón."
+            : "No se pudo obtener la ubicación. Intente de nuevo al aire libre.",
+        );
+      },
+      { enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 },
+    );
+  });
+
+  document.addEventListener("submit", (ev) => {
+    const form = ev.target as HTMLFormElement;
+    const pregunta = form.dataset.confirmar;
+    if (pregunta && !confirm(pregunta)) ev.preventDefault();
+  });
+</script>
+
+<style>
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  .rejilla {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  @media (min-width: 768px) {
+    .rejilla {
+      grid-template-columns: 1fr 1fr;
+    }
+    .ancho {
+      grid-column: 1 / -1;
+    }
+  }
+  .casilla {
+    display: flex;
+    gap: var(--esp-3);
+    align-items: flex-start;
+  }
+  .casilla input {
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+  }
+  .casilla span {
+    display: grid;
+  }
+  .casilla small,
+  .nota,
+  .tenue {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .nota {
+    margin: 0;
+  }
+  .nota:empty {
+    display: none;
+  }
+  .final {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: end;
+    gap: var(--esp-2);
+  }
+  .lista {
+    list-style: none;
+    margin: var(--esp-4) 0 0;
+    padding: 0;
+    display: grid;
+  }
+  .lista li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-3);
+    padding: var(--esp-3) 0;
+    border-top: 1px solid var(--color-borde);
+  }
+  .lista li:last-child {
+    border-bottom: 1px solid var(--color-borde);
+  }
+  .dato {
+    display: grid;
+    flex: 1;
+    min-width: 12rem;
+  }
+  .dato a {
+    font-size: var(--texto-sm);
+    width: fit-content;
+  }
+  .acciones-fila {
+    display: flex;
+    gap: var(--esp-1);
+  }
+  .agregar {
+    margin-top: var(--esp-4);
+  }
+  .agregar summary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+    min-height: var(--toque-min);
+    color: var(--color-acento-texto);
+    font-weight: var(--peso-medio);
+    cursor: pointer;
+  }
+  .agregar[open] summary {
+    margin-bottom: var(--esp-3);
+  }
+</style>

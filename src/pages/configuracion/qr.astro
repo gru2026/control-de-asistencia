@@ -1,0 +1,458 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Alerta from "@/components/ui/Alerta.astro";
+import Input from "@/components/ui/Input.astro";
+import Badge from "@/components/ui/Badge.astro";
+import Icono from "@/components/ui/Icono.astro";
+import Modal from "@/components/ui/Modal.astro";
+import { texto, validarNuevoQR, type Errores } from "@/lib/validacion";
+import { ponerFlash } from "@/lib/flash";
+import { fechaCorta, fechaLarga, hoyEnZona } from "@/lib/fecha";
+import { qrVigente } from "@/lib/qr";
+import { desactivarQR, generarNuevoQR, type QRGenerado } from "@/lib/servicios/qr";
+
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+const hoy = hoyEnZona();
+let errores: Errores = {};
+let mensaje: string | null = null;
+let valores: Record<string, string> = {};
+let nuevo: (QRGenerado & { vigenteHasta: string | null }) | null = null;
+
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  const accion = texto(f, "accion");
+  valores = Object.fromEntries([...f.entries()].map(([k, v]) => [k, String(v)]));
+  try {
+    if (accion === "generar") {
+      const r = validarNuevoQR(f, hoy);
+      if (!r.ok) errores = r.errores;
+      else {
+        const q = await generarNuevoQR({
+          creadoPor: perfil.id,
+          descripcion: r.datos.descripcion,
+          vigenteHasta: r.datos.vigente_hasta,
+        });
+        nuevo = { ...q, vigenteHasta: r.datos.vigente_hasta };
+      }
+    } else if (accion === "desactivar") {
+      await desactivarQR();
+      ponerFlash(
+        Astro.cookies,
+        "exito",
+        "QR desactivado. Nadie podrá marcar con el teléfono hasta que genere uno nuevo.",
+      );
+      return Astro.redirect("/configuracion/qr", 303);
+    } else mensaje = "Acción no reconocida.";
+  } catch (e) {
+    console.error("[configuracion/qr]", e);
+    mensaje = "No se pudo completar la operación. Intente de nuevo.";
+  }
+  if (!nuevo) {
+    mensaje ??= "Revise los campos marcados.";
+    Astro.response.status = 400;
+  }
+}
+
+type FilaQR = {
+  id: string;
+  descripcion: string | null;
+  activo: boolean;
+  vigente_hasta: string | null;
+  creado_en: string;
+  revocado_en: string | null;
+};
+const [{ data: filas }, { data: cfg }] = await Promise.all([
+  sb
+    .from("codigos_qr")
+    .select("id, descripcion, activo, vigente_hasta, creado_en, revocado_en")
+    .order("creado_en", { ascending: false })
+    .limit(6),
+  sb.from("configuracion").select("nombre_planilla").eq("id", 1).single(),
+]);
+const historial = (filas ?? []) as FilaQR[];
+const activo = historial.find((q) => q.activo) ?? null;
+const vigente = qrVigente(activo, hoy);
+const fechaDe = (iso: string) => fechaCorta(hoyEnZona(undefined, new Date(iso)));
+const vence = valores.vence === "si";
+---
+
+<PanelLayout
+  titulo="Código QR"
+  subtitulo="El QR impreso en la entrada que el personal escanea para marcar."
+  migas={[{ texto: "Ajustes", href: "/configuracion" }, { texto: "Código QR" }]}
+>
+  <div class="pila">
+    {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
+
+    {nuevo ? (
+      <>
+        <Alerta tipo="exito">
+          QR nuevo generado. Imprímalo ahora y péguelo en la entrada: por seguridad, este código no
+          se puede volver a mostrar. El QR anterior ya no funciona.
+        </Alerta>
+        <div class="acciones-hoja">
+          <Boton data-imprimir>
+            <Icono nombre="imprimir" tamano={18} />
+            Imprimir
+          </Boton>
+          <Boton variante="secundario" href="/configuracion/qr">
+            Listo
+          </Boton>
+        </div>
+        <section class="hoja" aria-label="Vista previa de la hoja para imprimir">
+          <p class="plantel">{cfg?.nombre_planilla ?? "U.E.E. General Rafael Urdaneta"}</p>
+          <h2>Marque su asistencia aquí</h2>
+          <div class="codigo" set:html={nuevo.svg} />
+          <ol>
+            <li>
+              Abra <strong>GRU-system</strong> en su teléfono.
+            </li>
+            <li>
+              Toque <strong>Marcar entrada</strong> o <strong>Marcar salida</strong>.
+            </li>
+            <li>Apunte la cámara a este código.</li>
+          </ol>
+          <p class="pie">
+            {nuevo.vigenteHasta
+              ? `Válido hasta el ${fechaLarga(nuevo.vigenteHasta)}`
+              : "Sin fecha de vencimiento"}
+            {" · "}Generado el {fechaCorta(hoy)}
+          </p>
+        </section>
+      </>
+    ) : (
+      <>
+        <Tarjeta titulo="QR actual">
+          {activo ? (
+            <div class="actual">
+              <Badge tipo={vigente ? "activo" : "falta"}>{vigente ? "Vigente" : "Vencido"}</Badge>
+              <dl>
+                <div>
+                  <dt>Generado</dt>
+                  <dd>{fechaDe(activo.creado_en)}</dd>
+                </div>
+                <div>
+                  <dt>Vence</dt>
+                  <dd>
+                    {activo.vigente_hasta ? fechaCorta(activo.vigente_hasta) : "Sin vencimiento"}
+                  </dd>
+                </div>
+                {activo.descripcion && (
+                  <div>
+                    <dt>Nota</dt>
+                    <dd>{activo.descripcion}</dd>
+                  </div>
+                )}
+              </dl>
+              {!vigente && (
+                <Alerta tipo="alerta">
+                  El QR venció: nadie puede marcar con el teléfono. Genere uno nuevo.
+                </Alerta>
+              )}
+            </div>
+          ) : (
+            <p class="vacio">
+              No hay un QR activo. Genere uno e imprímalo para que el personal pueda marcar con el
+              teléfono.
+            </p>
+          )}
+        </Tarjeta>
+
+        <Tarjeta
+          titulo={activo ? "Generar un QR nuevo" : "Generar QR"}
+          descripcion="Recomendación: renovarlo cada lapso escolar o si la hoja se pierde o se fotografía fuera del colegio."
+          id="generar"
+        >
+          <form method="post" class="rejilla" novalidate id="form-generar">
+            <input type="hidden" name="accion" value="generar" />
+            <div class="ancho">
+              <Input
+                etiqueta="Nota (opcional)"
+                nombre="descripcion"
+                value={valores.descripcion ?? ""}
+                placeholder="Entrada principal · 1.er lapso"
+                maxlength="120"
+              />
+            </div>
+            <fieldset class="ancho opciones">
+              <legend>Vencimiento</legend>
+              <label>
+                <input type="radio" name="vence" value="" checked={!vence} /> Sin vencimiento
+              </label>
+              <label>
+                <input type="radio" name="vence" value="si" checked={vence} /> Vence en una fecha
+              </label>
+            </fieldset>
+            <div data-fecha-vence hidden={!vence}>
+              <Input
+                etiqueta="Fecha de vencimiento"
+                nombre="vigente_hasta"
+                type="date"
+                min={hoy}
+                value={valores.vigente_hasta ?? ""}
+                error={errores.vigente_hasta}
+                ayuda="El QR funciona hasta ese día inclusive."
+              />
+            </div>
+            <div class="final ancho">
+              {activo ? (
+                <Boton data-abrir-modal="modal-generar">
+                  <Icono nombre="qr" tamano={18} />
+                  Generar e imprimir
+                </Boton>
+              ) : (
+                <Boton type="submit" data-texto-cargando="Generando…">
+                  <Icono nombre="qr" tamano={18} />
+                  Generar e imprimir
+                </Boton>
+              )}
+            </div>
+          </form>
+        </Tarjeta>
+
+        {historial.length > 1 && (
+          <Tarjeta titulo="Historial">
+            <ul class="historial">
+              {historial.map((q) => (
+                <li>
+                  <span>
+                    {fechaDe(q.creado_en)}
+                    {q.descripcion && <span class="tenue"> · {q.descripcion}</span>}
+                  </span>
+                  <span class="tenue">
+                    {q.activo
+                      ? "Actual"
+                      : q.revocado_en
+                        ? `Reemplazado el ${fechaDe(q.revocado_en)}`
+                        : "Inactivo"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Tarjeta>
+        )}
+
+        {activo && (
+          <p class="desactivar">
+            <Boton variante="fantasma" tamano="pequeno" data-abrir-modal="modal-desactivar">
+              Desactivar el QR actual sin generar otro
+            </Boton>
+          </p>
+        )}
+      </>
+    )}
+  </div>
+
+  <Modal id="modal-generar" titulo="¿Generar un QR nuevo?">
+    <p>
+      El QR que está pegado en la entrada <strong>dejará de funcionar de inmediato</strong>. Tenga
+      la impresora lista para reemplazarlo.
+    </p>
+    <Boton slot="acciones" type="submit" form="form-generar" data-texto-cargando="Generando…">
+      Generar
+    </Boton>
+  </Modal>
+
+  <Modal id="modal-desactivar" titulo="¿Desactivar el QR?">
+    <p>
+      Nadie podrá marcar con el teléfono hasta que genere un QR nuevo. Use esto si la hoja se
+      perdió.
+    </p>
+    <form method="post" slot="acciones">
+      <input type="hidden" name="accion" value="desactivar" />
+      <Boton type="submit" variante="peligro">
+        Desactivar
+      </Boton>
+    </form>
+  </Modal>
+</PanelLayout>
+
+<script>
+  document.querySelector("[data-imprimir]")?.addEventListener("click", () => window.print());
+  document.querySelectorAll<HTMLInputElement>('input[name="vence"]').forEach((r) =>
+    r.addEventListener("change", () => {
+      const caja = document.querySelector<HTMLElement>("[data-fecha-vence]");
+      if (caja) caja.hidden = r.value !== "si" || !r.checked;
+    }),
+  );
+</script>
+
+<style>
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+    max-width: 48rem;
+  }
+  .rejilla {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  @media (min-width: 768px) {
+    .rejilla {
+      grid-template-columns: 1fr 1fr;
+    }
+    .ancho {
+      grid-column: 1 / -1;
+    }
+  }
+  .opciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2) var(--esp-6);
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+  .opciones legend {
+    font-weight: var(--peso-medio);
+    font-size: var(--texto-sm);
+    margin-bottom: var(--esp-2);
+  }
+  .opciones label {
+    display: inline-flex;
+    gap: var(--esp-2);
+    align-items: center;
+    min-height: 44px;
+  }
+  .opciones input {
+    width: 18px;
+    height: 18px;
+  }
+  .final {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .actual {
+    display: grid;
+    gap: var(--esp-4);
+    justify-items: start;
+  }
+  dl {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-4) var(--esp-8);
+    margin: 0;
+  }
+  dt,
+  .tenue {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  dd {
+    margin: 0;
+    font-weight: var(--peso-fuerte);
+  }
+  .vacio {
+    margin: 0;
+    color: var(--color-texto-suave);
+  }
+  .historial {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .historial li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--esp-2);
+    padding: var(--esp-3) 0;
+    border-top: 1px solid var(--color-borde);
+  }
+  .historial li:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .desactivar {
+    margin: 0;
+  }
+  .acciones-hoja {
+    display: flex;
+    gap: var(--esp-2);
+  }
+
+  /* Hoja A4 para pegar en la entrada */
+  .hoja {
+    display: grid;
+    justify-items: center;
+    gap: var(--esp-4);
+    padding: var(--esp-10) var(--esp-6);
+    background: #fff;
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    text-align: center;
+    color: #0f172a;
+  }
+  .plantel {
+    margin: 0;
+    font-size: var(--texto-base);
+    font-weight: var(--peso-fuerte);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--color-texto-suave);
+  }
+  .hoja h2 {
+    font-size: var(--texto-2xl);
+    letter-spacing: var(--tracking-titulo);
+  }
+  .codigo {
+    width: min(100%, 22rem);
+  }
+  .codigo :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .hoja ol {
+    margin: 0;
+    padding-left: 1.4em;
+    text-align: left;
+    font-size: var(--texto-lg);
+    line-height: 1.7;
+  }
+  .pie {
+    margin: 0;
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+
+  @media print {
+    @page {
+      size: A4;
+      margin: 18mm;
+    }
+    :global(body *) {
+      visibility: hidden;
+    }
+    .hoja,
+    .hoja :global(*) {
+      visibility: visible;
+    }
+    .hoja {
+      position: fixed;
+      inset: 0;
+      border: 0;
+      padding: 0;
+      align-content: center;
+      gap: 10mm;
+    }
+    .plantel {
+      font-size: 14pt;
+    }
+    .hoja h2 {
+      font-size: 30pt;
+    }
+    .codigo {
+      width: 120mm;
+    }
+    .hoja ol {
+      font-size: 16pt;
+    }
+    .pie {
+      font-size: 11pt;
+    }
+  }
+</style>

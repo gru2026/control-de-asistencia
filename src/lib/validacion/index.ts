@@ -298,3 +298,178 @@ export function terminosBusqueda(q: string): string[] {
     .filter(Boolean)
     .slice(0, 4);
 }
+
+// ── Marcación: geocerca, ubicaciones de prueba, franjas, QR y permisos ──
+
+/** Venezuela continental e insular, con margen. */
+export function dentroDeVenezuela(lat: number, lng: number): boolean {
+  return lat >= 0.5 && lat <= 16 && lng >= -73.5 && lng <= -59.5;
+}
+
+function numeroDecimal(v: string): number {
+  return v === "" ? NaN : Number(v.replace(",", "."));
+}
+
+/** Acepta "10.17, -66.88" pegado en el campo de latitud (como lo copia Google Maps). */
+export function leerCoordenadas(e: Entrada): { lat: number; lng: number } {
+  const latTexto = texto(e, "lat");
+  const par = /^(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)$/.exec(latTexto);
+  if (par && !texto(e, "lng")) return { lat: numeroDecimal(par[1]!), lng: numeroDecimal(par[2]!) };
+  return { lat: numeroDecimal(latTexto), lng: numeroDecimal(texto(e, "lng")) };
+}
+
+function erroresCoordenadas(lat: number, lng: number, errores: Errores): void {
+  if (!Number.isFinite(lat) || Math.abs(lat) > 90) errores.lat = "Latitud no válida (ej. 10.1704).";
+  if (!Number.isFinite(lng) || Math.abs(lng) > 180)
+    errores.lng = "Longitud no válida (ej. -66.8834).";
+  if (!errores.lat && !errores.lng && !dentroDeVenezuela(lat, lng)) {
+    errores.lng =
+      lng > 0
+        ? "El punto queda fuera de Venezuela: la longitud debe ser negativa (ej. -66.8834)."
+        : "El punto queda fuera de Venezuela. Revise las coordenadas.";
+  }
+}
+
+function numeroEntero(e: Entrada, campo: string): number {
+  const v = texto(e, campo);
+  return v === "" ? NaN : Number(v);
+}
+
+export interface DatosGeocerca {
+  lat: number;
+  lng: number;
+  radio_m: number;
+  precision_max_m: number;
+  geocerca_activa: boolean;
+}
+
+export function validarGeocerca(e: Entrada): Resultado<DatosGeocerca> {
+  const errores: Errores = {};
+  const { lat, lng } = leerCoordenadas(e);
+  erroresCoordenadas(lat, lng, errores);
+  const radio = numeroEntero(e, "radio_m");
+  const precision = numeroEntero(e, "precision_max_m");
+  if (!Number.isInteger(radio) || radio < 30 || radio > 2000)
+    errores.radio_m = "Entre 30 y 2000 metros.";
+  if (!Number.isInteger(precision) || precision < 10 || precision > 1000)
+    errores.precision_max_m = "Entre 10 y 1000 metros.";
+  if (Object.keys(errores).length) return { ok: false, errores };
+  return {
+    ok: true,
+    datos: {
+      lat,
+      lng,
+      radio_m: radio,
+      precision_max_m: precision,
+      geocerca_activa: texto(e, "geocerca_activa") === "si",
+    },
+  };
+}
+
+export interface DatosUbicacion {
+  nombre: string;
+  lat: number;
+  lng: number;
+  radio_m: number;
+}
+
+export function validarUbicacion(e: Entrada): Resultado<DatosUbicacion> {
+  const errores: Errores = {};
+  const nombre = texto(e, "nombre");
+  if (!nombre) errores.nombre = "Escriba un nombre (ej. «Casa de Schormeiker»).";
+  else if (nombre.length > 80) errores.nombre = "Máximo 80 caracteres.";
+  const { lat, lng } = leerCoordenadas(e);
+  erroresCoordenadas(lat, lng, errores);
+  const radio = numeroEntero(e, "radio_m");
+  if (!Number.isInteger(radio) || radio < 30 || radio > 2000)
+    errores.radio_m = "Entre 30 y 2000 metros.";
+  if (Object.keys(errores).length) return { ok: false, errores };
+  return { ok: true, datos: { nombre, lat, lng, radio_m: radio } };
+}
+
+export interface DatosFranjas {
+  franja_entrada_desde: string | null;
+  franja_entrada_hasta: string | null;
+  franja_salida_desde: string | null;
+  franja_salida_hasta: string | null;
+}
+
+/** Franjas opcionales: cada par va completo o vacío. */
+export function validarFranjas(e: Entrada): Resultado<DatosFranjas> {
+  const errores: Errores = {};
+  const datos = {} as DatosFranjas;
+  for (const tipo of ["entrada", "salida"] as const) {
+    const d = texto(e, `franja_${tipo}_desde`);
+    const h = texto(e, `franja_${tipo}_hasta`);
+    if (d && !HORA.test(d)) errores[`franja_${tipo}_desde`] = "Hora no válida.";
+    if (h && !HORA.test(h)) errores[`franja_${tipo}_hasta`] = "Hora no válida.";
+    if (!!d !== !!h)
+      errores[`franja_${tipo}_${d ? "hasta" : "desde"}`] =
+        "Complete ambas horas o deje las dos vacías.";
+    else if (d && d === h)
+      errores[`franja_${tipo}_hasta`] = "Debe ser distinta de la hora inicial.";
+    datos[`franja_${tipo}_desde`] = d || null;
+    datos[`franja_${tipo}_hasta`] = h || null;
+  }
+  if (Object.keys(errores).length) return { ok: false, errores };
+  return { ok: true, datos };
+}
+
+export function validarNuevoQR(
+  e: Entrada,
+  hoy: string,
+): Resultado<{ descripcion: string | null; vigente_hasta: string | null }> {
+  const errores: Errores = {};
+  const descripcion = texto(e, "descripcion").slice(0, 120) || null;
+  const vence = texto(e, "vence") === "si";
+  const fecha = texto(e, "vigente_hasta");
+  if (vence) {
+    if (!FECHA.test(fecha)) errores.vigente_hasta = "Indique la fecha de vencimiento.";
+    else if (fecha < hoy) errores.vigente_hasta = "La fecha ya pasó.";
+  }
+  if (Object.keys(errores).length) return { ok: false, errores };
+  return { ok: true, datos: { descripcion, vigente_hasta: vence ? fecha : null } };
+}
+
+export interface DatosPermiso {
+  personal_id: string;
+  fecha_desde: string;
+  fecha_hasta: string;
+  motivo: string;
+  observacion: string | null;
+}
+
+export const MOTIVOS_PERMISO = [
+  "Reposo médico",
+  "Cita médica",
+  "Diligencia personal",
+  "Duelo",
+  "Actividad institucional",
+  "Estudios",
+  "Maternidad o paternidad",
+  "Otro",
+] as const;
+
+export function validarPermiso(e: Entrada): Resultado<DatosPermiso> {
+  const errores: Errores = {};
+  const personal_id = texto(e, "personal_id");
+  const desde = texto(e, "fecha_desde");
+  const hasta = texto(e, "fecha_hasta") || desde;
+  const motivo = texto(e, "motivo");
+  const observacion = texto(e, "observacion").slice(0, 500) || null;
+  if (!esUuid(personal_id)) errores.personal_id = "Seleccione a la persona.";
+  if (!FECHA.test(desde)) errores.fecha_desde = "Indique la fecha de inicio.";
+  if (!FECHA.test(hasta)) errores.fecha_hasta = "Fecha no válida.";
+  else if (FECHA.test(desde) && hasta < desde)
+    errores.fecha_hasta = "Debe ser igual o posterior al inicio.";
+  else if (FECHA.test(desde) && (Date.parse(hasta) - Date.parse(desde)) / 86_400_000 > 365)
+    errores.fecha_hasta = "Un permiso no puede durar más de un año.";
+  if (!motivo) errores.motivo = "Seleccione el motivo.";
+  else if (motivo.length > 80) errores.motivo = "Máximo 80 caracteres.";
+  if (motivo === "Otro" && !observacion) errores.observacion = "Explique el motivo.";
+  if (Object.keys(errores).length) return { ok: false, errores };
+  return {
+    ok: true,
+    datos: { personal_id, fecha_desde: desde, fecha_hasta: hasta, motivo, observacion },
+  };
+}

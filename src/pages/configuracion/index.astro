@@ -42,33 +42,6 @@ if (Astro.request.method === "POST") {
         if (error) mensaje = "No se pudo guardar.";
         else exito = "Datos de la institución guardados.";
       }
-    } else if (accion === "geocerca") {
-      const lat = Number(texto(f, "colegio_lat").replace(",", "."));
-      const lng = Number(texto(f, "colegio_lng").replace(",", "."));
-      const radio = Number(texto(f, "radio_m"));
-      const precision = Number(texto(f, "precision_max_m"));
-      if (!Number.isFinite(lat) || Math.abs(lat) > 90)
-        errores.colegio_lat = "Latitud no válida (ej. 10.1656).";
-      if (!Number.isFinite(lng) || Math.abs(lng) > 180)
-        errores.colegio_lng = "Longitud no válida (ej. -66.8856).";
-      if (!Number.isInteger(radio) || radio < 30 || radio > 2000)
-        errores.radio_m = "Entre 30 y 2000 metros.";
-      if (!Number.isInteger(precision) || precision < 10 || precision > 1000)
-        errores.precision_max_m = "Entre 10 y 1000 metros.";
-      if (!Object.keys(errores).length) {
-        const { error } = await sb
-          .from("configuracion")
-          .update({
-            colegio_lat: lat,
-            colegio_lng: lng,
-            radio_m: radio,
-            precision_max_m: precision,
-            actualizado_por: perfil.id,
-          })
-          .eq("id", 1);
-        if (error) mensaje = "No se pudo guardar.";
-        else exito = "Ubicación del colegio guardada.";
-      }
     } else if (accion === "demo_generar") {
       const r = await generarDemo(perfil.id);
       exito = `Datos de demostración generados: ${r.registros} registros de asistencia y ${r.permisos} permisos para ${r.personas} personas.`;
@@ -102,7 +75,7 @@ const [{ data: cfg }, { count: demo }, { count: importados }] = await Promise.al
   sb
     .from("configuracion")
     .select(
-      "encabezado, nombre_planilla, ubicacion, cod_dea, firmante_nombre, firmante_cedula, firmante_cargo, colegio_lat, colegio_lng, radio_m, precision_max_m",
+      "encabezado, nombre_planilla, ubicacion, cod_dea, firmante_nombre, firmante_cedula, firmante_cargo",
     )
     .eq("id", 1)
     .single(),
@@ -121,6 +94,20 @@ const e = (a: string) => (accion === a ? errores : {});
     {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
 
     <nav class="accesos" aria-label="Secciones de ajustes">
+      <a href="/configuracion/marcacion">
+        <Icono nombre="ubicacion" />{" "}
+        <span>
+          <strong>Marcación</strong>
+          <small>Ubicación del colegio y horarios</small>
+        </span>
+      </a>
+      <a href="/configuracion/qr">
+        <Icono nombre="qr" />{" "}
+        <span>
+          <strong>Código QR</strong>
+          <small>Generar e imprimir</small>
+        </span>
+      </a>
       <a href="/configuracion/usuarios">
         <Icono nombre="escudo" />{" "}
         <span>
@@ -195,69 +182,6 @@ const e = (a: string) => (accion === a ? errores : {});
         </p>
         <div class="final ancho">
           <Boton type="submit">Guardar</Boton>
-        </div>
-      </form>
-    </Tarjeta>
-
-    <Tarjeta
-      titulo="Ubicación del colegio"
-      descripcion="Centro y radio de la zona donde se permite marcar con GPS."
-      id="geocerca"
-    >
-      <form method="post" class="rejilla" novalidate>
-        <input type="hidden" name="accion" value="geocerca" />
-        <Input
-          etiqueta="Latitud"
-          nombre="colegio_lat"
-          inputmode="decimal"
-          value={v("colegio_lat")}
-          error={e("geocerca").colegio_lat}
-          required
-          placeholder="10.1656"
-        />
-        <Input
-          etiqueta="Longitud"
-          nombre="colegio_lng"
-          inputmode="decimal"
-          value={v("colegio_lng")}
-          error={e("geocerca").colegio_lng}
-          required
-          placeholder="-66.8856"
-        />
-        <Input
-          etiqueta="Radio permitido (m)"
-          nombre="radio_m"
-          type="number"
-          min="30"
-          max="2000"
-          value={v("radio_m")}
-          error={e("geocerca").radio_m}
-        />
-        <Input
-          etiqueta="Precisión máxima del GPS (m)"
-          nombre="precision_max_m"
-          type="number"
-          min="10"
-          max="1000"
-          value={v("precision_max_m")}
-          error={e("geocerca").precision_max_m}
-          ayuda="Si el GPS es menos preciso, la marcación queda señalada para revisión."
-        />
-        <p class="nota ancho">
-          Para obtener las coordenadas: en Google Maps, mantenga presionada la entrada del colegio y
-          copie los dos números que aparecen.
-          {v("colegio_lat") && (
-            <a
-              href={`https://www.google.com/maps?q=${v("colegio_lat")},${v("colegio_lng")}`}
-              target="_blank"
-              rel="noopener"
-            >
-              Ver la ubicación actual en el mapa
-            </a>
-          )}
-        </p>
-        <div class="final ancho">
-          <Boton type="submit">Guardar ubicación</Boton>
         </div>
       </form>
     </Tarjeta>

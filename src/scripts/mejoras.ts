@@ -2,7 +2,12 @@
  * Mejoras progresivas de interfaz. Todo funciona sin JavaScript;
  * esto solo agrega comodidad. Se activa por atributos data-*.
  */
+import { activarNavegacionParcial } from "./navegacion-parcial";
+
 document.documentElement.classList.add("js");
+
+// Primero: así sus preventDefault() se respetan en los demás listeners de clic/envío.
+activarNavegacionParcial((raiz) => inicializar(raiz));
 
 const MENSAJES = {
   requerido: "Este campo es obligatorio.",
@@ -126,29 +131,16 @@ document.addEventListener("submit", (ev) => {
   }
 });
 
-// ── Estados de carga ──
-// Sin esto, entre el clic y la respuesta del servidor (1–2 s) no hay señal visual.
-function iniciarCarga(mismaPagina: boolean) {
-  const raiz = document.documentElement;
-  raiz.classList.add("navegando");
-  if (mismaPagina) {
-    raiz.classList.add("cargando");
-    document.getElementById("contenido")?.setAttribute("aria-busy", "true");
-  }
+// ── Estados de carga para navegaciones completas (otra página, guardar) ──
+// Los cambios dentro de la misma página (filtros) los maneja navegacion-parcial.ts.
+function iniciarCarga() {
+  document.documentElement.classList.add("navegando");
 }
 
-// Formularios (registrado después de la validación: respeta envíos cancelados)
 document.addEventListener("submit", (ev) => {
-  if (ev.defaultPrevented) return;
-  const form = ev.target as HTMLFormElement;
-  if (form.method.toLowerCase() === "get") {
-    iniciarCarga(new URL(form.action, location.href).pathname === location.pathname);
-  } else {
-    iniciarCarga(false);
-  }
+  if (!ev.defaultPrevented) iniciarCarga();
 });
 
-// Enlaces internos (filtros, orden, paginación, período, menú)
 document.addEventListener("click", (ev) => {
   if (
     ev.defaultPrevented ||
@@ -164,7 +156,7 @@ document.addEventListener("click", (ev) => {
   const destino = new URL(a.href, location.href);
   if (destino.origin !== location.origin || destino.pathname.startsWith("/api/")) return;
   if (destino.pathname === location.pathname && destino.search === location.search) return; // solo ancla
-  iniciarCarga(destino.pathname === location.pathname);
+  iniciarCarga();
 });
 
 // Restaurar botones si se vuelve con "atrás" (caché del navegador)
@@ -211,19 +203,27 @@ document.addEventListener("click", async (ev) => {
   }
 });
 
-// Filtros: los select se aplican al cambiar; la búsqueda, con pausa al escribir
-document.querySelectorAll<HTMLFormElement>("form[data-autoenviar]").forEach((form) => {
-  form.addEventListener("change", (ev) => {
-    if (ev.target instanceof HTMLSelectElement) form.requestSubmit();
-  });
-  let espera: number | undefined;
-  form.querySelector<HTMLInputElement>("input[type=search]")?.addEventListener("input", (ev) => {
-    clearTimeout(espera);
-    const valor = (ev.target as HTMLInputElement).value;
-    espera = window.setTimeout(() => {
-      if (valor.length === 0 || valor.length >= 2) form.requestSubmit();
-    }, 450);
-  });
+// Filtros (delegado: sigue funcionando tras reemplazar el contenido)
+// Los select se aplican al cambiar; la búsqueda, con una pausa al escribir.
+document.addEventListener("change", (ev) => {
+  const t = ev.target;
+  if (t instanceof HTMLSelectElement && t.form?.hasAttribute("data-autoenviar"))
+    t.form.requestSubmit();
+});
+let esperaBusqueda: number | undefined;
+document.addEventListener("input", (ev) => {
+  const t = ev.target;
+  if (
+    !(t instanceof HTMLInputElement) ||
+    t.type !== "search" ||
+    !t.form?.hasAttribute("data-autoenviar")
+  )
+    return;
+  clearTimeout(esperaBusqueda);
+  const form = t.form;
+  esperaBusqueda = window.setTimeout(() => {
+    if (t.value.length === 0 || t.value.trim().length >= 2) form.requestSubmit();
+  }, 400);
 });
 
 // Mostrar / ocultar filtros en el celular
@@ -234,32 +234,30 @@ document.addEventListener("click", (ev) => {
   b.setAttribute("aria-expanded", String(abierto));
 });
 
-// Al elegir categoría, proponer su jornada (si el usuario no eligió otra)
-document.querySelectorAll<HTMLSelectElement>("select[data-jornada-sugerida]").forEach((cat) => {
-  const jornada = document.getElementById(
-    cat.dataset.jornadaSugerida ?? "",
-  ) as HTMLSelectElement | null;
-  if (!jornada) return;
-  let tocada = jornada.value !== "";
-  jornada.addEventListener("change", () => (tocada = true));
-  cat.addEventListener("change", () => {
-    const sugerida = cat.selectedOptions[0]?.dataset.jornada;
-    if (sugerida && !tocada) jornada.value = sugerida;
+/** Inicializaciones que dependen de elementos concretos (se repiten tras cada reemplazo). */
+function inicializar(raiz: ParentNode) {
+  // Al elegir categoría, proponer su jornada (si el usuario no eligió otra)
+  raiz.querySelectorAll<HTMLSelectElement>("select[data-jornada-sugerida]").forEach((cat) => {
+    const jornada = document.getElementById(
+      cat.dataset.jornadaSugerida ?? "",
+    ) as HTMLSelectElement | null;
+    if (!jornada) return;
+    let tocada = jornada.value !== "";
+    jornada.addEventListener("change", () => (tocada = true));
+    cat.addEventListener("change", () => {
+      const sugerida = cat.selectedOptions[0]?.dataset.jornada;
+      if (sugerida && !tocada) jornada.value = sugerida;
+    });
   });
-});
 
-// Avisos de éxito: se ocultan solos
-document.querySelectorAll<HTMLElement>("[data-autocerrar]").forEach((el) => {
-  setTimeout(() => {
-    el.style.transition = "opacity 300ms";
-    el.style.opacity = "0";
-    setTimeout(() => el.remove(), 320);
-  }, 6000);
-});
-
-// La búsqueda conserva el foco tras recargar
-const q = document.querySelector<HTMLInputElement>("form[data-autoenviar] input[type=search]");
-if (q && new URLSearchParams(location.search).get(q.name)) {
-  q.focus();
-  q.setSelectionRange(q.value.length, q.value.length);
+  // Avisos de éxito: se ocultan solos
+  raiz.querySelectorAll<HTMLElement>("[data-autocerrar]").forEach((el) => {
+    setTimeout(() => {
+      el.style.transition = "opacity 300ms";
+      el.style.opacity = "0";
+      setTimeout(() => el.remove(), 320);
+    }, 6000);
+  });
 }
+
+inicializar(document);

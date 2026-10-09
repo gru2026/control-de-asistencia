@@ -30,3 +30,6 @@ npm-debug.log*
 
 # Python
 __pycache__/
+
+# Capturas generadas por las pruebas de navegador
+tests/e2e/capturas/

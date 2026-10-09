@@ -514,6 +514,7 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-27 | 2026-10-08 | Filtros y paginación actualizan solo el contenido (navegación parcial); pruebas de navegador con Playwright | ✅ Vigente |
 | D-26 | 2026-10-08 | Nómina real cargada por importación (`origen = importado`) y asistencia de **demostración** (`es_demo`), ambas eliminables desde Ajustes | ✅ Vigente |
 
 ---
@@ -1515,6 +1516,23 @@ npm test             # Vitest (reglas de negocio)
 3. Commit convencional (ver Convenciones-y-calidad)
 4. Push → PR → merge a `main`
 
+## Pruebas en navegador (Playwright)
+
+Herramienta para verificar la app como lo haría una persona, en un navegador real.
+
+```bash
+npm run e2e:instalar     # solo la primera vez: descarga Chromium
+npm run dev              # en otra terminal
+npm run test:e2e         # filtros, búsqueda, paginación, panel, celular, sesión vencida
+npm run capturas         # capturas en PC y celular → tests/e2e/capturas/
+npm run capturas -- /panel /reportes
+```
+
+- Credenciales: se leen de `Documentacion/_privado/Usuarios-de-prueba.md` o de `E2E_EMAIL` / `E2E_CLAVE`.
+- Otra dirección (por ejemplo, producción): `E2E_URL=https://… npm run test:e2e`.
+- Ver el navegador mientras prueba: `E2E_VISIBLE=1 npm run test:e2e`.
+- Para agregar pruebas: copiar el esquema de `tests/e2e/navegacion.mjs` y usar las utilidades de `tests/e2e/utilidades.mjs`.
+
 ## Problemas comunes
 
 | Síntoma | Causa probable | Solución |
@@ -2049,6 +2067,10 @@ Presentes hoy, tardanzas y faltas del mes, marcaciones por revisar, teléfonos p
 | F36 | Agregar a inicio en iPhone | Funciona; cámara y GPS operan en la app |
 | F37 | Lighthouse | Performance, A11y, Best practices ≥ 90; PWA instalable |
 
+## 2b. Pruebas en navegador (automatizadas)
+
+`npm run test:e2e` (Playwright) verifica en Chromium real: filtros sin recarga, esqueletos de carga, búsqueda que conserva el foco, botón atrás, paginación, período del panel, filtros en celular, sesión vencida y ausencia de errores de JavaScript. `npm run capturas` genera capturas para revisión visual.
+
 ## 3. Pruebas de seguridad
 
 - [ ] Sin sesión: toda ruta privada redirige.
@@ -2073,6 +2095,7 @@ Presentes hoy, tardanzas y faltas del mes, marcaciones por revisar, teléfonos p
 
 | Fecha | Versión | Ejecutado por | Aprobado | Observaciones |
 |---|---|---|---|---|
+| 2026-10-08 | Navegación parcial | Desarrollador (Playwright) | ✅ | 20/20 verificaciones en navegador real. |
 | 2026-10-06 | Semana 1 | Desarrollador (automatizado) | ✅ | 62 tests unitarios (R0, R1, R2, R5, R10, acceso, validación). E2E: F1–F5, CRUD de personal/jornadas/feriados/cuentas, CSRF, redirección abierta, cuenta desactivada. RLS probado contra la API real con anon, personal y secretaría. |
 
 ---

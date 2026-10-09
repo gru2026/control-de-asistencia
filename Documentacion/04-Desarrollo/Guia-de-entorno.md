@@ -84,6 +84,23 @@ npm test             # Vitest (reglas de negocio)
 3. Commit convencional (ver [[04-Desarrollo/Convenciones-y-calidad]])
 4. Push → PR → merge a `main`
 
+## Pruebas en navegador (Playwright)
+
+Herramienta para verificar la app como lo haría una persona, en un navegador real.
+
+```bash
+npm run e2e:instalar     # solo la primera vez: descarga Chromium
+npm run dev              # en otra terminal
+npm run test:e2e         # filtros, búsqueda, paginación, panel, celular, sesión vencida
+npm run capturas         # capturas en PC y celular → tests/e2e/capturas/
+npm run capturas -- /panel /reportes
+```
+
+- Credenciales: se leen de `Documentacion/_privado/Usuarios-de-prueba.md` o de `E2E_EMAIL` / `E2E_CLAVE`.
+- Otra dirección (por ejemplo, producción): `E2E_URL=https://… npm run test:e2e`.
+- Ver el navegador mientras prueba: `E2E_VISIBLE=1 npm run test:e2e`.
+- Para agregar pruebas: copiar el esquema de `tests/e2e/navegacion.mjs` y usar las utilidades de `tests/e2e/utilidades.mjs`.
+
 ## Problemas comunes
 
 | Síntoma | Causa probable | Solución |

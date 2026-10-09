@@ -38,6 +38,7 @@ const { titulo, colorTema = "#0f172a" } = Astro.props;
   </head>
   <body>
     <div class="progreso" aria-hidden="true"></div>
+    <div id="anuncio" class="visualmente-oculto" aria-live="polite" aria-atomic="true"></div>
     <slot />
     <script>
       import "@/scripts/mejoras";

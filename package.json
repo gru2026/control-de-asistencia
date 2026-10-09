@@ -21,7 +21,10 @@
     "db:migrar": "node --env-file=.env scripts/db.mjs migrar",
     "db:seed": "node --env-file=.env scripts/db.mjs seed",
     "db:sql": "node --env-file=.env scripts/db.mjs sql",
-    "crear-usuario": "node --env-file=.env scripts/crear-usuario.mjs"
+    "crear-usuario": "node --env-file=.env scripts/crear-usuario.mjs",
+    "test:e2e": "node tests/e2e/navegacion.mjs",
+    "capturas": "node tests/e2e/capturas.mjs",
+    "e2e:instalar": "playwright install chromium"
   },
   "dependencies": {
     "@astrojs/vercel": "^11.0.12",
@@ -39,6 +42,7 @@
     "eslint": "^10.12.0",
     "eslint-plugin-astro": "^3.2.1",
     "globals": "^17.13.0",
+    "playwright": "^1.64.0",
     "prettier": "^3.9.9",
     "prettier-plugin-astro": "^1.1.0",
     "typescript": "^6.0.3",

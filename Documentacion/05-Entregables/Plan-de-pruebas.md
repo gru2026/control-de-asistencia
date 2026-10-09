@@ -131,6 +131,10 @@ fecha: 2026-10-06
 | F36 | Agregar a inicio en iPhone | Funciona; cámara y GPS operan en la app |
 | F37 | Lighthouse | Performance, A11y, Best practices ≥ 90; PWA instalable |
 
+## 2b. Pruebas en navegador (automatizadas)
+
+`npm run test:e2e` (Playwright) verifica en Chromium real: filtros sin recarga, esqueletos de carga, búsqueda que conserva el foco, botón atrás, paginación, período del panel, filtros en celular, sesión vencida y ausencia de errores de JavaScript. `npm run capturas` genera capturas para revisión visual.
+
 ## 3. Pruebas de seguridad
 
 - [ ] Sin sesión: toda ruta privada redirige.
@@ -155,4 +159,5 @@ fecha: 2026-10-06
 
 | Fecha | Versión | Ejecutado por | Aprobado | Observaciones |
 |---|---|---|---|---|
+| 2026-10-08 | Navegación parcial | Desarrollador (Playwright) | ✅ | 20/20 verificaciones en navegador real. |
 | 2026-10-06 | Semana 1 | Desarrollador (automatizado) | ✅ | 62 tests unitarios (R0, R1, R2, R5, R10, acceso, validación). E2E: F1–F5, CRUD de personal/jornadas/feriados/cuentas, CSRF, redirección abierta, cuenta desactivada. RLS probado contra la API real con anon, personal y secretaría. |

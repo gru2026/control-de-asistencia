@@ -4,12 +4,14 @@ interface Props {
   descripcion?: string;
   class?: string;
   id?: string;
+  /** Muestra esqueleto al recargar datos. */
+  datos?: boolean;
 }
-const { titulo, descripcion, class: clase, id } = Astro.props;
+const { titulo, descripcion, class: clase, id, datos } = Astro.props;
 const tieneAcciones = Astro.slots.has("acciones");
 ---
 
-<section class:list={["tarjeta", clase]} id={id}>
+<section class:list={["tarjeta", clase]} id={id} data-datos={datos ? "" : undefined}>
   {(titulo || tieneAcciones) && (
     <header>
       <div>

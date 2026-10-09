@@ -17,7 +17,7 @@ const { titulo, descripcion, columnas, filas, class: clase } = Astro.props;
     <strong>{titulo}</strong>
     {descripcion && <span>{descripcion}</span>}
   </figcaption>
-  <div class="grafica">
+  <div class="grafica" data-datos>
     <slot />
   </div>
   <details>

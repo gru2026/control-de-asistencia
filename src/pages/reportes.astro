@@ -101,7 +101,7 @@ const BADGE = {
           </Boton>
         </div>
       </form>
-      <ul class="totales" aria-label="Resumen del día">
+      <ul class="totales" aria-label="Resumen del día" data-datos="linea">
         <li>
           <Badge tipo="presente">Presentes {planilla.totales.presente}</Badge>
         </li>
@@ -121,7 +121,11 @@ const BADGE = {
     </Tarjeta>
 
     <!-- Vista previa con el formato del papel -->
-    <article class="hoja" aria-label={`Vista previa: ${planilla.titulo}, ${fechaLarga(fecha)}`}>
+    <article
+      class="hoja"
+      data-datos
+      aria-label={`Vista previa: ${planilla.titulo}, ${fechaLarga(fecha)}`}
+    >
       <header>
         {inst.encabezado.map((l) => (
           <p>{l}</p>

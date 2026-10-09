@@ -126,3 +126,82 @@ input[type="radio"] {
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Estados de carga (navegación entre filtros y páginas) ─────────────
+ * html.navegando → barra de progreso superior
+ * html.cargando  → además, esqueletos sobre las zonas [data-datos]
+ *                  (mantienen su tamaño: no hay saltos de contenido)
+ */
+.progreso {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 100;
+  height: calc(3px + var(--seguro-arriba));
+  padding-top: var(--seguro-arriba);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duracion-rapida) var(--curva);
+}
+.progreso::before {
+  content: "";
+  display: block;
+  height: 3px;
+  width: 40%;
+  background: var(--color-acento);
+  border-radius: 0 3px 3px 0;
+  box-shadow: 0 0 8px rgb(37 99 235 / 0.6);
+  animation: progreso 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+html.navegando .progreso {
+  opacity: 1;
+}
+@keyframes progreso {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+
+html.cargando [data-datos] {
+  position: relative;
+  pointer-events: none;
+}
+html.cargando [data-datos] > * {
+  visibility: hidden;
+}
+html.cargando [data-datos]::after {
+  content: "";
+  position: absolute;
+  inset: var(--esqueleto-margen, 12px);
+  border-radius: var(--radio-sm);
+  background:
+    linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.7) 50%, transparent 70%) 0 0 / 300%
+      100%,
+    repeating-linear-gradient(180deg, var(--color-superficie-hover) 0 14px, transparent 14px 30px);
+  animation: esqueleto 1.3s ease-in-out infinite;
+}
+/* Zonas pequeñas (contadores, cifras): un solo bloque */
+html.cargando [data-datos="linea"]::after {
+  inset: 0;
+  background:
+    linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.7) 50%, transparent 70%) 0 0 / 300%
+      100%,
+    var(--color-superficie-hover);
+}
+@keyframes esqueleto {
+  from {
+    background-position:
+      100% 0,
+      0 0;
+  }
+  to {
+    background-position:
+      0 0,
+      0 0;
+  }
+}
+html.cargando [aria-busy="true"] {
+  cursor: progress;
+}

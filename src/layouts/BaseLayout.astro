@@ -37,6 +37,7 @@ const { titulo, colorTema = "#0f172a" } = Astro.props;
     <title>{titulo} · GRU-system</title>
   </head>
   <body>
+    <div class="progreso" aria-hidden="true"></div>
     <slot />
     <script>
       import "@/scripts/mejoras";

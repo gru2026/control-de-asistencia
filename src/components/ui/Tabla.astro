@@ -15,6 +15,7 @@ const { titulo, vacio = "No hay registros.", hayFilas = true, tarjetas = false }
 {hayFilas ? (
   <div
     class:list={["contenedor", tarjetas && "tarjetas"]}
+    data-datos
     role="region"
     aria-label={titulo}
     tabindex="0"
@@ -24,7 +25,7 @@ const { titulo, vacio = "No hay registros.", hayFilas = true, tarjetas = false }
     </table>
   </div>
 ) : (
-  <div class="vacio">
+  <div class="vacio" data-datos>
     <svg
       width="40"
       height="40"

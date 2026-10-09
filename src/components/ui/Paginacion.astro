@@ -20,7 +20,7 @@ const hasta = Math.min(total, pagina * porPagina);
 ---
 
 <nav class="paginacion" aria-label="Paginación">
-  <span>
+  <span data-datos="linea">
     {desde}–{hasta} de {total}
   </span>
   {totalPaginas > 1 && (

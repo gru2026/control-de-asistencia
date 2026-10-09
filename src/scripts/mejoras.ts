@@ -126,8 +126,51 @@ document.addEventListener("submit", (ev) => {
   }
 });
 
+// ── Estados de carga ──
+// Sin esto, entre el clic y la respuesta del servidor (1–2 s) no hay señal visual.
+function iniciarCarga(mismaPagina: boolean) {
+  const raiz = document.documentElement;
+  raiz.classList.add("navegando");
+  if (mismaPagina) {
+    raiz.classList.add("cargando");
+    document.getElementById("contenido")?.setAttribute("aria-busy", "true");
+  }
+}
+
+// Formularios (registrado después de la validación: respeta envíos cancelados)
+document.addEventListener("submit", (ev) => {
+  if (ev.defaultPrevented) return;
+  const form = ev.target as HTMLFormElement;
+  if (form.method.toLowerCase() === "get") {
+    iniciarCarga(new URL(form.action, location.href).pathname === location.pathname);
+  } else {
+    iniciarCarga(false);
+  }
+});
+
+// Enlaces internos (filtros, orden, paginación, período, menú)
+document.addEventListener("click", (ev) => {
+  if (
+    ev.defaultPrevented ||
+    ev.button !== 0 ||
+    ev.metaKey ||
+    ev.ctrlKey ||
+    ev.shiftKey ||
+    ev.altKey
+  )
+    return;
+  const a = (ev.target as HTMLElement).closest<HTMLAnchorElement>("a[href]");
+  if (!a || a.target || a.hasAttribute("download")) return;
+  const destino = new URL(a.href, location.href);
+  if (destino.origin !== location.origin || destino.pathname.startsWith("/api/")) return;
+  if (destino.pathname === location.pathname && destino.search === location.search) return; // solo ancla
+  iniciarCarga(destino.pathname === location.pathname);
+});
+
 // Restaurar botones si se vuelve con "atrás" (caché del navegador)
 addEventListener("pageshow", () => {
+  document.documentElement.classList.remove("navegando", "cargando");
+  document.getElementById("contenido")?.removeAttribute("aria-busy");
   document.querySelectorAll<HTMLFormElement>("form[data-enviando]").forEach((f) => {
     delete f.dataset.enviando;
     f.querySelectorAll<HTMLButtonElement>("button[aria-busy]").forEach((b) => {

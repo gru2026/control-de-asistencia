@@ -259,7 +259,7 @@ const enlaceCategoria = (id: string | null) => {
 
   <!-- Hoy -->
   {mostrarHoy && (
-    <section class="hoy" aria-labelledby="titulo-hoy">
+    <section class="hoy" aria-labelledby="titulo-hoy" data-datos>
       <div class="hoy-cabeza">
         <h2 id="titulo-hoy">Hoy</h2>
         <p>
@@ -283,7 +283,7 @@ const enlaceCategoria = (id: string | null) => {
   <!-- Indicadores -->
   <ul class="kpis">
     {kpis.map((k) => (
-      <li class="kpi">
+      <li class="kpi" data-datos>
         <div class="cabeza">
           <span class="titulo">{k.titulo}</span>
           <Icono nombre={k.icono} tamano={20} class="kpi-icono" />
@@ -305,6 +305,7 @@ const enlaceCategoria = (id: string | null) => {
       titulo="Lectura rápida"
       descripcion="Observaciones calculadas a partir de los datos del período."
       class="lectura"
+      datos
     >
       <ul>
         {lectura.map((t) => (
@@ -315,7 +316,7 @@ const enlaceCategoria = (id: string | null) => {
   )}
 
   {registros.length === 0 ? (
-    <Tarjeta>
+    <Tarjeta datos>
       <p class="vacio">
         No hay registros de asistencia en este período. Las gráficas aparecerán cuando el personal
         empiece a marcar.
@@ -457,7 +458,7 @@ const enlaceCategoria = (id: string | null) => {
   )}
 
   <!-- Nómina -->
-  <section class="nomina" aria-labelledby="titulo-nomina">
+  <section class="nomina" aria-labelledby="titulo-nomina" data-datos>
     <h2 id="titulo-nomina">Nómina{categoriaId ? ` · ${catPorId.get(categoriaId)?.nombre}` : ""}</h2>
     <ul>
       <li>

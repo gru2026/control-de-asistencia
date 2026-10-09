@@ -7,10 +7,14 @@ import Badge from "@/components/ui/Badge.astro";
 import Alerta from "@/components/ui/Alerta.astro";
 import Input from "@/components/ui/Input.astro";
 import { COLUMNAS_JORNADA, resumenDias, type FilaJornada } from "@/lib/datos/jornadas";
+import { COLUMNAS_CATEGORIA } from "@/lib/datos/categorias";
+import BarraFiltros from "@/components/ui/BarraFiltros.astro";
+import ChipCategoria from "@/components/ui/ChipCategoria.astro";
+import Select from "@/components/ui/Select.astro";
 import { esUuid, texto, validarFeriado, validarJornada, type Errores } from "@/lib/validacion";
 import { ponerFlash } from "@/lib/flash";
 import { fechaCorta, horaCorta, hoyEnZona } from "@/lib/fecha";
-import { NOMBRE_DIA, type DiaSemana } from "@/types";
+import { NOMBRE_DIA, type Categoria, type DiaSemana } from "@/types";
 
 const sb = Astro.locals.supabase;
 let errores: Errores = {};
@@ -76,13 +80,59 @@ if (Astro.request.method === "POST") {
     const { error } = await sb.from("feriados").delete().eq("id", id);
     if (error) mensaje = "No se pudo eliminar el feriado.";
     else exito = "Feriado eliminado.";
+  } else if (accion === "categoria_guardar") {
+    const nombre = texto(f, "nombre").replace(/\s+/g, " ");
+    const color = texto(f, "color");
+    const planilla = texto(f, "planilla") === "docentes" ? "docentes" : "personal";
+    const sugerida = texto(f, "jornada_sugerida_id");
+    const orden = Number(texto(f, "orden") || "0");
+    if (!nombre || nombre.length > 40)
+      errores.cat_nombre = "Nombre obligatorio (máximo 40 caracteres).";
+    if (!/^#[0-9a-fA-F]{6}$/.test(color)) errores.cat_color = "Color no válido.";
+    if (sugerida && !esUuid(sugerida)) errores.cat_jornada = "Jornada no válida.";
+    if (!Object.keys(errores).length) {
+      const datos = {
+        nombre,
+        color,
+        planilla,
+        jornada_sugerida_id: sugerida || null,
+        orden: Number.isInteger(orden) ? orden : 0,
+      };
+      const { error } =
+        id && esUuid(id)
+          ? await sb.from("categorias").update(datos).eq("id", id)
+          : await sb.from("categorias").insert(datos);
+      if (error?.code === "23505") errores.cat_nombre = "Ya existe una categoría con ese nombre.";
+      else if (error) mensaje = "No se pudo guardar la categoría.";
+      else exito = `Categoría «${nombre}» guardada.`;
+    }
+  } else if (accion === "categoria_alternar" && esUuid(id)) {
+    const activa = texto(f, "activa") === "si";
+    const { error } = await sb.from("categorias").update({ activa }).eq("id", id);
+    if (error) mensaje = "No se pudo actualizar la categoría.";
+    else exito = activa ? "Categoría activada." : "Categoría desactivada.";
+  } else if (accion === "categoria_eliminar" && esUuid(id)) {
+    const { count } = await sb
+      .from("personal")
+      .select("id", { count: "exact", head: true })
+      .eq("categoria_id", id);
+    if (count) mensaje = `No se puede eliminar: ${count} persona(s) pertenecen a esta categoría.`;
+    else {
+      const { error } = await sb.from("categorias").delete().eq("id", id);
+      if (error) mensaje = "No se pudo eliminar la categoría.";
+      else exito = "Categoría eliminada.";
+    }
   } else {
     mensaje = "Acción no reconocida.";
   }
 
   if (exito) {
     ponerFlash(Astro.cookies, "exito", exito);
-    const destino = accion.startsWith("feriado") ? "/jornadas#feriados" : "/jornadas";
+    const destino = accion.startsWith("feriado")
+      ? "/jornadas#feriados"
+      : accion.startsWith("categoria")
+        ? "/jornadas#categorias"
+        : "/jornadas";
     return Astro.redirect(destino, 303);
   }
   mensaje ??= "Revise los campos marcados.";
@@ -90,20 +140,57 @@ if (Astro.request.method === "POST") {
 }
 
 const hoy = hoyEnZona();
-const [{ data: jornadasData }, { data: feriadosData }] = await Promise.all([
-  sb.from("jornadas").select(`${COLUMNAS_JORNADA}, personal(count)`).order("nombre"),
-  sb
-    .from("feriados")
-    .select("id, fecha, descripcion")
-    .gte("fecha", hoy.slice(0, 4) + "-01-01")
-    .order("fecha"),
-]);
-const jornadas = (jornadasData ?? []) as (FilaJornada & { personal: { count: number }[] })[];
+const qp = Astro.url.searchParams;
+const filtroJornada = ["activa", "inactiva"].includes(qp.get("jestado") ?? "")
+  ? qp.get("jestado")
+  : null;
+const anioActual = Number(hoy.slice(0, 4));
+const anios = [anioActual - 1, anioActual, anioActual + 1].map(String);
+const filtroAnio = anios.includes(qp.get("anio") ?? "") ? qp.get("anio")! : String(anioActual);
+const filtroCuando = ["proximos", "pasados"].includes(qp.get("cuando") ?? "")
+  ? qp.get("cuando")
+  : null;
+
+let qFeriados = sb
+  .from("feriados")
+  .select("id, fecha, descripcion")
+  .gte("fecha", `${filtroAnio}-01-01`)
+  .lte("fecha", `${filtroAnio}-12-31`)
+  .order("fecha");
+if (filtroCuando === "proximos") qFeriados = qFeriados.gte("fecha", hoy);
+if (filtroCuando === "pasados") qFeriados = qFeriados.lt("fecha", hoy);
+
+const [{ data: jornadasData }, { data: feriadosData }, { data: categoriasData }] =
+  await Promise.all([
+    sb.from("jornadas").select(`${COLUMNAS_JORNADA}, personal(count)`).order("nombre"),
+    qFeriados,
+    sb
+      .from("categorias")
+      .select(`${COLUMNAS_CATEGORIA}, personal(count)`)
+      .order("orden")
+      .order("nombre"),
+  ]);
+const todasJornadas = (jornadasData ?? []) as (FilaJornada & { personal: { count: number }[] })[];
+const jornadas = todasJornadas.filter(
+  (j) => !filtroJornada || j.activa === (filtroJornada === "activa"),
+);
 const feriados = (feriadosData ?? []) as { id: string; fecha: string; descripcion: string }[];
+const categorias = (categoriasData ?? []) as (Categoria & { personal: { count: number }[] })[];
+const nombreJornada = new Map(todasJornadas.map((j) => [j.id, j.nombre]));
+const editarCat = categorias.find(
+  (c) => c.id === (accion === "categoria_guardar" ? valores.id : qp.get("categoria")),
+);
+const eC = accion === "categoria_guardar" ? errores : {};
+const vc = (k: string, porDefecto: string) =>
+  accion === "categoria_guardar" && typeof valores[k] === "string"
+    ? (valores[k] as string)
+    : porDefecto;
 
 // Formulario: edición (?editar=id), reintento tras error, o nueva jornada
 const editarId = Astro.url.searchParams.get("editar");
-const enEdicion = jornadas.find((j) => j.id === (accion === "guardar" ? valores.id : editarId));
+const enEdicion = todasJornadas.find(
+  (j) => j.id === (accion === "guardar" ? valores.id : editarId),
+);
 const form =
   accion === "guardar"
     ? valores
@@ -117,6 +204,7 @@ const form =
           pausa_min: String(enEdicion.pausa_min),
           dias_laborables: enEdicion.dias_laborables.map(String),
           activa: enEdicion.activa ? "si" : "no",
+          nocturna: enEdicion.nocturna ? "si" : "no",
         }
       : {
           hora_entrada: "07:00",
@@ -131,12 +219,43 @@ const eJ = accion === "guardar" ? errores : {};
 const eF = accion === "feriado_agregar" ? errores : {};
 ---
 
-<PanelLayout titulo="Jornadas y feriados" subtitulo="Horarios configurables del personal.">
+<PanelLayout
+  titulo="Jornadas, categorías y feriados"
+  subtitulo="Horarios configurables, oficios del personal y días no laborables."
+  migas={[{ texto: "Panel", href: "/panel" }, { texto: "Jornadas" }]}
+>
   <div class="pila">
     {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
 
-    <Tarjeta titulo="Jornadas">
-      <Tabla titulo="Jornadas" hayFilas={jornadas.length > 0} vacio="Aún no hay jornadas.">
+    <nav class="secciones" aria-label="Secciones">
+      <a href="#jornadas">Jornadas</a>
+      <a href="#categorias">Categorías</a>
+      <a href="#feriados">Feriados</a>
+    </nav>
+
+    <Tarjeta titulo="Jornadas" id="jornadas">
+      <BarraFiltros
+        total={jornadas.length}
+        unidad={["jornada", "jornadas"]}
+        conservar={["anio", "cuando"]}
+        filtros={[
+          {
+            nombre: "jestado",
+            etiqueta: "Estado",
+            vacia: "Todas",
+            opciones: [
+              { valor: "activa", texto: "Activas" },
+              { valor: "inactiva", texto: "Inactivas" },
+            ],
+          },
+        ]}
+      />
+      <Tabla
+        titulo="Jornadas"
+        tarjetas
+        hayFilas={jornadas.length > 0}
+        vacio="No hay jornadas con ese filtro."
+      >
         <thead>
           <tr>
             <th scope="col">Nombre</th>
@@ -156,17 +275,18 @@ const eF = accion === "feriado_agregar" ? errores : {};
             const personas = j.personal[0]?.count ?? 0;
             return (
               <tr>
-                <td>
+                <td class="principal">
                   <strong>{j.nombre}</strong>
                 </td>
-                <td>
+                <td data-etiqueta="Horario">
                   {horaCorta(j.hora_entrada)}–{horaCorta(j.hora_salida)}
+                  {j.nocturna && <Badge tipo="info">Nocturna</Badge>}
                 </td>
-                <td>{j.tolerancia_min} min</td>
-                <td>{j.pausa_min} min</td>
-                <td>{resumenDias(j.dias_laborables)}</td>
-                <td>{personas}</td>
-                <td>
+                <td data-etiqueta="Tolerancia">{j.tolerancia_min} min</td>
+                <td data-etiqueta="Pausa">{j.pausa_min} min</td>
+                <td data-etiqueta="Días">{resumenDias(j.dias_laborables)}</td>
+                <td data-etiqueta="Personas">{personas}</td>
+                <td data-etiqueta="Estado">
                   <Badge tipo={j.activa ? "activo" : "inactivo"}>
                     {j.activa ? "Activa" : "Inactiva"}
                   </Badge>
@@ -276,6 +396,16 @@ const eF = accion === "feriado_agregar" ? errores : {};
             </small>
           )}
         </fieldset>
+        <label class="ancho casilla">
+          <input type="checkbox" name="nocturna" value="si" checked={v("nocturna") === "si"} />
+          <span>
+            <strong>Jornada nocturna</strong>
+            <small>
+              La salida ocurre al día siguiente (por ejemplo, vigilancia de 22:00 a 06:00).
+            </small>
+          </span>
+        </label>
+        {eJ.nocturna && <small class="error ancho">{eJ.nocturna}</small>}
         {v("id") && <input type="hidden" name="activa" value={v("activa") || "si"} />}
         <p class="ancho nota">
           Los cambios aplican a las próximas marcaciones. Los días ya registrados conservan la regla
@@ -293,10 +423,167 @@ const eF = accion === "feriado_agregar" ? errores : {};
     </Tarjeta>
 
     <Tarjeta
-      titulo="Feriados"
-      descripcion={`Días no laborables desde enero de ${hoy.slice(0, 4)}.`}
+      id="categorias"
+      titulo="Categorías de personal"
+      descripcion="Oficios del colegio. Definen el color, la planilla oficial donde aparecen y la jornada que se propone al registrar a alguien."
     >
-      <div id="feriados" class="feriados">
+      <Tabla
+        titulo="Categorías"
+        tarjetas
+        hayFilas={categorias.length > 0}
+        vacio="No hay categorías."
+      >
+        <thead>
+          <tr>
+            <th scope="col">Categoría</th>
+            <th scope="col">Planilla</th>
+            <th scope="col">Jornada sugerida</th>
+            <th scope="col" class="num">
+              Personas
+            </th>
+            <th scope="col">Estado</th>
+            <th scope="col">
+              <span class="visualmente-oculto">Acciones</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {categorias.map((c) => {
+            const n = c.personal[0]?.count ?? 0;
+            return (
+              <tr>
+                <td class="principal">
+                  <ChipCategoria nombre={c.nombre} color={c.color} />
+                </td>
+                <td data-etiqueta="Planilla">
+                  {c.planilla === "docentes" ? "Asistencia docentes" : "Asistencia personal"}
+                </td>
+                <td data-etiqueta="Jornada sugerida">
+                  {c.jornada_sugerida_id ? nombreJornada.get(c.jornada_sugerida_id) : "—"}
+                </td>
+                <td data-etiqueta="Personas" class="num">
+                  {n}
+                </td>
+                <td data-etiqueta="Estado">
+                  <Badge tipo={c.activa ? "activo" : "inactivo"}>
+                    {c.activa ? "Activa" : "Inactiva"}
+                  </Badge>
+                </td>
+                <td class="acciones">
+                  <Boton
+                    href={`/jornadas?categoria=${c.id}#form-categoria`}
+                    variante="fantasma"
+                    tamano="pequeno"
+                  >
+                    Editar
+                  </Boton>
+                  <form method="post">
+                    <input type="hidden" name="accion" value="categoria_alternar" />
+                    <input type="hidden" name="id" value={c.id} />
+                    <input type="hidden" name="activa" value={c.activa ? "no" : "si"} />
+                    <Boton type="submit" variante="fantasma" tamano="pequeno">
+                      {c.activa ? "Desactivar" : "Activar"}
+                    </Boton>
+                  </form>
+                  {n === 0 && (
+                    <form method="post">
+                      <input type="hidden" name="accion" value="categoria_eliminar" />
+                      <input type="hidden" name="id" value={c.id} />
+                      <Boton type="submit" variante="fantasma" tamano="pequeno">
+                        Eliminar
+                      </Boton>
+                    </form>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </Tabla>
+
+      <form method="post" id="form-categoria" class="form-categoria" novalidate>
+        <h3>{editarCat ? `Editar «${editarCat.nombre}»` : "Nueva categoría"}</h3>
+        <input type="hidden" name="accion" value="categoria_guardar" />
+        {editarCat && <input type="hidden" name="id" value={editarCat.id} />}
+        <Input
+          etiqueta="Nombre"
+          nombre="nombre"
+          required
+          maxlength={40}
+          value={vc("nombre", editarCat?.nombre ?? "")}
+          error={eC.cat_nombre}
+          placeholder="Ej. Mantenimiento"
+        />
+        <Input
+          etiqueta="Color"
+          nombre="color"
+          type="color"
+          value={vc("color", editarCat?.color ?? "#64748b")}
+          error={eC.cat_color}
+        />
+        <Select
+          etiqueta="Planilla oficial"
+          nombre="planilla"
+          valor={vc("planilla", editarCat?.planilla ?? "personal")}
+          opciones={[
+            { valor: "personal", texto: "Asistencia personal" },
+            { valor: "docentes", texto: "Asistencia docentes" },
+          ]}
+        />
+        <Select
+          etiqueta="Jornada sugerida"
+          nombre="jornada_sugerida_id"
+          vacia="Ninguna"
+          valor={vc("jornada_sugerida_id", editarCat?.jornada_sugerida_id ?? "")}
+          error={eC.cat_jornada}
+          opciones={todasJornadas
+            .filter((j) => j.activa)
+            .map((j) => ({ valor: j.id, texto: j.nombre }))}
+        />
+        <Input
+          etiqueta="Orden"
+          nombre="orden"
+          type="number"
+          min="0"
+          max="99"
+          value={vc("orden", String(editarCat?.orden ?? 5))}
+          ayuda="Posición en listas y reportes."
+        />
+        <div class="final">
+          {editarCat && (
+            <Boton href="/jornadas#categorias" variante="secundario">
+              Cancelar
+            </Boton>
+          )}
+          <Boton type="submit">{editarCat ? "Guardar categoría" : "Crear categoría"}</Boton>
+        </div>
+      </form>
+    </Tarjeta>
+
+    <Tarjeta id="feriados" titulo="Feriados" descripcion="Días no laborables: no generan faltas.">
+      <BarraFiltros
+        total={feriados.length}
+        unidad={["feriado", "feriados"]}
+        conservar={["jestado"]}
+        filtros={[
+          {
+            nombre: "anio",
+            etiqueta: "Año",
+            porDefecto: String(anioActual),
+            opciones: anios.map((a) => ({ valor: a, texto: a })),
+          },
+          {
+            nombre: "cuando",
+            etiqueta: "Mostrar",
+            vacia: "Todos",
+            opciones: [
+              { valor: "proximos", texto: "Próximos" },
+              { valor: "pasados", texto: "Pasados" },
+            ],
+          },
+        ]}
+      />
+      <div class="feriados">
         <Tabla
           titulo="Feriados"
           hayFilas={feriados.length > 0}
@@ -360,6 +647,71 @@ const eF = accion === "feriado_agregar" ? errores : {};
   .pila {
     display: grid;
     gap: var(--esp-4);
+  }
+  .secciones {
+    display: flex;
+    gap: var(--esp-2);
+    flex-wrap: wrap;
+  }
+  .secciones a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 var(--esp-4);
+    border-radius: 999px;
+    border: 1px solid var(--color-borde);
+    background: var(--color-superficie);
+    color: var(--color-texto);
+    text-decoration: none;
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+  }
+  .secciones a:hover {
+    border-color: var(--color-acento);
+  }
+  .casilla {
+    display: flex;
+    gap: var(--esp-3);
+    align-items: flex-start;
+    padding: var(--esp-3) var(--esp-4);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+  }
+  .casilla input {
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+  }
+  .casilla span {
+    display: grid;
+  }
+  .casilla small {
+    color: var(--color-texto-suave);
+  }
+  .form-categoria {
+    display: grid;
+    gap: var(--esp-4);
+    margin-top: var(--esp-5);
+    padding-top: var(--esp-5);
+    border-top: 1px solid var(--color-borde);
+  }
+  .form-categoria h3 {
+    margin: 0;
+    font-size: var(--texto-base);
+  }
+  .form-categoria :global(input[type="color"]) {
+    padding: 4px;
+    height: 48px;
+  }
+  @media (min-width: 900px) {
+    .form-categoria {
+      grid-template-columns: 2fr 1fr 1.5fr 1.5fr 1fr;
+      align-items: start;
+    }
+    .form-categoria h3,
+    .form-categoria .final {
+      grid-column: 1 / -1;
+    }
   }
   .acciones {
     display: flex;

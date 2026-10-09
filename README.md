@@ -68,17 +68,24 @@ Una aplicación que se instala en el teléfono del personal y digitaliza todo el
 
 **Administración**
 
-- Gestión del personal con búsqueda, filtros y paginación.
+- Gestión del personal por **categoría** (docente, secretaría, cocina, obrero, vigilancia) y vínculo, con búsqueda, filtros, orden y paginación.
+- Importación de personal desde una hoja de cálculo (CSV).
 - **Jornadas configurables**: hora de entrada y salida, tolerancia, pausa y días laborables, con excepciones por persona y día.
 - Calendario de feriados.
 - Gestión de cuentas de usuario y roles.
+
+**Panel para la directiva**
+
+- Indicadores del período con comparación frente al período anterior: asistencia, puntualidad, faltas, retraso promedio y horas.
+- Gráficas: tendencia diaria, asistencia por día de la semana, hora de llegada, comparación por categoría y seguimiento individual.
+- Lectura rápida con observaciones calculadas a partir de los datos.
 
 **Cálculos y reportes**
 
 - Clasificación automática de cada día: presente, tarde, falta o permiso.
 - Horas trabajadas, tardanzas, faltas y porcentaje de asistencia por período.
 - Cierre diario automático que registra las faltas y genera alertas.
-- Exportación de reportes a **PDF** y **Excel**.
+- Planilla diaria en **PDF** y **Excel** con el formato oficial del plantel (Asistencia Docentes / Asistencia Personal).
 
 **Aplicación progresiva (PWA)**
 

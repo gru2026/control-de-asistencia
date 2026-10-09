@@ -3,12 +3,13 @@ interface Props {
   titulo?: string;
   descripcion?: string;
   class?: string;
+  id?: string;
 }
-const { titulo, descripcion, class: clase } = Astro.props;
+const { titulo, descripcion, class: clase, id } = Astro.props;
 const tieneAcciones = Astro.slots.has("acciones");
 ---
 
-<section class:list={["tarjeta", clase]}>
+<section class:list={["tarjeta", clase]} id={id}>
   {(titulo || tieneAcciones) && (
     <header>
       <div>
@@ -27,6 +28,7 @@ const tieneAcciones = Astro.slots.has("acciones");
 
 <style>
   .tarjeta {
+    scroll-margin-top: calc(120px + var(--seguro-arriba));
     background: var(--color-superficie);
     border: 1px solid var(--color-borde);
     border-radius: var(--radio);

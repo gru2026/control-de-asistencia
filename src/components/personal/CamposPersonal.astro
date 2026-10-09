@@ -4,85 +4,144 @@ import Select from "@/components/ui/Select.astro";
 import type { FilaJornada } from "@/lib/datos/jornadas";
 import { resumenDias } from "@/lib/datos/jornadas";
 import { horaCorta } from "@/lib/fecha";
-import { CARGOS, NOMBRE_CARGO } from "@/types";
+import { NOMBRE_VINCULO, VINCULOS, type Categoria } from "@/types";
 
 interface Props {
-  valores: Record<string, string | null | undefined>;
+  valores: Record<string, string | number | null | undefined>;
   errores?: Record<string, string>;
   jornadas: FilaJornada[];
+  categorias: Categoria[];
 }
-const { valores: v, errores: e = {}, jornadas } = Astro.props;
-const val = (k: string) => v[k] ?? "";
+const { valores: v, errores: e = {}, jornadas, categorias } = Astro.props;
+const val = (k: string) => (v[k] === null || v[k] === undefined ? "" : String(v[k]));
 ---
 
-<div class="rejilla">
-  <Input
-    etiqueta="Nombre(s)"
-    nombre="nombre"
-    value={val("nombre")}
-    error={e.nombre}
-    required
-    maxlength={80}
-    autocomplete="off"
-  />
-  <Input
-    etiqueta="Apellido(s)"
-    nombre="apellido"
-    value={val("apellido")}
-    error={e.apellido}
-    required
-    maxlength={80}
-    autocomplete="off"
-  />
-  <Input
-    etiqueta="Cédula"
-    nombre="cedula"
-    value={val("cedula")}
-    error={e.cedula}
-    required
-    ayuda="Ejemplo: V-12345678"
-    autocomplete="off"
-  />
-  <Select
-    etiqueta="Cargo"
-    nombre="cargo"
-    valor={val("cargo") || "docente"}
-    error={e.cargo}
-    required
-    opciones={CARGOS.map((c) => ({ valor: c, texto: NOMBRE_CARGO[c] }))}
-  />
-  <Input
-    etiqueta="Teléfono"
-    nombre="telefono"
-    type="tel"
-    value={val("telefono")}
-    error={e.telefono}
-    ayuda="Opcional"
-  />
-  <Input
-    etiqueta="Fecha de ingreso"
-    nombre="fecha_ingreso"
-    type="date"
-    value={val("fecha_ingreso")}
-    error={e.fecha_ingreso}
-    ayuda="Opcional"
-  />
-  <Select
-    class="ancho"
-    etiqueta="Jornada"
-    nombre="jornada_id"
-    valor={val("jornada_id")}
-    error={e.jornada_id}
-    vacia="Sin asignar"
-    ayuda="Define su horario de entrada, salida y tolerancia."
-    opciones={jornadas.map((j) => ({
-      valor: j.id,
-      texto: `${j.nombre} · ${horaCorta(j.hora_entrada)}–${horaCorta(j.hora_salida)} · ${resumenDias(j.dias_laborables)}${j.activa ? "" : " (inactiva)"}`,
-    }))}
-  />
-</div>
+<fieldset class="seccion">
+  <legend>Identificación</legend>
+  <div class="rejilla">
+    <Input
+      etiqueta="Nombre(s)"
+      nombre="nombre"
+      value={val("nombre")}
+      error={e.nombre}
+      required
+      maxlength={80}
+      autocomplete="off"
+    />
+    <Input
+      etiqueta="Apellido(s)"
+      nombre="apellido"
+      value={val("apellido")}
+      error={e.apellido}
+      required
+      maxlength={80}
+      autocomplete="off"
+    />
+    <Input
+      etiqueta="Cédula"
+      nombre="cedula"
+      value={val("cedula")}
+      error={e.cedula}
+      required
+      ayuda="Ejemplo: V-12345678"
+      autocomplete="off"
+      inputmode="text"
+      data-formato="cedula"
+    />
+    <Input
+      etiqueta="Teléfono"
+      nombre="telefono"
+      type="tel"
+      inputmode="tel"
+      value={val("telefono")}
+      error={e.telefono}
+      ayuda="Opcional. Ejemplo: 0414-1234567"
+    />
+  </div>
+</fieldset>
+
+<fieldset class="seccion">
+  <legend>Trabajo</legend>
+  <div class="rejilla">
+    <Select
+      etiqueta="Categoría"
+      nombre="categoria_id"
+      valor={val("categoria_id")}
+      error={e.categoria_id}
+      required
+      vacia="Seleccione…"
+      data-jornada-sugerida="campo-jornada_id"
+      opciones={categorias
+        .filter((c) => c.activa || c.id === val("categoria_id"))
+        .map((c) => ({
+          valor: c.id,
+          texto: c.nombre,
+          datos: c.jornada_sugerida_id
+            ? ({ jornada: c.jornada_sugerida_id } as Record<string, string>)
+            : undefined,
+        }))}
+    />
+    <Select
+      etiqueta="Vínculo"
+      nombre="vinculo"
+      valor={val("vinculo") || "fijo"}
+      error={e.vinculo}
+      opciones={VINCULOS.map((x) => ({ valor: x, texto: NOMBRE_VINCULO[x] }))}
+    />
+    <Input
+      etiqueta="Carga horaria semanal"
+      nombre="carga_horaria"
+      type="number"
+      inputmode="numeric"
+      min="1"
+      max="80"
+      value={val("carga_horaria")}
+      error={e.carga_horaria}
+      ayuda="Horas por semana (aparece en la planilla oficial)."
+    />
+    <Input
+      etiqueta="Fecha de ingreso"
+      nombre="fecha_ingreso"
+      type="date"
+      value={val("fecha_ingreso")}
+      error={e.fecha_ingreso}
+      ayuda="Opcional"
+    />
+    <Select
+      class="ancho"
+      etiqueta="Jornada"
+      nombre="jornada_id"
+      valor={val("jornada_id")}
+      error={e.jornada_id}
+      vacia="Sin asignar"
+      ayuda="Horario de entrada, salida y tolerancia. Al elegir la categoría se propone la jornada habitual."
+      opciones={jornadas.map((j) => ({
+        valor: j.id,
+        texto: `${j.nombre} · ${horaCorta(j.hora_entrada)}–${horaCorta(j.hora_salida)}${j.nocturna ? " (nocturna)" : ""} · ${resumenDias(j.dias_laborables)}${j.activa ? "" : " (inactiva)"}`,
+      }))}
+    />
+  </div>
+</fieldset>
 
 <style>
+  .seccion {
+    margin: 0 0 var(--esp-5);
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+  .seccion:last-of-type {
+    margin-bottom: 0;
+  }
+  legend {
+    padding: 0;
+    margin-bottom: var(--esp-3);
+    font-size: var(--texto-xs);
+    font-weight: var(--peso-fuerte);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-texto-suave);
+  }
   .rejilla {
     display: grid;
     gap: var(--esp-4);

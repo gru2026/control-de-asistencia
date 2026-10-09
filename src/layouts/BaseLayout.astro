@@ -38,6 +38,9 @@ const { titulo, colorTema = "#0f172a" } = Astro.props;
   </head>
   <body>
     <slot />
+    <script>
+      import "@/scripts/mejoras";
+    </script>
     {import.meta.env.PROD && <script is:inline>
       if ("serviceWorker" in navigator) {
         addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));

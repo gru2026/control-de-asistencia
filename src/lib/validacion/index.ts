@@ -1,7 +1,8 @@
 /**
  * Validación de formularios (pura y testeable). Mensajes en español para el usuario final.
  */
-import { CARGOS, ROLES, type Cargo, type DiaSemana, type Rol } from "@/types";
+import { ROLES, VINCULOS, type DiaSemana, type Rol, type Vinculo } from "@/types";
+import { duracionJornadaMin } from "@/lib/reglas/jornada";
 import { horaAMinutos } from "@/lib/reglas/tiempo";
 
 export type Errores = Record<string, string>;
@@ -50,7 +51,9 @@ export interface DatosPersonal {
   nombre: string;
   apellido: string;
   cedula: string;
-  cargo: Cargo;
+  categoria_id: string;
+  vinculo: Vinculo;
+  carga_horaria: number | null;
   telefono: string | null;
   jornada_id: string | null;
   fecha_ingreso: string | null;
@@ -66,8 +69,17 @@ export function validarPersonal(e: Entrada): Resultado<DatosPersonal> {
   if (!cedulaTexto) errores.cedula = "La cédula es obligatoria.";
   else if (!cedula) errores.cedula = "Cédula no válida. Ejemplo: V-12345678.";
 
-  const cargo = texto(e, "cargo") as Cargo;
-  if (!CARGOS.includes(cargo)) errores.cargo = "Seleccione un cargo.";
+  const categoria = texto(e, "categoria_id");
+  if (!esUuid(categoria)) errores.categoria_id = "Seleccione una categoría.";
+
+  const vinculo = (texto(e, "vinculo") || "fijo") as Vinculo;
+  if (!VINCULOS.includes(vinculo)) errores.vinculo = "Seleccione un vínculo.";
+
+  const cargaTexto = texto(e, "carga_horaria");
+  const carga = cargaTexto === "" ? null : Number(cargaTexto);
+  if (carga !== null && (!Number.isInteger(carga) || carga < 1 || carga > 80)) {
+    errores.carga_horaria = "Entre 1 y 80 horas semanales.";
+  }
 
   const telefono = texto(e, "telefono");
   if (telefono && !/^\+?[\d\s()-]{7,20}$/.test(telefono)) {
@@ -89,7 +101,9 @@ export function validarPersonal(e: Entrada): Resultado<DatosPersonal> {
       nombre,
       apellido,
       cedula: cedula!,
-      cargo,
+      categoria_id: categoria,
+      vinculo,
+      carga_horaria: carga,
       telefono: telefono || null,
       jornada_id: jornada || null,
       fecha_ingreso: fecha || null,
@@ -135,6 +149,7 @@ export interface DatosJornada {
   pausa_min: number;
   dias_laborables: DiaSemana[];
   activa: boolean;
+  nocturna: boolean;
 }
 
 function entero(
@@ -165,10 +180,18 @@ export function validarJornada(e: Entrada): Resultado<DatosJornada> {
   const tolerancia = entero(e, "tolerancia_min", 0, 180, errores, "Entre 0 y 180 minutos.");
   const pausa = entero(e, "pausa_min", 0, 240, errores, "Entre 0 y 240 minutos.");
 
+  const nocturna = texto(e, "nocturna") === "si";
   if (!errores.hora_entrada && !errores.hora_salida) {
-    const duracion = horaAMinutos(salida) - horaAMinutos(entrada);
-    if (duracion <= 0) errores.hora_salida = "La salida debe ser posterior a la entrada.";
-    else if (!errores.pausa_min && pausa >= duracion) {
+    const cruza = horaAMinutos(salida) < horaAMinutos(entrada);
+    const duracion = duracionJornadaMin(entrada, salida);
+    if (entrada === salida) errores.hora_salida = "La salida debe ser distinta de la entrada.";
+    else if (cruza && !nocturna) {
+      errores.hora_salida =
+        "La salida es anterior a la entrada. Marque «Jornada nocturna» si termina al día siguiente.";
+    } else if (!cruza && nocturna) {
+      errores.hora_salida =
+        "Una jornada nocturna debe terminar al día siguiente (salida menor que la entrada).";
+    } else if (!errores.pausa_min && pausa >= duracion) {
       errores.pausa_min = "La pausa no puede ser mayor que la jornada.";
     }
   }
@@ -189,6 +212,7 @@ export function validarJornada(e: Entrada): Resultado<DatosJornada> {
       pausa_min: pausa,
       dias_laborables: dias,
       activa: texto(e, "activa") !== "no",
+      nocturna,
     },
   };
 }

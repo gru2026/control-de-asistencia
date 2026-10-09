@@ -12,6 +12,7 @@ export interface FilaJornada {
   pausa_min: number;
   dias_laborables: number[];
   activa: boolean;
+  nocturna: boolean;
 }
 
 export interface FilaHorario {
@@ -23,7 +24,7 @@ export interface FilaHorario {
 }
 
 export const COLUMNAS_JORNADA =
-  "id, nombre, hora_entrada, hora_salida, tolerancia_min, pausa_min, dias_laborables, activa";
+  "id, nombre, hora_entrada, hora_salida, tolerancia_min, pausa_min, dias_laborables, activa, nocturna";
 
 export async function listarJornadas(sb: SupabaseClient, soloActivas = false) {
   let q = sb.from("jornadas").select(COLUMNAS_JORNADA).order("nombre");
@@ -39,6 +40,7 @@ export function aJornada(f: FilaJornada): Jornada {
     toleranciaMin: f.tolerancia_min,
     pausaMin: f.pausa_min,
     diasLaborables: f.dias_laborables as DiaSemana[],
+    nocturna: f.nocturna,
   };
 }
 

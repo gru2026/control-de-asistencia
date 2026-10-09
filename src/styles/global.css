@@ -93,6 +93,28 @@ input[type="radio"] {
   white-space: nowrap;
 }
 
+/* Indicador de carga en botones */
+.girando {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: girar 0.7s linear infinite;
+}
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error de validación en el cliente (mismo aspecto que el del servidor) */
+.error-cliente {
+  color: var(--color-error);
+  font-weight: 600;
+  font-size: var(--texto-sm);
+}
+
 /* Respeta la preferencia de movimiento reducido */
 @media (prefers-reduced-motion: reduce) {
   *,

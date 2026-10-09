@@ -37,6 +37,19 @@ fecha: 2026-10-06
 
 **🏁 Hito:** ✅ login, personal y jornadas configurables (2026-10-06).
 
+## Extra — Interfaz, nómina real y panel directivo (2026-10-08) ✅
+
+- [x] PWA instalable «GRU-system» (manifest, íconos, service worker, iOS a pantalla completa)
+- [x] Íconos SVG y sistema de diseño (skill ui-ux-pro-max)
+- [x] Categorías, vínculo, carga horaria y jornadas nocturnas (migración 005)
+- [x] Filtros, orden y vista de tarjetas en Personal, Usuarios, Jornadas y Feriados
+- [x] Formularios: secciones, validación al salir del campo, «Guardando…», mostrar/copiar contraseña, aviso de cambios sin guardar
+- [x] Panel con KPIs, comparación con el período anterior, 5 gráficas y lectura rápida
+- [x] Reportes PDF/Excel con la planilla oficial (adelanto de la Semana 3)
+- [x] Importador de personal (CSV) y nómina real cargada (51 personas)
+- [x] Datos de demostración y botones de limpieza en Ajustes
+- [ ] Logo y escudo para el encabezado (pendiente: jueves)
+
 ## Semana 2 — Marcación QR + GPS y reglas
 
 - [ ] `/configuracion`: geocerca (coordenadas, radio, precisión)
@@ -59,9 +72,9 @@ fecha: 2026-10-06
 - [ ] `/kiosco` cédula + PIN (bloqueo 5 intentos) + gestión de PIN
 - [ ] `/asistencia/revision`: marcaciones señaladas
 - [ ] `/reportes` con filtros + `acumulados.ts` (R5) + tests
-- [ ] Export **PDF** (jsPDF)
-- [ ] Export **Excel** (SheetJS)
-- [ ] `/panel` con KPIs
+- [x] Export **PDF** (jsPDF) — planilla oficial
+- [x] Export **Excel** (ExcelJS) — planilla oficial
+- [x] `/panel` con KPIs y gráficas
 - [ ] `/notificaciones` y `/historial`
 
 **🏁 Hito:** reportes listos y PC operativo como respaldo.

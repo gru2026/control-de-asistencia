@@ -8,6 +8,9 @@ import Alerta from "@/components/ui/Alerta.astro";
 import Input from "@/components/ui/Input.astro";
 import Select from "@/components/ui/Select.astro";
 import CamposCuenta from "@/components/personal/CamposCuenta.astro";
+import BarraFiltros from "@/components/ui/BarraFiltros.astro";
+import Paginacion from "@/components/ui/Paginacion.astro";
+import { terminosBusqueda } from "@/lib/validacion";
 import { esUuid, texto, validarClave, validarCuenta, type Errores } from "@/lib/validacion";
 import {
   cambiarEstadoCuenta,
@@ -83,11 +86,30 @@ interface FilaUsuario {
   estado: "activo" | "inactivo";
   personal: { id: string } | { id: string }[] | null;
 }
-const { data } = await sb
+// Filtros (en la URL)
+const p = Astro.url.searchParams;
+const fq = (p.get("q") ?? "").slice(0, 80);
+const frol = ROLES.includes(p.get("rol") as Rol) ? (p.get("rol") as Rol) : null;
+const festado = ["activo", "inactivo"].includes(p.get("estado") ?? "") ? p.get("estado") : null;
+const fficha = ["si", "no"].includes(p.get("ficha") ?? "") ? p.get("ficha") : null;
+const POR_PAGINA = 25;
+const pagina = Math.max(1, Number.parseInt(p.get("pagina") ?? "1", 10) || 1);
+
+let consulta = sb
   .from("usuarios")
-  .select("id, nombre, apellido, email, rol, estado, personal(id)")
+  .select(
+    `id, nombre, apellido, email, rol, estado, personal${fficha === "si" ? "!inner" : ""}(id)`,
+    { count: "exact" },
+  )
   .order("rol")
   .order("apellido");
+for (const t of terminosBusqueda(fq)) {
+  consulta = consulta.or(`nombre.ilike.*${t}*,apellido.ilike.*${t}*,email.ilike.*${t}*`);
+}
+if (frol) consulta = consulta.eq("rol", frol);
+if (festado) consulta = consulta.eq("estado", festado);
+if (fficha === "no") consulta = consulta.is("personal", null);
+const { data, count } = await consulta.range((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA - 1);
 const usuarios = ((data ?? []) as FilaUsuario[]).map((u) => ({
   ...u,
   fichaId: Array.isArray(u.personal) ? u.personal[0]?.id : u.personal?.id,
@@ -98,12 +120,53 @@ const gestionar =
 const seleccionado = usuarios.find((u) => u.id === gestionar);
 ---
 
-<PanelLayout titulo="Usuarios" subtitulo="Cuentas de acceso y roles.">
+<PanelLayout
+  titulo="Usuarios"
+  subtitulo="Cuentas de acceso y roles."
+  migas={[{ texto: "Ajustes", href: "/configuracion" }, { texto: "Usuarios" }]}
+>
   <div class="pila">
     {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
 
     <Tarjeta>
-      <Tabla titulo="Cuentas" hayFilas={usuarios.length > 0}>
+      <BarraFiltros
+        busqueda={{ placeholder: "Nombre, apellido o correo" }}
+        total={count ?? 0}
+        unidad={["cuenta", "cuentas"]}
+        conservar={[]}
+        filtros={[
+          {
+            nombre: "rol",
+            etiqueta: "Rol",
+            vacia: "Todos",
+            opciones: ROLES.map((r) => ({ valor: r, texto: NOMBRE_ROL[r] })),
+          },
+          {
+            nombre: "estado",
+            etiqueta: "Estado",
+            vacia: "Todos",
+            opciones: [
+              { valor: "activo", texto: "Activas" },
+              { valor: "inactivo", texto: "Desactivadas" },
+            ],
+          },
+          {
+            nombre: "ficha",
+            etiqueta: "Ficha de personal",
+            vacia: "Todas",
+            opciones: [
+              { valor: "si", texto: "Con ficha" },
+              { valor: "no", texto: "Sin ficha" },
+            ],
+          },
+        ]}
+      />
+      <Tabla
+        titulo="Cuentas"
+        tarjetas
+        hayFilas={usuarios.length > 0}
+        vacio="No hay cuentas con esos filtros."
+      >
         <thead>
           <tr>
             <th scope="col">Nombre</th>
@@ -119,20 +182,20 @@ const seleccionado = usuarios.find((u) => u.id === gestionar);
         <tbody>
           {usuarios.map((u) => (
             <tr class:list={[u.id === gestionar && "marcada"]}>
-              <td>
+              <td class="principal">
                 {u.apellido}, {u.nombre}
                 {u.id === perfil.id && <span class="suave"> (usted)</span>}
               </td>
-              <td>{u.email}</td>
-              <td>{NOMBRE_ROL[u.rol]}</td>
-              <td>
+              <td data-etiqueta="Correo">{u.email}</td>
+              <td data-etiqueta="Rol">{NOMBRE_ROL[u.rol]}</td>
+              <td data-etiqueta="Ficha">
                 {u.fichaId ? (
                   <a href={`/personal/${u.fichaId}`}>Ver ficha</a>
                 ) : (
                   <span class="suave">—</span>
                 )}
               </td>
-              <td>
+              <td data-etiqueta="Estado">
                 <Badge tipo={u.estado}>{u.estado === "activo" ? "Activa" : "Desactivada"}</Badge>
               </td>
               <td class="acciones">
@@ -161,6 +224,7 @@ const seleccionado = usuarios.find((u) => u.id === gestionar);
           ))}
         </tbody>
       </Tabla>
+      <Paginacion pagina={pagina} total={count ?? 0} porPagina={POR_PAGINA} />
     </Tarjeta>
 
     {seleccionado && (

@@ -39,6 +39,10 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-20 | 2026-10-08 | Nombre del producto: **GRU-system**; ícono con las iniciales "GRU" en la paleta del proyecto | ✅ Vigente |
 | D-21 | 2026-10-08 | Escritorio = **PWA instalada desde Edge/Chrome** (Windows 10). Se descartan Electron y Tauri | ✅ Vigente |
 | D-22 | 2026-10-08 | Interfaz: estilo Minimalismo/Swiss, íconos SVG de una sola familia (Lucide), sin emojis; fuentes del sistema | ✅ Vigente |
+| D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
+| D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
+| D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-26 | 2026-10-08 | Nómina real cargada por importación (`origen = importado`) y asistencia de **demostración** (`es_demo`), ambas eliminables desde Ajustes | ✅ Vigente |
 
 ---
 
@@ -59,6 +63,14 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 - Definido con la skill *ui-ux-pro-max* (`.opencode/skills/`): estilo Minimalismo/Swiss, recomendado para paneles administrativos.
 - Tokens en `src/styles/tokens.css`; íconos en `src/components/ui/Icono.astro` (trazo 2, contorno).
 - Accesibilidad: contraste ≥ 4.5:1, foco visible, controles ≥ 44 px, respeto de `prefers-reduced-motion`, áreas seguras del iPhone.
+
+### D-23 a D-26 · Nómina real, reportes y demostración
+- Las planillas del colegio muestran 5 cargos: Docente, Secretaría, Cocina, Obrero y Vigilancia. Son **categorías** configurables (color, planilla oficial donde aparecen, jornada sugerida).
+- "Contratista" no es un oficio: es el **vínculo**. Separarlos permite cruzar filtros ("Cocina + Contratado").
+- La **carga horaria** semanal es una columna de la planilla oficial.
+- Vigilancia trabaja de noche: la jornada nocturna termina al día siguiente; una marca de madrugada pertenece a la jornada que empezó la noche anterior.
+- La planilla oficial no lleva firmas por persona (el sistema registra la hora). Solo se imprime y firma si la dirección lo desea.
+- La nómina real (51 personas) se cargó desde un CSV **privado** (no está en el repositorio). La asistencia de demostración es simulada; el panel lo indica con un aviso.
 
 ### D-02 · El PC del colegio
 - Desde el PC, **directiva y secretaría** administran: personal, jornadas, configuración, QR, dispositivos, reportes.

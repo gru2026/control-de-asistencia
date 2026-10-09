@@ -1,0 +1,62 @@
+---
+/** Encabezado de columna ordenable (orden en la URL: ?orden=campo&dir=asc|desc). */
+interface Props {
+  campo: string;
+  /** Orden actual. */
+  orden: string;
+  dir: "asc" | "desc";
+}
+const { campo, orden, dir } = Astro.props;
+const activo = orden === campo;
+const siguiente = activo && dir === "asc" ? "desc" : "asc";
+const u = new URL(Astro.url);
+u.searchParams.set("orden", campo);
+u.searchParams.set("dir", siguiente);
+u.searchParams.delete("pagina");
+---
+
+<th scope="col" aria-sort={activo ? (dir === "asc" ? "ascending" : "descending") : "none"}>
+  <a href={u.pathname + u.search} class:list={["orden", activo && "activo"]}>
+    <slot />
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      {!activo ? (
+        <path d="m7 15 5 5 5-5M7 9l5-5 5 5" />
+      ) : dir === "asc" ? (
+        <path d="m18 15-6-6-6 6" />
+      ) : (
+        <path d="m6 9 6 6 6-6" />
+      )}
+    </svg>
+  </a>
+</th>
+
+<style>
+  .orden {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: inherit;
+    text-decoration: none;
+    min-height: 32px;
+  }
+  .orden svg {
+    opacity: 0.45;
+  }
+  .orden:hover svg,
+  .activo svg {
+    opacity: 1;
+  }
+  .activo {
+    color: var(--color-texto);
+  }
+</style>

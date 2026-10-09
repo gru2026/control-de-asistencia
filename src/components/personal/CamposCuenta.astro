@@ -29,6 +29,8 @@ const { valores: v, errores: e = {}, claveSugerida, conRol = true } = Astro.prop
     value={v.password ?? claveSugerida}
     error={e.password}
     autocomplete="off"
+    accion="copiar"
+    id={`clave-${Math.random().toString(36).slice(2, 8)}`}
     ayuda="Mínimo 8 caracteres con letras y números. Entréguela a la persona."
   />
   {conRol && (

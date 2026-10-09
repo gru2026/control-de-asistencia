@@ -35,14 +35,21 @@ import {
 import { cambiarRol, generarClaveTemporal, restablecerClave } from "@/lib/servicios/cuentas";
 import { ponerFlash } from "@/lib/flash";
 import { fechaCorta, horaCorta } from "@/lib/fecha";
+import ChipCategoria from "@/components/ui/ChipCategoria.astro";
+import { listarCategorias } from "@/lib/datos/categorias";
+import { resumir, type RegistroEstadistica } from "@/lib/reglas/estadisticas";
+import { diferenciaMin } from "@/lib/reglas/estados";
+import { horaEnZona, sumarDias } from "@/lib/reglas/tiempo";
+import { hoyEnZona } from "@/lib/fecha";
 import {
-  NOMBRE_CARGO,
   NOMBRE_DIA,
   NOMBRE_ROL,
+  NOMBRE_VINCULO,
   ROLES,
-  type Cargo,
   type DiaSemana,
+  type EstadoAsistencia,
   type Rol,
+  type Vinculo,
 } from "@/types";
 
 const { id = "" } = Astro.params;
@@ -57,7 +64,9 @@ interface Ficha {
   nombre: string;
   apellido: string;
   cedula: string;
-  cargo: Cargo;
+  categoria_id: string;
+  vinculo: Vinculo;
+  carga_horaria: number | null;
   telefono: string | null;
   jornada_id: string | null;
   fecha_ingreso: string | null;
@@ -72,8 +81,8 @@ async function cargar() {
   const { data } = await sb
     .from("personal")
     .select(
-      "id, nombre, apellido, cedula, cargo, telefono, jornada_id, fecha_ingreso, estado, creado_en," +
-        " jornadas(id, nombre, hora_entrada, hora_salida, tolerancia_min, pausa_min, dias_laborables, activa)," +
+      "id, nombre, apellido, cedula, categoria_id, vinculo, carga_horaria, telefono, jornada_id, fecha_ingreso, estado, creado_en," +
+        " jornadas(id, nombre, hora_entrada, hora_salida, tolerancia_min, pausa_min, dias_laborables, activa, nocturna)," +
         " usuarios(id, email, rol, estado)," +
         " horarios(dia_semana, hora_entrada, hora_salida, tolerancia_min, libre)",
     )
@@ -190,7 +199,49 @@ if (Astro.request.method === "POST") {
   ficha = (await cargar()) ?? ficha;
 }
 
-const jornadas = await listarJornadas(sb);
+const [jornadas, categorias] = await Promise.all([listarJornadas(sb), listarCategorias(sb)]);
+const categoria = categorias.find((c) => c.id === ficha!.categoria_id);
+
+// Resumen de los últimos 30 días e historial reciente
+const hoy = hoyEnZona();
+interface FilaRegistro {
+  fecha: string;
+  estado: EstadoAsistencia;
+  hora_entrada: string | null;
+  hora_salida: string | null;
+  hora_esperada_entrada: string | null;
+  horas_trabajadas: number | null;
+  es_demo: boolean;
+}
+const { data: regs } = await sb
+  .from("registros_asistencia")
+  .select(
+    "fecha, estado, hora_entrada, hora_salida, hora_esperada_entrada, horas_trabajadas, es_demo",
+  )
+  .eq("personal_id", id)
+  .gte("fecha", sumarDias(hoy, -30))
+  .order("fecha", { ascending: false });
+const registros = (regs ?? []) as FilaRegistro[];
+const resumen30 = resumir(
+  registros.map((r): RegistroEstadistica => ({
+    fecha: r.fecha,
+    personalId: id,
+    categoriaId: ficha!.categoria_id,
+    estado: r.estado,
+    diferenciaMin:
+      r.hora_entrada && r.hora_esperada_entrada
+        ? diferenciaMin(horaEnZona(r.hora_entrada), r.hora_esperada_entrada.slice(0, 5))
+        : null,
+    horas: r.horas_trabajadas === null ? null : Number(r.horas_trabajadas),
+  })),
+);
+const ultimos = registros.slice(0, 10);
+const NOMBRE_ESTADO_FICHA = {
+  presente: "Presente",
+  tarde: "Tarde",
+  falta: "Falta",
+  permiso: "Permiso",
+};
 const excepciones = new Map(ficha.horarios.map((h) => [h.dia_semana, h]));
 
 // Resumen semanal efectivo (semana de referencia: 5–11 oct 2026, lunes a domingo)
@@ -212,7 +263,9 @@ const valoresDatos =
         nombre: ficha.nombre,
         apellido: ficha.apellido,
         cedula: ficha.cedula,
-        cargo: ficha.cargo,
+        categoria_id: ficha.categoria_id,
+        vinculo: ficha.vinculo,
+        carga_horaria: ficha.carga_horaria,
         telefono: ficha.telefono,
         fecha_ingreso: ficha.fecha_ingreso,
         jornada_id: ficha.jornada_id,
@@ -223,11 +276,14 @@ const valorExc = (k: string, porDefecto: string) =>
 ---
 
 <PanelLayout
-  titulo={`${ficha.nombre} ${ficha.apellido}`}
-  subtitulo={`${ficha.cedula} · ${NOMBRE_CARGO[ficha.cargo]}`}
+  titulo="Ficha de personal"
+  migas={[
+    { texto: "Panel", href: "/panel" },
+    { texto: "Personal", href: "/personal" },
+    { texto: `${ficha.nombre} ${ficha.apellido}` },
+  ]}
 >
   <Fragment slot="acciones">
-    <Badge tipo={ficha.estado}>{ficha.estado === "activo" ? "Activo" : "Inactivo"}</Badge>
     <Boton href="/personal" variante="secundario">
       <Icono nombre="atras" tamano={18} />
       Volver
@@ -235,17 +291,67 @@ const valorExc = (k: string, porDefecto: string) =>
   </Fragment>
 
   <div class="pila">
+    <section class="cabecera" aria-label="Resumen de la persona">
+      <span class="avatar" aria-hidden="true" style={`--c: ${categoria?.color ?? "#64748b"}`}>
+        {(ficha.nombre[0] ?? "") + (ficha.apellido[0] ?? "")}
+      </span>
+      <div class="identidad">
+        <h2>
+          {ficha.nombre} {ficha.apellido}
+        </h2>
+        <p>
+          <span>{ficha.cedula}</span>
+          {categoria && <ChipCategoria nombre={categoria.nombre} color={categoria.color} />}
+          <span>{NOMBRE_VINCULO[ficha.vinculo]}</span>
+          {ficha.carga_horaria && <span>{ficha.carga_horaria} h/semana</span>}
+          <Badge tipo={ficha.estado}>{ficha.estado === "activo" ? "Activo" : "Inactivo"}</Badge>
+        </p>
+      </div>
+      <dl class="mini-kpis" aria-label="Últimos 30 días">
+        <div>
+          <dt>Asistencia</dt>
+          <dd>{resumen30.conteo.total ? `${resumen30.asistencia}%` : "—"}</dd>
+        </div>
+        <div>
+          <dt>Tardanzas</dt>
+          <dd>{resumen30.conteo.tarde}</dd>
+        </div>
+        <div>
+          <dt>Faltas</dt>
+          <dd>{resumen30.conteo.falta}</dd>
+        </div>
+        <div>
+          <dt>Horas</dt>
+          <dd>{Math.round(resumen30.horasTotales)}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <nav class="pestanas" aria-label="Secciones de la ficha">
+      <a href="#datos">Datos</a>
+      <a href="#horario">Horario</a>
+      <a href="#historial">Asistencia</a>
+      <a href="#cuenta">Cuenta</a>
+      <a href="#dispositivo">Teléfono y PIN</a>
+      {esDirectiva && <a href="#estado">Estado</a>}
+    </nav>
+
     {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
     {!esDirectiva && (
       <Alerta tipo="info">Vista de solo lectura. Los cambios los realiza la directiva.</Alerta>
     )}
 
     <!-- Datos personales -->
-    <Tarjeta titulo="Datos personales">
-      <form method="post" novalidate>
+    <Tarjeta titulo="Datos personales" id="datos">
+      <form method="post" novalidate data-avisar-cambios>
         <input type="hidden" name="accion" value="datos" />
         <fieldset disabled={!esDirectiva}>
-          <CamposPersonal valores={valoresDatos} errores={err("datos")} jornadas={jornadas} />
+          <CamposPersonal
+            valores={valoresDatos}
+            errores={err("datos")}
+            jornadas={jornadas}
+            categorias={categorias}
+          />
         </fieldset>
         {esDirectiva && (
           <div class="final">
@@ -257,6 +363,7 @@ const valorExc = (k: string, porDefecto: string) =>
 
     <!-- Horario semanal -->
     <Tarjeta
+      id="horario"
       titulo="Horario semanal"
       descripcion={
         ficha.jornadas
@@ -348,7 +455,31 @@ const valorExc = (k: string, porDefecto: string) =>
     </Tarjeta>
 
     <!-- Cuenta de acceso -->
-    <Tarjeta titulo="Cuenta de acceso">
+    <Tarjeta
+      titulo="Últimos registros de asistencia"
+      id="historial"
+      descripcion="Últimos 10 días registrados."
+    >
+      {ultimos.length ? (
+        <ul class="historial">
+          {ultimos.map((u) => (
+            <li>
+              <span class="fecha">{fechaCorta(u.fecha)}</span>
+              <Badge tipo={u.estado}>{NOMBRE_ESTADO_FICHA[u.estado]}</Badge>
+              <span class="horas">
+                {u.hora_entrada ? horaEnZona(u.hora_entrada) : "—"} →{" "}
+                {u.hora_salida ? horaEnZona(u.hora_salida) : "—"}
+              </span>
+              {u.es_demo && <span class="demo">demo</span>}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="nota">Aún no hay registros de asistencia.</p>
+      )}
+    </Tarjeta>
+
+    <Tarjeta titulo="Cuenta de acceso" id="cuenta">
       {ficha.usuarios ? (
         <div class="pila">
           <dl class="datos">
@@ -422,13 +553,14 @@ const valorExc = (k: string, porDefecto: string) =>
 
     <Tarjeta
       titulo="Teléfono y PIN"
+      id="dispositivo"
       descripcion="Aprobación del teléfono de marcación y PIN del kiosco."
     >
       <p class="nota">Disponible próximamente (Semanas 2 y 3).</p>
     </Tarjeta>
 
     {esDirectiva && (
-      <Tarjeta titulo="Estado">
+      <Tarjeta titulo="Estado" id="estado">
         <p class="nota">
           Registrada el {fechaCorta(ficha.creado_en.slice(0, 10))}. Las personas nunca se borran: se
           desactivan para conservar su historial.
@@ -468,6 +600,136 @@ const valorExc = (k: string, porDefecto: string) =>
   .pila {
     display: grid;
     gap: var(--esp-4);
+  }
+  .pila > :global(section[id]) {
+    scroll-margin-top: 120px;
+  }
+  .cabecera {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--esp-4);
+    align-items: center;
+    padding: var(--esp-5);
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra-sm);
+  }
+  .avatar {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--c) 14%, white);
+    color: var(--c);
+    font-size: var(--texto-xl);
+    font-weight: var(--peso-titulo);
+  }
+  .identidad h2 {
+    margin: 0 0 var(--esp-2);
+    font-size: var(--texto-xl);
+  }
+  .identidad p {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-2) var(--esp-3);
+    margin: 0;
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .mini-kpis {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--esp-2);
+    margin: 0;
+  }
+  .mini-kpis div {
+    padding: var(--esp-3);
+    border-radius: var(--radio-sm);
+    background: var(--color-fondo);
+  }
+  .mini-kpis dt {
+    font-size: var(--texto-xs);
+    color: var(--color-texto-suave);
+  }
+  .mini-kpis dd {
+    margin: 0;
+    font-size: var(--texto-lg);
+    font-weight: var(--peso-titulo);
+    font-variant-numeric: tabular-nums;
+  }
+  @media (min-width: 1000px) {
+    .cabecera {
+      grid-template-columns: auto 1fr auto;
+    }
+    .mini-kpis {
+      grid-column: auto;
+      min-width: 26rem;
+    }
+  }
+  .pestanas {
+    position: sticky;
+    top: calc(56px + var(--seguro-arriba));
+    z-index: 4;
+    display: flex;
+    gap: var(--esp-1);
+    overflow-x: auto;
+    padding: var(--esp-1);
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    scrollbar-width: none;
+  }
+  .pestanas a {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 var(--esp-3);
+    border-radius: var(--radio-sm);
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+    text-decoration: none;
+  }
+  .pestanas a:hover {
+    background: var(--color-superficie-hover);
+    color: var(--color-texto);
+  }
+  .historial {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .historial li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-3);
+    padding: var(--esp-2) 0;
+    border-bottom: 1px solid var(--color-borde);
+    font-size: var(--texto-sm);
+  }
+  .historial li:last-child {
+    border-bottom: 0;
+  }
+  .historial .fecha {
+    width: 6rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .historial .horas {
+    color: var(--color-texto-suave);
+    font-variant-numeric: tabular-nums;
+  }
+  .demo {
+    font-size: var(--texto-xs);
+    color: var(--color-texto-suave);
+    border: 1px dashed var(--color-borde-fuerte);
+    border-radius: 999px;
+    padding: 0 6px;
   }
   fieldset {
     border: 0;

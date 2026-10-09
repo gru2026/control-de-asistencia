@@ -2,58 +2,198 @@
 import PanelLayout from "@/layouts/PanelLayout.astro";
 import Tarjeta from "@/components/ui/Tarjeta.astro";
 import Boton from "@/components/ui/Boton.astro";
-import Icono, { type NombreIcono } from "@/components/ui/Icono.astro";
 import Alerta from "@/components/ui/Alerta.astro";
-import { fechaLarga, hoyEnZona } from "@/lib/fecha";
+import Icono, { type NombreIcono } from "@/components/ui/Icono.astro";
+import Figura from "@/components/graficas/Figura.astro";
+import GraficaLinea from "@/components/graficas/GraficaLinea.astro";
+import BarrasHorizontales from "@/components/graficas/BarrasHorizontales.astro";
+import Histograma from "@/components/graficas/Histograma.astro";
+import BarraApilada from "@/components/graficas/BarraApilada.astro";
+import { fechaCorta, fechaLarga, hoyEnZona } from "@/lib/fecha";
+import { listarCategorias } from "@/lib/datos/categorias";
+import { cargarRegistros, rangoPeriodo, type Periodo } from "@/lib/datos/asistencia";
+import { aExcepcion, aJornada, type FilaHorario, type FilaJornada } from "@/lib/datos/jornadas";
+import { resolverJornada } from "@/lib/reglas/jornada";
+import {
+  contar,
+  hallazgos,
+  histogramaLlegadas,
+  personasCriticas,
+  porCategoria,
+  porDiaSemana,
+  resumir,
+  serieDiaria,
+  variacion,
+} from "@/lib/reglas/estadisticas";
+import { NOMBRE_DIA, type DiaSemana } from "@/types";
 
 const sb = Astro.locals.supabase;
 const perfil = Astro.locals.perfil!;
-const contar = (q: PromiseLike<{ count: number | null }>) => q.then((r) => r.count ?? 0);
-const base = () =>
-  sb.from("personal").select("id", { count: "exact", head: true }).eq("estado", "activo");
+const hoy = hoyEnZona();
+const p = Astro.url.searchParams;
 
-const [activos, sinCuenta, sinJornada, jornadas, config] = await Promise.all([
-  contar(base()),
-  contar(base().is("usuario_id", null)),
-  contar(base().is("jornada_id", null)),
-  contar(sb.from("jornadas").select("id", { count: "exact", head: true }).eq("activa", true)),
-  sb.from("configuracion").select("colegio_lat, colegio_lng").eq("id", 1).maybeSingle(),
+const categorias = await listarCategorias(sb);
+const catPorId = new Map(categorias.map((c) => [c.id, c]));
+const periodo: Periodo =
+  (["mes", "anterior", "30d"] as const).find((x) => x === p.get("periodo")) ?? "mes";
+const categoriaId = catPorId.has(p.get("categoria") ?? "") ? p.get("categoria") : null;
+const rango = rangoPeriodo(periodo, hoy);
+
+// ── Datos ──
+interface FilaPersona {
+  id: string;
+  nombre: string;
+  apellido: string;
+  categoria_id: string;
+  usuario_id: string | null;
+  jornada_id: string | null;
+  jornadas: FilaJornada | null;
+  horarios: FilaHorario[];
+}
+let qPersonal = sb
+  .from("personal")
+  .select(
+    "id, nombre, apellido, categoria_id, usuario_id, jornada_id, jornadas(id, nombre, hora_entrada, hora_salida, tolerancia_min, pausa_min, dias_laborables, activa, nocturna), horarios(dia_semana, hora_entrada, hora_salida, tolerancia_min, libre)",
+  )
+  .eq("estado", "activo");
+if (categoriaId) qPersonal = qPersonal.eq("categoria_id", categoriaId);
+
+const [
+  registros,
+  anteriores,
+  { data: personalData },
+  { data: feriadoHoy },
+  { count: telefonosPendientes },
+] = await Promise.all([
+  cargarRegistros(sb, rango.desde, rango.hasta, categoriaId),
+  cargarRegistros(sb, rango.anterior.desde, rango.anterior.hasta, categoriaId),
+  qPersonal.limit(1000),
+  sb.from("feriados").select("descripcion").eq("fecha", hoy).maybeSingle(),
+  sb.from("dispositivos").select("id", { count: "exact", head: true }).eq("estado", "pendiente"),
 ]);
+const personas = (personalData ?? []) as unknown as FilaPersona[];
+const personaPorId = new Map(personas.map((x) => [x.id, x]));
 
-const faltaUbicacion = !config.data?.colegio_lat || !config.data?.colegio_lng;
+const resumen = resumir(registros);
+const resumenAnt = anteriores.length ? resumir(anteriores) : null;
+const esDemo = registros.some((r) => r.esDemo);
+const porRevisar = registros.filter((r) => r.senaladoPendiente).length;
+
+// Hoy
+const deHoy = registros.filter((r) => r.fecha === hoy);
+const hoyConteo = contar(deHoy);
+const laborablesHoy = feriadoHoy
+  ? 0
+  : personas.filter((x) =>
+      resolverJornada({
+        fecha: hoy,
+        jornada: x.jornadas ? aJornada(x.jornadas) : null,
+        excepciones: x.horarios.map(aExcepcion),
+      }),
+    ).length;
+const pendientesHoy = Math.max(0, laborablesHoy - hoyConteo.total);
+const mostrarHoy = rango.hasta === hoy;
+
+// Gráficas
+const serie = serieDiaria(registros);
+const dias = porDiaSemana(registros);
+const peorDia = dias.length ? Math.min(...dias.map((d) => d.asistencia)) : null;
+const llegadas = histogramaLlegadas(registros);
+const cats = porCategoria(registros)
+  .map((c) => ({ ...c, cat: catPorId.get(c.categoriaId) }))
+  .sort((a, b) => (a.cat?.orden ?? 99) - (b.cat?.orden ?? 99));
+const criticas = personasCriticas(registros, 6);
+const lectura = hallazgos(registros, (id) => catPorId.get(id)?.nombre ?? "Una categoría");
+
+// Nómina
+const sinCuenta = personas.filter((x) => !x.usuario_id).length;
+const sinJornada = personas.filter((x) => !x.jornada_id).length;
+
+// ── Formato ──
+const fmtVar = (
+  v: number | null,
+  inverso = false,
+  unidad: [string, string] = ["punto", "puntos"],
+) => {
+  if (v === null || v === 0) return null;
+  const mejora = inverso ? v < 0 : v > 0;
+  return { texto: `${v > 0 ? "+" : ""}${v} ${Math.abs(v) === 1 ? unidad[0] : unidad[1]}`, mejora };
+};
+const pl = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 const kpis: {
-  valor: number;
-  texto: string;
-  enlace?: string;
-  alerta?: boolean;
+  titulo: string;
+  valor: string;
+  detalle?: string;
   icono: NombreIcono;
+  var?: ReturnType<typeof fmtVar>;
+  enlace?: string;
 }[] = [
-  { valor: activos, texto: "Personal activo", enlace: "/personal", icono: "usuarios" },
   {
-    valor: sinCuenta,
-    texto: "Sin cuenta de acceso",
-    enlace: "/personal?cuenta=no",
-    alerta: sinCuenta > 0,
-    icono: "escudo",
+    titulo: "Asistencia del período",
+    valor: resumen.conteo.total ? `${resumen.asistencia}%` : "—",
+    detalle: `${resumen.conteo.presente + resumen.conteo.tarde + resumen.conteo.permiso} de ${resumen.conteo.total} jornadas`,
+    icono: "tendencia",
+    var: fmtVar(variacion(resumen.asistencia, resumenAnt?.asistencia ?? null)),
   },
   {
-    valor: sinJornada,
-    texto: "Sin jornada asignada",
-    enlace: "/personal?jornada=no",
-    alerta: sinJornada > 0,
+    titulo: "Puntualidad",
+    valor: resumen.conteo.total ? `${resumen.puntualidad}%` : "—",
+    detalle: pl(resumen.conteo.tarde, "llegada tarde", "llegadas tarde"),
     icono: "reloj",
+    var: fmtVar(variacion(resumen.puntualidad, resumenAnt?.puntualidad ?? null)),
   },
   {
-    valor: jornadas,
-    texto: "Jornadas activas",
-    enlace: perfil.rol === "directiva" ? "/jornadas" : undefined,
+    titulo: "Faltas",
+    valor: String(resumen.conteo.falta),
+    detalle: pl(resumen.conteo.permiso, "permiso justificado", "permisos justificados"),
+    icono: "alerta",
+    var: resumenAnt
+      ? fmtVar(resumen.conteo.falta - resumenAnt.conteo.falta, true, ["falta", "faltas"])
+      : null,
+  },
+  {
+    titulo: "Retraso promedio",
+    valor: resumen.conteo.tarde ? `${resumen.retrasoPromedioMin} min` : "—",
+    detalle: "en las llegadas tarde",
+    icono: "tendenciaBaja",
+    var: resumenAnt?.conteo.tarde
+      ? fmtVar(resumen.retrasoPromedioMin - resumenAnt.retrasoPromedioMin, true, ["min", "min"])
+      : null,
+  },
+  {
+    titulo: "Horas trabajadas",
+    valor: Math.round(resumen.horasTotales).toLocaleString("es-VE"),
+    detalle: `${resumen.personas} personas con registros`,
     icono: "calendario",
   },
+  {
+    titulo: "Por revisar",
+    valor: String(porRevisar + (telefonosPendientes ?? 0)),
+    detalle: `${porRevisar} marcaciones señaladas · ${telefonosPendientes ?? 0} teléfonos`,
+    icono: "escudo",
+  },
 ];
+
+const dd = (f: string) => fechaCorta(f).slice(0, 5);
+const enlacePeriodo = (per: Periodo) => {
+  const u = new URL(Astro.url);
+  u.searchParams.set("periodo", per);
+  return u.pathname + u.search;
+};
+const enlaceCategoria = (id: string | null) => {
+  const u = new URL(Astro.url);
+  if (id) u.searchParams.set("categoria", id);
+  else u.searchParams.delete("categoria");
+  return u.pathname + u.search;
+};
 ---
 
-<PanelLayout titulo="Panel" subtitulo={fechaLarga(hoyEnZona())}>
+<PanelLayout titulo="Panel" subtitulo={fechaLarga(hoy)}>
   <Fragment slot="acciones">
+    <Boton href={`/reportes?fecha=${hoy}`} variante="secundario">
+      <Icono nombre="documento" tamano={18} />
+      Planilla de hoy
+    </Boton>
     {perfil.rol === "directiva" && (
       <Boton href="/personal/nuevo">
         <Icono nombre="mas" tamano={18} />
@@ -62,106 +202,535 @@ const kpis: {
     )}
   </Fragment>
 
-  {faltaUbicacion && perfil.rol === "directiva" && (
+  {esDemo && (
     <div class="aviso">
       <Alerta tipo="alerta">
-        Falta configurar la <strong>ubicación del colegio</strong> (necesaria para validar las
-        marcaciones por GPS). Estará disponible en Configuración.
+        <strong>Datos de demostración.</strong> La asistencia mostrada fue generada para probar el
+        sistema y no corresponde a marcaciones reales.{" "}
+        {perfil.rol === "directiva" && (
+          <a href="/configuracion#demo">Eliminar datos de demostración</a>
+        )}
       </Alerta>
     </div>
   )}
 
+  <!-- Filtros del panel -->
+  <div class="controles">
+    <nav class="segmentado" aria-label="Período">
+      {(
+        [
+          ["mes", "Este mes"],
+          ["30d", "Últimos 30 días"],
+          ["anterior", "Mes anterior"],
+        ] as [Periodo, string][]
+      ).map(([v, t]) => (
+        <a href={enlacePeriodo(v)} aria-current={periodo === v ? "true" : undefined}>
+          {t}
+        </a>
+      ))}
+    </nav>
+    <form method="get" class="filtro-cat" data-autoenviar>
+      <input type="hidden" name="periodo" value={periodo} />
+      <label for="panel-cat" class="visualmente-oculto">
+        Categoría
+      </label>
+      <select id="panel-cat" name="categoria">
+        <option value="">Todas las categorías</option>
+        {categorias.map((c) => (
+          <option value={c.id} selected={c.id === categoriaId}>
+            {c.nombre}
+          </option>
+        ))}
+      </select>
+      <noscript>
+        <button type="submit">Aplicar</button>
+      </noscript>
+    </form>
+    <p class="rango">
+      {fechaCorta(rango.desde)} – {fechaCorta(rango.hasta)}
+      {resumenAnt && (
+        <span>
+          {" "}
+          · comparado con {fechaCorta(rango.anterior.desde)} – {fechaCorta(rango.anterior.hasta)}
+        </span>
+      )}
+    </p>
+  </div>
+
+  <!-- Hoy -->
+  {mostrarHoy && (
+    <section class="hoy" aria-labelledby="titulo-hoy">
+      <div class="hoy-cabeza">
+        <h2 id="titulo-hoy">Hoy</h2>
+        <p>
+          {feriadoHoy
+            ? `Feriado: ${feriadoHoy.descripcion}`
+            : `${hoyConteo.presente + hoyConteo.tarde} de ${laborablesHoy} personas han llegado`}
+        </p>
+      </div>
+      <BarraApilada
+        segmentos={[
+          { etiqueta: "Presentes", valor: hoyConteo.presente, clase: "presente" },
+          { etiqueta: "Tarde", valor: hoyConteo.tarde, clase: "tarde" },
+          { etiqueta: "Permiso", valor: hoyConteo.permiso, clase: "permiso" },
+          { etiqueta: "Falta", valor: hoyConteo.falta, clase: "falta" },
+          { etiqueta: "Sin marcar", valor: pendientesHoy, clase: "pendiente" },
+        ]}
+      />
+    </section>
+  )}
+
+  <!-- Indicadores -->
   <ul class="kpis">
     {kpis.map((k) => (
-      <li class:list={["kpi", k.alerta && "alerta"]}>
-        {k.enlace ? (
-          <a href={k.enlace}>
-            <span class="cabeza">
-              <span class="valor">{k.valor}</span>
-              <Icono nombre={k.icono} tamano={22} class="kpi-icono" />
-            </span>
-            <span class="texto">{k.texto}</span>
-          </a>
-        ) : (
-          <div>
-            <span class="cabeza">
-              <span class="valor">{k.valor}</span>
-              <Icono nombre={k.icono} tamano={22} class="kpi-icono" />
-            </span>
-            <span class="texto">{k.texto}</span>
-          </div>
+      <li class="kpi">
+        <div class="cabeza">
+          <span class="titulo">{k.titulo}</span>
+          <Icono nombre={k.icono} tamano={20} class="kpi-icono" />
+        </div>
+        <span class="valor">{k.valor}</span>
+        <span class="detalle">{k.detalle}</span>
+        {k.var && (
+          <span class:list={["variacion", k.var.mejora ? "mejora" : "empeora"]}>
+            <Icono nombre={k.var.mejora ? "tendencia" : "tendenciaBaja"} tamano={14} />
+            {k.var.texto} vs. período anterior
+          </span>
         )}
       </li>
     ))}
   </ul>
 
-  <Tarjeta titulo="Asistencia de hoy" descripcion="Presentes, tardanzas y faltas del día.">
-    <p class="pronto">
-      Los indicadores de asistencia aparecerán cuando se active la marcación con QR (Semana 2).
-    </p>
-  </Tarjeta>
+  {lectura.length > 0 && (
+    <Tarjeta
+      titulo="Lectura rápida"
+      descripcion="Observaciones calculadas a partir de los datos del período."
+      class="lectura"
+    >
+      <ul>
+        {lectura.map((t) => (
+          <li>{t}</li>
+        ))}
+      </ul>
+    </Tarjeta>
+  )}
+
+  {registros.length === 0 ? (
+    <Tarjeta>
+      <p class="vacio">
+        No hay registros de asistencia en este período. Las gráficas aparecerán cuando el personal
+        empiece a marcar.
+      </p>
+    </Tarjeta>
+  ) : (
+    <div class="graficas">
+      <Figura
+        class="ancha"
+        titulo="Tendencia de asistencia"
+        descripcion={`Porcentaje diario de jornadas cumplidas (presente, tarde o permiso) · ${rango.etiqueta}`}
+        columnas={["Fecha", "Asistencia", "Presentes", "Tarde", "Faltas", "Permisos"]}
+        filas={serie.map((s) => [
+          fechaCorta(s.clave),
+          `${s.valor}%`,
+          s.conteo.presente,
+          s.conteo.tarde,
+          s.conteo.falta,
+          s.conteo.permiso,
+        ])}
+      >
+        <GraficaLinea
+          puntos={serie.map((s) => ({
+            etiqueta: dd(s.clave),
+            valor: s.valor,
+            detalle: `${fechaCorta(s.clave)}: ${s.valor}% · ${s.conteo.falta} faltas, ${s.conteo.tarde} tarde`,
+          }))}
+          referencia={{ valor: resumen.asistencia, etiqueta: `Promedio ${resumen.asistencia}%` }}
+        />
+      </Figura>
+
+      <Figura
+        titulo="Asistencia por día de la semana"
+        descripcion="Ayuda a detectar días críticos. Rayado: el día más bajo."
+        columnas={["Día", "Asistencia", "Tardanza", "Faltas"]}
+        filas={dias.map((d) => [
+          NOMBRE_DIA[d.dia as DiaSemana],
+          `${d.asistencia}%`,
+          `${d.tardanza}%`,
+          d.faltas,
+        ])}
+      >
+        <BarrasHorizontales
+          maximo={100}
+          items={dias.map((d) => ({
+            etiqueta: NOMBRE_DIA[d.dia as DiaSemana],
+            valor: d.asistencia,
+            detalle: `${pl(d.faltas, "falta", "faltas")} · ${d.tardanza}% tarde`,
+            resaltar: d.asistencia === peorDia && dias.length > 1,
+          }))}
+        />
+      </Figura>
+
+      <Figura
+        titulo="Hora de llegada"
+        descripcion="Minutos respecto a la hora de entrada. Sirve para evaluar la tolerancia."
+        columnas={["Tramo", "Llegadas"]}
+        filas={llegadas.map((l) => [l.etiqueta, l.valor])}
+      >
+        <Histograma
+          columnas={llegadas.map((l) => ({
+            etiqueta: l.etiqueta,
+            valor: l.valor,
+            tipo:
+              l.clave === "antes" || l.clave === "0-5" || l.clave === "6-15"
+                ? "bien"
+                : l.clave === "16-30"
+                  ? "alerta"
+                  : "mal",
+          }))}
+        />
+      </Figura>
+
+      <Figura
+        titulo="Asistencia por categoría"
+        descripcion="Comparación entre docentes, secretaría, cocina, obreros y vigilancia."
+        columnas={["Categoría", "Personas", "Asistencia", "Puntualidad", "Faltas"]}
+        filas={cats.map((c) => [
+          c.cat?.nombre ?? "—",
+          c.personas,
+          `${c.asistencia}%`,
+          `${c.puntualidad}%`,
+          c.conteo.falta,
+        ])}
+      >
+        <BarrasHorizontales
+          maximo={100}
+          items={cats.map((c) => ({
+            etiqueta: c.cat?.nombre ?? "—",
+            valor: c.asistencia,
+            color: c.cat?.color,
+            detalle: `${c.personas} pers. · puntualidad ${c.puntualidad}%`,
+          }))}
+        />
+      </Figura>
+
+      <Figura
+        titulo="Seguimiento individual"
+        descripcion="Personas con más faltas y tardanzas en el período."
+        columnas={["Persona", "Faltas", "Tardanzas", "Asistencia"]}
+        filas={criticas.map((c) => {
+          const x = personaPorId.get(c.personalId);
+          return [x ? `${x.nombre} ${x.apellido}` : "—", c.faltas, c.tardanzas, `${c.asistencia}%`];
+        })}
+      >
+        {criticas.length ? (
+          <ol class="criticas">
+            {criticas.map((c) => {
+              const x = personaPorId.get(c.personalId);
+              const cat = x ? catPorId.get(x.categoria_id) : undefined;
+              return (
+                <li>
+                  <span class="ini" style={`--c: ${cat?.color ?? "#64748b"}`} aria-hidden="true">
+                    {(x?.nombre[0] ?? "") + (x?.apellido[0] ?? "")}
+                  </span>
+                  <span class="quien">
+                    {x ? (
+                      <a href={`/personal/${x.id}`}>
+                        {x.nombre} {x.apellido}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                    <small>{cat?.nombre}</small>
+                  </span>
+                  <span class="cifras">
+                    <strong>{c.faltas}</strong> {c.faltas === 1 ? "falta" : "faltas"} ·{" "}
+                    <strong>{c.tardanzas}</strong> tarde
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        ) : (
+          <p class="vacio">Nadie acumula faltas ni tardanzas en el período.</p>
+        )}
+      </Figura>
+    </div>
+  )}
+
+  <!-- Nómina -->
+  <section class="nomina" aria-labelledby="titulo-nomina">
+    <h2 id="titulo-nomina">Nómina{categoriaId ? ` · ${catPorId.get(categoriaId)?.nombre}` : ""}</h2>
+    <ul>
+      <li>
+        <a href={`/personal${categoriaId ? `?categoria=${categoriaId}` : ""}`}>
+          <strong>{personas.length}</strong> personas activas
+        </a>
+      </li>
+      <li class:list={[sinCuenta > 0 && "atencion"]}>
+        <a href="/personal?cuenta=no">
+          <strong>{sinCuenta}</strong> sin cuenta de acceso
+        </a>
+      </li>
+      <li class:list={[sinJornada > 0 && "atencion"]}>
+        <a href="/personal?jornada=no">
+          <strong>{sinJornada}</strong> sin jornada asignada
+        </a>
+      </li>
+      <li>
+        <a href={enlaceCategoria(null)}>
+          <strong>{categorias.filter((c) => c.activa).length}</strong> categorías
+        </a>
+      </li>
+    </ul>
+  </section>
 </PanelLayout>
 
 <style>
   .aviso {
     margin-bottom: var(--esp-4);
   }
-  .kpis {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-    gap: var(--esp-3);
-    margin: 0 0 var(--esp-6);
-    padding: 0;
-    list-style: none;
-  }
-  .kpi > * {
+  .controles {
     display: flex;
-    flex-direction: column;
-    gap: var(--esp-1);
-    height: 100%;
-    padding: var(--esp-4);
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-3) var(--esp-4);
+    margin-bottom: var(--esp-5);
+  }
+  .segmentado {
+    display: inline-flex;
+    padding: 4px;
+    gap: 2px;
+    background: var(--color-superficie-hover);
+    border-radius: var(--radio);
+  }
+  .segmentado a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 var(--esp-3);
+    border-radius: var(--radio-sm);
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .segmentado a[aria-current] {
+    background: var(--color-superficie);
+    color: var(--color-texto);
+    box-shadow: var(--sombra-sm);
+  }
+  .filtro-cat select {
+    min-height: 44px;
+    padding: 0 var(--esp-3);
+    border: 1px solid var(--color-borde-fuerte);
+    border-radius: var(--radio-sm);
+    background: var(--color-superficie);
+  }
+  .rango {
+    margin: 0;
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .hoy {
+    margin-bottom: var(--esp-4);
+    padding: var(--esp-5);
     background: var(--color-superficie);
     border: 1px solid var(--color-borde);
     border-radius: var(--radio);
-    color: inherit;
-    text-decoration: none;
+    box-shadow: var(--sombra-sm);
   }
-  .kpi a {
-    transition:
-      border-color var(--duracion-rapida) var(--curva),
-      box-shadow var(--duracion-rapida) var(--curva);
+  .hoy-cabeza {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--esp-2);
+    margin-bottom: var(--esp-3);
   }
-  .kpi a:hover {
-    border-color: var(--color-acento);
-    box-shadow: var(--sombra);
+  .hoy h2,
+  .nomina h2 {
+    margin: 0;
+    font-size: var(--texto-lg);
+  }
+  .hoy-cabeza p {
+    margin: 0;
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(13rem, 45%), 1fr));
+    gap: var(--esp-3);
+    margin: 0 0 var(--esp-4);
+    padding: 0;
+    list-style: none;
+  }
+  .kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--esp-4) var(--esp-5);
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra-sm);
   }
   .cabeza {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
+  }
+  .titulo {
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+    font-weight: var(--peso-medio);
   }
   .kpi :global(.kpi-icono) {
     color: var(--color-texto-suave);
   }
-  .kpi.alerta :global(.kpi-icono) {
-    color: var(--color-alerta);
-  }
-  .kpi.alerta > * {
-    border-left: 4px solid var(--color-alerta);
+  @media (max-width: 480px) {
+    .kpi {
+      padding: var(--esp-3) var(--esp-4);
+    }
+    .kpi .valor {
+      font-size: var(--texto-xl);
+    }
+    .kpi .detalle,
+    .kpi .variacion {
+      font-size: 0.7rem;
+    }
   }
   .valor {
     font-size: var(--texto-2xl);
     font-weight: var(--peso-titulo);
     letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
-    line-height: 1;
   }
-  .texto {
-    color: var(--color-texto-suave);
+  .detalle {
     font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
   }
-  .pronto {
+  .variacion {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: var(--esp-1);
+    font-size: var(--texto-xs);
+    font-weight: var(--peso-fuerte);
+  }
+  .mejora {
+    color: var(--color-exito);
+  }
+  .empeora {
+    color: var(--color-error);
+  }
+  :global(.lectura) {
+    margin-bottom: var(--esp-4);
+    border-left: 4px solid var(--color-acento) !important;
+  }
+  :global(.lectura) ul {
+    margin: 0;
+    padding-left: var(--esp-5);
+    display: grid;
+    gap: var(--esp-2);
+  }
+  .graficas {
+    display: grid;
+    gap: var(--esp-4);
+    margin-bottom: var(--esp-4);
+  }
+  @media (min-width: 1000px) {
+    .graficas {
+      grid-template-columns: 1fr 1fr;
+    }
+    .graficas > :global(.ancha) {
+      grid-column: 1 / -1;
+    }
+  }
+  .criticas {
+    display: grid;
+    gap: var(--esp-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .criticas li {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--esp-3);
+    padding: var(--esp-2) 0;
+    border-bottom: 1px solid var(--color-borde);
+  }
+  .criticas li:last-child {
+    border-bottom: 0;
+  }
+  .ini {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--c) 14%, white);
+    color: var(--c);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-titulo);
+  }
+  .quien {
+    display: grid;
+    min-width: 0;
+  }
+  .quien a {
+    font-weight: var(--peso-fuerte);
+    text-decoration: none;
+  }
+  .quien small {
+    color: var(--color-texto-suave);
+  }
+  .cifras {
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+    white-space: nowrap;
+  }
+  .cifras strong {
+    color: var(--color-texto);
+  }
+  .vacio {
     margin: 0;
     color: var(--color-texto-suave);
+  }
+  .nomina {
+    display: grid;
+    gap: var(--esp-3);
+  }
+  .nomina ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: var(--esp-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .nomina a {
+    display: block;
+    padding: var(--esp-3) var(--esp-4);
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    color: var(--color-texto-suave);
+    text-decoration: none;
+    font-size: var(--texto-sm);
+    transition: border-color var(--duracion-rapida) var(--curva);
+  }
+  .nomina a:hover {
+    border-color: var(--color-acento);
+  }
+  .nomina strong {
+    display: block;
+    color: var(--color-texto);
+    font-size: var(--texto-xl);
+  }
+  .nomina .atencion a {
+    border-left: 4px solid var(--color-alerta);
   }
 </style>

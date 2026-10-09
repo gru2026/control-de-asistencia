@@ -37,3 +37,36 @@ export function rangoFechas(desde: string, hasta: string): string[] {
 export function redondear2(n: number): number {
   return Math.round(n * 100) / 100;
 }
+
+/** 450 → "07:30" (acepta valores fuera de 0–1439 y los ajusta al día). */
+export function minutosAHora(minutos: number): HoraTexto {
+  const m = ((Math.round(minutos) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
+
+/** Suma (o resta) días a una fecha "AAAA-MM-DD". */
+export function sumarDias(fecha: string, dias: number): string {
+  const d = fechaUTC(fecha);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Instante (Date) de una hora local del colegio. `minutos` puede superar 1440
+ * para horas del día siguiente (jornadas nocturnas).
+ * @param desfaseUTC desfase de la zona en minutos (Venezuela: -240, sin horario de verano)
+ */
+export function instanteLocal(fecha: string, minutos: number, desfaseUTC = -240): Date {
+  return new Date(fechaUTC(fecha).getTime() + (minutos - desfaseUTC) * 60_000);
+}
+
+/** Hora local "HH:MM" de un instante, en la zona indicada. */
+export function horaEnZona(instante: Date | string, zona = "America/Caracas"): HoraTexto {
+  const d = typeof instante === "string" ? new Date(instante) : instante;
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: zona,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(d);
+}

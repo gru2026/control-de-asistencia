@@ -18,6 +18,7 @@ describe("R0 · resolverJornada", () => {
       horaSalida: "16:00",
       toleranciaMin: 15,
       pausaMin: 0,
+      nocturna: false,
     });
   });
 

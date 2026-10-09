@@ -1,0 +1,100 @@
+---
+/**
+ * Contenedor de gráfica: título, descripción y tabla equivalente accesible ("Ver datos").
+ */
+interface Props {
+  titulo: string;
+  descripcion?: string;
+  columnas: string[];
+  filas: (string | number)[][];
+  class?: string;
+}
+const { titulo, descripcion, columnas, filas, class: clase } = Astro.props;
+---
+
+<figure class:list={["figura", clase]}>
+  <figcaption>
+    <strong>{titulo}</strong>
+    {descripcion && <span>{descripcion}</span>}
+  </figcaption>
+  <div class="grafica">
+    <slot />
+  </div>
+  <details>
+    <summary>Ver datos</summary>
+    <table>
+      <thead>
+        <tr>
+          {columnas.map((c) => (
+            <th scope="col">{c}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {filas.map((f) => (
+          <tr>
+            {f.map((v) => (
+              <td>{v}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </details>
+</figure>
+
+<style>
+  .figura {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-3);
+    padding: var(--esp-5);
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra-sm);
+    min-width: 0;
+  }
+  figcaption {
+    display: grid;
+    gap: 2px;
+  }
+  figcaption strong {
+    font-size: var(--texto-base);
+  }
+  figcaption span {
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .grafica {
+    flex: 1;
+    min-width: 0;
+  }
+  details {
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  summary {
+    display: inline-flex;
+    min-height: 32px;
+    align-items: center;
+    color: var(--color-acento);
+    font-weight: var(--peso-medio);
+  }
+  table {
+    width: 100%;
+    margin-top: var(--esp-2);
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+  th,
+  td {
+    padding: var(--esp-1) var(--esp-2);
+    border-bottom: 1px solid var(--color-borde);
+    text-align: left;
+  }
+  th {
+    color: var(--color-texto);
+  }
+</style>

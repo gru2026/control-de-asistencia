@@ -1,0 +1,108 @@
+---
+/** Columnas verticales (distribución). Cada columna muestra su valor encima. */
+interface Columna {
+  etiqueta: string;
+  valor: number;
+  tipo?: "bien" | "alerta" | "mal";
+}
+interface Props {
+  columnas: Columna[];
+}
+const { columnas } = Astro.props;
+const max = Math.max(1, ...columnas.map((c) => c.valor));
+const total = columnas.reduce((s, c) => s + c.valor, 0);
+---
+
+<div class="histograma" role="img" aria-label="Distribución; ver datos en la tabla debajo">
+  {columnas.map((c) => (
+    <div
+      class:list={["col", c.tipo ?? "bien"]}
+      title={`${c.etiqueta}: ${c.valor} (${total ? Math.round((c.valor / total) * 100) : 0}%)`}
+    >
+      <span class="valor">{c.valor}</span>
+      <div class="barra" style={`height: ${Math.max(2, (c.valor / max) * 100)}%`} />
+      <span class="etiqueta">{c.etiqueta}</span>
+    </div>
+  ))}
+</div>
+<ul class="leyenda">
+  <li>
+    <span class="m bien" />A tiempo
+  </li>
+  <li>
+    <span class="m alerta" />
+    Tarde
+  </li>
+  <li>
+    <span class="m mal" />
+    Muy tarde
+  </li>
+</ul>
+
+<style>
+  .histograma {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: var(--esp-2);
+    align-items: end;
+    height: 200px;
+  }
+  .col {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    height: 100%;
+    text-align: center;
+    min-width: 0;
+  }
+  .col > .barra {
+    align-self: end;
+    border-radius: 6px 6px 2px 2px;
+    background: var(--color-exito);
+    transition: height var(--duracion) var(--curva);
+  }
+  .alerta > .barra {
+    background: var(--color-alerta);
+  }
+  .mal > .barra {
+    background: repeating-linear-gradient(135deg, var(--color-error) 0 6px, #ef4444 6px 10px);
+  }
+  .valor {
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-fuerte);
+    font-variant-numeric: tabular-nums;
+  }
+  .etiqueta {
+    margin-top: 6px;
+    font-size: var(--texto-xs);
+    color: var(--color-texto-suave);
+    line-height: 1.2;
+  }
+  .leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-4);
+    margin: var(--esp-3) 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--texto-xs);
+    color: var(--color-texto-suave);
+  }
+  .leyenda li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .m {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: var(--color-exito);
+  }
+  .m.alerta {
+    background: var(--color-alerta);
+  }
+  .m.mal {
+    background: repeating-linear-gradient(135deg, var(--color-error) 0 3px, #ef4444 3px 5px);
+  }
+</style>

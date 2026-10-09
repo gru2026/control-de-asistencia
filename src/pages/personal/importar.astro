@@ -1,0 +1,316 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Tabla from "@/components/ui/Tabla.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Alerta from "@/components/ui/Alerta.astro";
+import Icono from "@/components/ui/Icono.astro";
+import ChipCategoria from "@/components/ui/ChipCategoria.astro";
+import { listarCategorias } from "@/lib/datos/categorias";
+import { listarJornadas } from "@/lib/datos/jornadas";
+import {
+  COLUMNAS_IMPORTACION,
+  normalizar,
+  validarImportacion,
+  type ResultadoImportacion,
+} from "@/lib/importacion";
+import { texto } from "@/lib/validacion";
+import { ponerFlash } from "@/lib/flash";
+import { traerTodo } from "@/lib/datos/categorias";
+import { NOMBRE_VINCULO } from "@/types";
+
+const sb = Astro.locals.supabase;
+const [categorias, jornadas] = await Promise.all([listarCategorias(sb), listarJornadas(sb)]);
+const catPorId = new Map(categorias.map((c) => [c.id, c]));
+const jorPorId = new Map(jornadas.map((j) => [j.id, j.nombre]));
+
+let resultado: ResultadoImportacion | null = null;
+let contenido = "";
+let mensaje: string | null = null;
+const MAX = 512 * 1024;
+
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  const archivo = f.get("archivo");
+  contenido = texto(f, "contenido");
+  if (archivo instanceof File && archivo.size > 0) {
+    if (archivo.size > MAX) mensaje = "El archivo supera 512 KB.";
+    else contenido = await archivo.text();
+  }
+  if (!mensaje && !contenido.trim()) mensaje = "Seleccione un archivo CSV o pegue el contenido.";
+
+  if (!mensaje) {
+    const existentes = await traerTodo<{ cedula: string }>((i, h) =>
+      sb.from("personal").select("cedula").range(i, h),
+    );
+    resultado = validarImportacion(contenido, {
+      categorias: new Map(categorias.map((c) => [normalizar(c.nombre), c.id])),
+      jornadas: new Map(jornadas.map((j) => [normalizar(j.nombre), j.id])),
+      jornadaSugerida: new Map(categorias.map((c) => [c.id, c.jornada_sugerida_id])),
+      cedulasExistentes: new Set(existentes.map((x) => x.cedula)),
+    });
+
+    if (texto(f, "accion") === "confirmar" && resultado.validas.length) {
+      const filas = resultado.validas.map(({ linea: _l, ...x }) => ({ ...x, origen: "importado" }));
+      const { error } = await sb.from("personal").insert(filas);
+      if (error) {
+        console.error("[importar]", error);
+        mensaje = "No se pudo completar la importación. No se guardó ninguna fila.";
+      } else {
+        ponerFlash(Astro.cookies, "exito", `Se importaron ${filas.length} personas.`);
+        return Astro.redirect("/personal?orden=apellido", 303);
+      }
+    }
+  }
+  if (mensaje) Astro.response.status = 400;
+}
+---
+
+<PanelLayout
+  titulo="Importar personal"
+  subtitulo="Cargue varias personas a la vez desde una hoja de cálculo."
+  migas={[{ texto: "Personal", href: "/personal" }, { texto: "Importar" }]}
+>
+  <div class="pila">
+    {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
+
+    <Tarjeta titulo="1. Prepare el archivo">
+      <ol class="pasos">
+        <li>
+          En Excel, use una fila de encabezado con estas columnas:{" "}
+          <code>{COLUMNAS_IMPORTACION.join(" ; ")}</code>
+        </li>
+        <li>
+          Obligatorias: <strong>nombre</strong>, <strong>cedula</strong> y{" "}
+          <strong>categoria</strong>. Si la jornada queda vacía se usa la sugerida para la
+          categoría.
+        </li>
+        <li>
+          Categorías válidas:{" "}
+          {categorias
+            .filter((c) => c.activa)
+            .map((c) => c.nombre)
+            .join(", ")}
+          .
+        </li>
+        <li>
+          Guarde como <strong>CSV (delimitado por punto y coma)</strong>.
+        </li>
+      </ol>
+    </Tarjeta>
+
+    <Tarjeta titulo="2. Cargue y revise">
+      <form method="post" enctype="multipart/form-data" class="carga" novalidate>
+        <input type="hidden" name="accion" value="revisar" />
+        <label class="archivo">
+          <Icono nombre="subir" tamano={28} />
+          <span>
+            <strong>Elegir archivo CSV</strong>
+            <small>Máximo 512 KB</small>
+          </span>
+          <input type="file" name="archivo" accept=".csv,text/csv" />
+        </label>
+        <details>
+          <summary>O pegar el contenido</summary>
+          <textarea
+            name="contenido"
+            rows="6"
+            placeholder="nombre;apellido;cedula;categoria;carga_horaria"
+          >{contenido}</textarea>
+        </details>
+        <Boton type="submit" data-texto-cargando="Revisando…">
+          Revisar archivo
+        </Boton>
+      </form>
+    </Tarjeta>
+
+    {resultado && (
+      <Tarjeta titulo="3. Resultado de la revisión">
+        <ul class="resumen">
+          <li class="ok">
+            <strong>{resultado.validas.length}</strong> listas para importar
+          </li>
+          <li class="dup">
+            <strong>{resultado.duplicadas.length}</strong> ya registradas (se omiten)
+          </li>
+          <li class="err">
+            <strong>{resultado.errores.length}</strong> con errores
+          </li>
+        </ul>
+
+        {resultado.errores.length > 0 && (
+          <Alerta tipo="error">
+            <ul class="errores">
+              {resultado.errores.map((e) => (
+                <li>
+                  Línea {e.linea}: {e.mensaje}
+                </li>
+              ))}
+            </ul>
+          </Alerta>
+        )}
+
+        {resultado.validas.length > 0 && (
+          <>
+            <Tabla titulo="Vista previa" tarjetas>
+              <thead>
+                <tr>
+                  <th>Línea</th>
+                  <th>Nombre</th>
+                  <th>Cédula</th>
+                  <th>Categoría</th>
+                  <th class="num">Carga</th>
+                  <th>Vínculo</th>
+                  <th>Jornada</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resultado.validas.map((v) => {
+                  const c = catPorId.get(v.categoria_id)!;
+                  return (
+                    <tr>
+                      <td data-etiqueta="Línea">{v.linea}</td>
+                      <td class="principal">
+                        {v.apellido}, {v.nombre}
+                      </td>
+                      <td data-etiqueta="Cédula">{v.cedula}</td>
+                      <td data-etiqueta="Categoría">
+                        <ChipCategoria nombre={c.nombre} color={c.color} />
+                      </td>
+                      <td data-etiqueta="Carga" class="num">
+                        {v.carga_horaria ?? "—"}
+                      </td>
+                      <td data-etiqueta="Vínculo">{NOMBRE_VINCULO[v.vinculo]}</td>
+                      <td data-etiqueta="Jornada">
+                        {v.jornada_id ? jorPorId.get(v.jornada_id) : "Sin asignar"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Tabla>
+            <form method="post" class="confirmar">
+              <input type="hidden" name="accion" value="confirmar" />
+              <textarea name="contenido" hidden>{contenido}</textarea>
+              <p>
+                Las personas importadas quedan marcadas como «importadas» y pueden eliminarse juntas
+                desde Ajustes.
+              </p>
+              <Boton type="submit" data-texto-cargando="Importando…">
+                Importar {resultado.validas.length} personas
+              </Boton>
+            </form>
+          </>
+        )}
+      </Tarjeta>
+    )}
+  </div>
+</PanelLayout>
+
+<style>
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  .pasos {
+    margin: 0;
+    padding-left: var(--esp-5);
+    display: grid;
+    gap: var(--esp-2);
+  }
+  code {
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: var(--color-superficie-hover);
+    font-size: var(--texto-sm);
+    word-break: break-word;
+  }
+  .carga {
+    display: grid;
+    gap: var(--esp-4);
+    justify-items: start;
+  }
+  .archivo {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-4);
+    width: 100%;
+    padding: var(--esp-6);
+    border: 2px dashed var(--color-borde-fuerte);
+    border-radius: var(--radio);
+    color: var(--color-acento);
+    cursor: pointer;
+  }
+  .archivo:hover,
+  .archivo:focus-within {
+    border-color: var(--color-acento);
+    background: var(--color-acento-suave);
+  }
+  .archivo span {
+    display: grid;
+  }
+  .archivo strong {
+    color: var(--color-texto);
+  }
+  .archivo small {
+    color: var(--color-texto-suave);
+  }
+  details {
+    width: 100%;
+  }
+  summary {
+    color: var(--color-acento);
+    font-weight: var(--peso-medio);
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+  }
+  textarea {
+    width: 100%;
+    margin-top: var(--esp-2);
+    padding: var(--esp-3);
+    border: 1px solid var(--color-borde-fuerte);
+    border-radius: var(--radio-sm);
+    font-family: ui-monospace, monospace;
+    font-size: var(--texto-sm);
+  }
+  .resumen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-3);
+    margin: 0 0 var(--esp-4);
+    padding: 0;
+    list-style: none;
+  }
+  .resumen li {
+    padding: var(--esp-2) var(--esp-4);
+    border-radius: var(--radio-sm);
+    font-size: var(--texto-sm);
+  }
+  .ok {
+    background: var(--color-exito-suave);
+  }
+  .dup {
+    background: var(--color-info-suave);
+  }
+  .err {
+    background: var(--color-error-suave);
+  }
+  .errores {
+    margin: 0;
+    padding-left: var(--esp-4);
+  }
+  .confirmar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--esp-3);
+    margin-top: var(--esp-4);
+  }
+  .confirmar p {
+    margin: 0;
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+</style>

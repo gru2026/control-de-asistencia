@@ -1,32 +1,61 @@
 ---
-/** Tabla responsiva: desplazamiento horizontal en pantallas pequeñas. */
+/**
+ * Tabla responsiva. Con `tarjetas`, en pantallas pequeñas cada fila se muestra
+ * como tarjeta (cada <td> debe tener data-etiqueta="Nombre de la columna").
+ */
 interface Props {
   titulo: string; // descripción accesible
   vacio?: string;
   hayFilas?: boolean;
+  tarjetas?: boolean;
 }
-const { titulo, vacio = "No hay registros.", hayFilas = true } = Astro.props;
+const { titulo, vacio = "No hay registros.", hayFilas = true, tarjetas = false } = Astro.props;
 ---
 
 {hayFilas ? (
-  <div class="contenedor" role="region" aria-label={titulo} tabindex="0">
+  <div
+    class:list={["contenedor", tarjetas && "tarjetas"]}
+    role="region"
+    aria-label={titulo}
+    tabindex="0"
+  >
     <table>
       <slot />
     </table>
   </div>
 ) : (
-  <p class="vacio">{vacio}</p>
+  <div class="vacio">
+    <svg
+      width="40"
+      height="40"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+    <p>{vacio}</p>
+    <slot name="vacio" />
+  </div>
 )}
 
 <style>
   .contenedor {
-    overflow-x: auto;
+    overflow: auto;
+    max-height: 70vh;
     border: 1px solid var(--color-borde);
     border-radius: var(--radio);
+    background: var(--color-superficie);
   }
   table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: var(--texto-sm);
   }
   table :global(th),
@@ -37,12 +66,20 @@ const { titulo, vacio = "No hay registros.", hayFilas = true } = Astro.props;
     white-space: nowrap;
   }
   table :global(th) {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     background: var(--color-fondo);
     font-weight: var(--peso-fuerte);
     font-size: var(--texto-xs);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--color-texto-suave);
+  }
+  table :global(td.num),
+  table :global(th.num) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
   }
   table :global(tbody tr:last-child td) {
     border-bottom: 0;
@@ -54,10 +91,69 @@ const { titulo, vacio = "No hay registros.", hayFilas = true } = Astro.props;
     background: var(--color-superficie-hover);
   }
   .vacio {
-    padding: var(--esp-6);
+    display: grid;
+    justify-items: center;
+    gap: var(--esp-2);
+    padding: var(--esp-8) var(--esp-4);
     text-align: center;
     color: var(--color-texto-suave);
-    border: 1px dashed var(--color-borde);
+    border: 1px dashed var(--color-borde-fuerte);
     border-radius: var(--radio);
+  }
+  .vacio p {
+    margin: 0;
+  }
+
+  /* Móvil: filas como tarjetas */
+  @media (max-width: 700px) {
+    .tarjetas {
+      max-height: none;
+      border: 0;
+      background: transparent;
+    }
+    .tarjetas table,
+    .tarjetas :global(tbody),
+    .tarjetas :global(tr),
+    .tarjetas :global(td) {
+      display: block;
+      width: 100%;
+    }
+    .tarjetas :global(thead) {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+    .tarjetas :global(tbody tr) {
+      margin-bottom: var(--esp-3);
+      padding: var(--esp-2) var(--esp-4);
+      border: 1px solid var(--color-borde);
+      border-radius: var(--radio);
+      background: var(--color-superficie);
+      box-shadow: var(--sombra-sm);
+    }
+    .tarjetas :global(td) {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--esp-3);
+      padding: var(--esp-2) 0;
+      white-space: normal;
+      text-align: right;
+    }
+    .tarjetas :global(td[data-etiqueta])::before {
+      content: attr(data-etiqueta);
+      color: var(--color-texto-suave);
+      font-weight: var(--peso-medio);
+      text-align: left;
+    }
+    .tarjetas :global(td.principal) {
+      font-size: var(--texto-base);
+      text-align: left;
+      border-bottom: 1px solid var(--color-borde);
+    }
+    .tarjetas :global(td:last-child) {
+      border-bottom: 0;
+    }
   }
 </style>

@@ -7,13 +7,14 @@ import Alerta from "@/components/ui/Alerta.astro";
 import CamposPersonal from "@/components/personal/CamposPersonal.astro";
 import CamposCuenta from "@/components/personal/CamposCuenta.astro";
 import { listarJornadas } from "@/lib/datos/jornadas";
+import { listarCategorias } from "@/lib/datos/categorias";
 import { texto, validarCuenta, validarPersonal, type Errores } from "@/lib/validacion";
 import { crearPersonal } from "@/lib/servicios/personal";
 import { generarClaveTemporal } from "@/lib/servicios/cuentas";
 import { ponerFlash } from "@/lib/flash";
 
 const sb = Astro.locals.supabase;
-const jornadas = await listarJornadas(sb);
+const [jornadas, categorias] = await Promise.all([listarJornadas(sb), listarCategorias(sb)]);
 
 let valores: Record<string, string> = {};
 let errores: Errores = {};
@@ -50,7 +51,14 @@ if (Astro.request.method === "POST") {
 }
 ---
 
-<PanelLayout titulo="Nuevo personal">
+<PanelLayout
+  titulo="Nuevo personal"
+  migas={[
+    { texto: "Panel", href: "/panel" },
+    { texto: "Personal", href: "/personal" },
+    { texto: "Nuevo" },
+  ]}
+>
   <Fragment slot="acciones">
     <Boton href="/personal" variante="secundario">
       <Icono nombre="atras" tamano={18} />
@@ -58,11 +66,16 @@ if (Astro.request.method === "POST") {
     </Boton>
   </Fragment>
 
-  <form method="post" class="pila" novalidate>
+  <form method="post" class="pila" novalidate data-avisar-cambios>
     {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
 
     <Tarjeta titulo="Datos personales">
-      <CamposPersonal valores={valores} errores={errores} jornadas={jornadas} />
+      <CamposPersonal
+        valores={valores}
+        errores={errores}
+        jornadas={jornadas}
+        categorias={categorias}
+      />
     </Tarjeta>
 
     <Tarjeta

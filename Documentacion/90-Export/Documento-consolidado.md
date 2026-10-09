@@ -2,7 +2,7 @@
 
 **Servicio comunitario — Documentación completa del proyecto**
 
-Fecha de generación: 2026-10-08
+Fecha de generación: 2026-10-09
 
 ---
 
@@ -511,6 +511,10 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-20 | 2026-10-08 | Nombre del producto: **GRU-system**; ícono con las iniciales "GRU" en la paleta del proyecto | ✅ Vigente |
 | D-21 | 2026-10-08 | Escritorio = **PWA instalada desde Edge/Chrome** (Windows 10). Se descartan Electron y Tauri | ✅ Vigente |
 | D-22 | 2026-10-08 | Interfaz: estilo Minimalismo/Swiss, íconos SVG de una sola familia (Lucide), sin emojis; fuentes del sistema | ✅ Vigente |
+| D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
+| D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
+| D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-26 | 2026-10-08 | Nómina real cargada por importación (`origen = importado`) y asistencia de **demostración** (`es_demo`), ambas eliminables desde Ajustes | ✅ Vigente |
 
 ---
 
@@ -531,6 +535,14 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 - Definido con la skill *ui-ux-pro-max* (`.opencode/skills/`): estilo Minimalismo/Swiss, recomendado para paneles administrativos.
 - Tokens en `src/styles/tokens.css`; íconos en `src/components/ui/Icono.astro` (trazo 2, contorno).
 - Accesibilidad: contraste ≥ 4.5:1, foco visible, controles ≥ 44 px, respeto de `prefers-reduced-motion`, áreas seguras del iPhone.
+
+### D-23 a D-26 · Nómina real, reportes y demostración
+- Las planillas del colegio muestran 5 cargos: Docente, Secretaría, Cocina, Obrero y Vigilancia. Son **categorías** configurables (color, planilla oficial donde aparecen, jornada sugerida).
+- "Contratista" no es un oficio: es el **vínculo**. Separarlos permite cruzar filtros ("Cocina + Contratado").
+- La **carga horaria** semanal es una columna de la planilla oficial.
+- Vigilancia trabaja de noche: la jornada nocturna termina al día siguiente; una marca de madrugada pertenece a la jornada que empezó la noche anterior.
+- La planilla oficial no lleva firmas por persona (el sistema registra la hora). Solo se imprime y firma si la dirección lo desea.
+- La nómina real (51 personas) se cargó desde un CSV **privado** (no está en el repositorio). La asistencia de demostración es simulada; el panel lo indica con un aviso.
 
 ### D-02 · El PC del colegio
 - Desde el PC, **directiva y secretaría** administran: personal, jornadas, configuración, QR, dispositivos, reportes.
@@ -746,7 +758,10 @@ Extiende `auth.users` de Supabase.
 | `usuario_id` | uuid FK → usuarios, unique, null | NULL si aún no tiene cuenta |
 | `nombre`, `apellido` | text | |
 | `cedula` | text unique | Usada también en el kiosco |
-| `cargo` | text | `docente` \| `administrativo` \| `otro` |
+| `categoria_id` | uuid FK → categorias | Oficio (Docente, Secretaría, Cocina, Obrero, Vigilancia…) |
+| `vinculo` | text | `fijo` \| `contratado` \| `suplente` |
+| `carga_horaria` | int null | Horas semanales (columna de la planilla oficial) |
+| `origen` | text | `manual` \| `importado` |
 | `telefono` | text | Opcional |
 | `jornada_id` | uuid FK → jornadas | Plantilla de horario asignada |
 | `pin_hash` | text null | PIN del kiosco (hash, nunca en claro) |
@@ -755,6 +770,16 @@ Extiende `auth.users` de Supabase.
 | `fecha_ingreso` | date | |
 | `estado` | text | `activo` \| `inactivo` (nunca borrado físico) |
 | `creado_en` | timestamptz | |
+
+### `categorias`
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | uuid PK | |
+| `nombre` | text unique | Docente, Secretaría, Cocina, Obrero, Vigilancia, Otro |
+| `planilla` | text | `docentes` \| `personal` (planilla oficial donde aparece) |
+| `color` | text | Color en tablas y gráficas |
+| `jornada_sugerida_id` | uuid FK → jornadas null | Se propone al registrar personal |
+| `orden`, `activa` | int, bool | |
 
 ### `jornadas` (plantillas configurables)
 | Campo | Tipo | Descripción |
@@ -767,6 +792,7 @@ Extiende `auth.users` de Supabase.
 | `pausa_min` | int | Minutos de almuerzo a descontar (default 0) |
 | `dias_laborables` | int[] | 1=lunes … 7=domingo. Default `{1,2,3,4,5}` |
 | `activa` | bool | |
+| `nocturna` | bool | La salida ocurre al día siguiente |
 
 ### `horarios` (excepciones por persona y día)
 Opcional: sobrescribe la jornada para un día concreto de la semana.
@@ -1603,6 +1629,19 @@ test: casos de tardanza con tolerancia 15 min
 
 **🏁 Hito:** ✅ login, personal y jornadas configurables (2026-10-06).
 
+## Extra — Interfaz, nómina real y panel directivo (2026-10-08) ✅
+
+- [x] PWA instalable «GRU-system» (manifest, íconos, service worker, iOS a pantalla completa)
+- [x] Íconos SVG y sistema de diseño (skill ui-ux-pro-max)
+- [x] Categorías, vínculo, carga horaria y jornadas nocturnas (migración 005)
+- [x] Filtros, orden y vista de tarjetas en Personal, Usuarios, Jornadas y Feriados
+- [x] Formularios: secciones, validación al salir del campo, «Guardando…», mostrar/copiar contraseña, aviso de cambios sin guardar
+- [x] Panel con KPIs, comparación con el período anterior, 5 gráficas y lectura rápida
+- [x] Reportes PDF/Excel con la planilla oficial (adelanto de la Semana 3)
+- [x] Importador de personal (CSV) y nómina real cargada (51 personas)
+- [x] Datos de demostración y botones de limpieza en Ajustes
+- [ ] Logo y escudo para el encabezado (pendiente: jueves)
+
 ## Semana 2 — Marcación QR + GPS y reglas
 
 - [ ] `/configuracion`: geocerca (coordenadas, radio, precisión)
@@ -1625,9 +1664,9 @@ test: casos de tardanza con tolerancia 15 min
 - [ ] `/kiosco` cédula + PIN (bloqueo 5 intentos) + gestión de PIN
 - [ ] `/asistencia/revision`: marcaciones señaladas
 - [ ] `/reportes` con filtros + `acumulados.ts` (R5) + tests
-- [ ] Export **PDF** (jsPDF)
-- [ ] Export **Excel** (SheetJS)
-- [ ] `/panel` con KPIs
+- [x] Export **PDF** (jsPDF) — planilla oficial
+- [x] Export **Excel** (ExcelJS) — planilla oficial
+- [x] `/panel` con KPIs y gráficas
 - [ ] `/notificaciones` y `/historial`
 
 **🏁 Hito:** reportes listos y PC operativo como respaldo.
@@ -2536,6 +2575,15 @@ Datos que debemos confirmar con la institución antes de cerrar el diseño. Marc
 **Respuesta:** 🟡 El equipo ya tiene la ubicación; falta cargarla en la configuración.
 
 ---
+
+## 15. Material pendiente para el jueves → *a Registro-de-decisiones D-25*
+
+- [ ] **Logo del colegio** en buena calidad (PNG o SVG).
+- [ ] **Escudo del estado** en buena calidad (PNG o SVG).
+- [ ] Confirmar horarios reales: docentes, personal de 40 h, cocina y vigilancia (diurna y nocturna).
+- [ ] Revisar la transcripción de la nómina (orden nombre/apellido y la fila 08 «…Ingris Rivas», tapada en la foto).
+
+**Respuesta:** 🟡 Se piden en el colegio el próximo jueves.
 
 ## Registro de respuestas
 

@@ -34,6 +34,8 @@ describe("decidirAcceso", () => {
     expect(decidirAcceso("/personal", "secretaria").tipo).toBe("permitir");
     expect(decidirAcceso("/personal/123", "secretaria").tipo).toBe("permitir");
     expect(decidirAcceso("/personal/nuevo", "secretaria").tipo).toBe("prohibido");
+    expect(decidirAcceso("/personal/importar", "secretaria").tipo).toBe("prohibido");
+    expect(decidirAcceso("/reportes", "secretaria").tipo).toBe("permitir");
     expect(decidirAcceso("/jornadas", "secretaria").tipo).toBe("prohibido");
     expect(decidirAcceso("/configuracion", "secretaria").tipo).toBe("prohibido");
   });

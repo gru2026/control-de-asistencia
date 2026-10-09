@@ -1,0 +1,104 @@
+---
+/** Composición de un total (p. ej. el día de hoy). Leyenda con números: no depende del color. */
+interface Segmento {
+  etiqueta: string;
+  valor: number;
+  clase: "presente" | "tarde" | "falta" | "permiso" | "pendiente";
+}
+interface Props {
+  segmentos: Segmento[];
+}
+const { segmentos } = Astro.props;
+const total = segmentos.reduce((s, x) => s + x.valor, 0);
+const pct = (v: number) => (total ? Math.round((v / total) * 100) : 0);
+---
+
+<div
+  class="apilada"
+  role="img"
+  aria-label={segmentos.map((s) => `${s.etiqueta}: ${s.valor}`).join(", ")}
+>
+  {segmentos
+    .filter((s) => s.valor > 0)
+    .map((s) => (
+      <span
+        class:list={["seg", s.clase]}
+        style={`flex: ${s.valor}`}
+        title={`${s.etiqueta}: ${s.valor} (${pct(s.valor)}%)`}
+      />
+    ))}
+  {total === 0 && <span class="seg vacio" style="flex: 1" />}
+</div>
+<ul class="leyenda">
+  {segmentos.map((s) => (
+    <li>
+      <span class:list={["m", s.clase]} />
+      <span class="et">{s.etiqueta}</span>
+      <strong>{s.valor}</strong>
+      <span class="pc">{pct(s.valor)}%</span>
+    </li>
+  ))}
+</ul>
+
+<style>
+  .apilada {
+    display: flex;
+    height: 28px;
+    gap: 2px;
+    border-radius: var(--radio-sm);
+    overflow: hidden;
+  }
+  .seg {
+    min-width: 4px;
+  }
+  .presente {
+    background: var(--color-exito);
+  }
+  .tarde {
+    background: var(--color-alerta);
+  }
+  .falta {
+    background: repeating-linear-gradient(135deg, var(--color-error) 0 6px, #ef4444 6px 10px);
+  }
+  .permiso {
+    background: #94a3b8;
+  }
+  .pendiente,
+  .vacio {
+    background: repeating-linear-gradient(
+      90deg,
+      var(--color-borde) 0 6px,
+      var(--color-superficie-hover) 6px 12px
+    );
+  }
+  .leyenda {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: var(--esp-2) var(--esp-4);
+    margin: var(--esp-4) 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--texto-sm);
+  }
+  .leyenda li {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-2);
+  }
+  .m {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+  .et {
+    color: var(--color-texto-suave);
+  }
+  strong {
+    font-variant-numeric: tabular-nums;
+  }
+  .pc {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-xs);
+  }
+</style>

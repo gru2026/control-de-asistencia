@@ -23,12 +23,15 @@ describe("normalizarCedula", () => {
   );
 });
 
+const CAT = "11111111-1111-1111-1111-111111111111";
+
 describe("validarPersonal", () => {
   const base = {
     nombre: " Ana  María ",
     apellido: "Pérez",
     cedula: "12.345.678",
-    cargo: "docente",
+    categoria_id: CAT,
+    carga_horaria: "36",
   };
 
   it("acepta datos válidos y normaliza", () => {
@@ -39,7 +42,9 @@ describe("validarPersonal", () => {
         nombre: "Ana María",
         apellido: "Pérez",
         cedula: "V-12345678",
-        cargo: "docente",
+        categoria_id: CAT,
+        vinculo: "fijo",
+        carga_horaria: 36,
         telefono: null,
         jornada_id: null,
         fecha_ingreso: null,
@@ -48,11 +53,27 @@ describe("validarPersonal", () => {
   });
 
   it("informa todos los errores", () => {
-    const r = validarPersonal({ cedula: "x", cargo: "rector", telefono: "abc", jornada_id: "1" });
+    const r = validarPersonal({
+      cedula: "x",
+      categoria_id: "x",
+      vinculo: "jefe",
+      carga_horaria: "99",
+      telefono: "abc",
+      jornada_id: "1",
+    });
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(Object.keys(r.errores).sort()).toEqual(
-        ["apellido", "cargo", "cedula", "jornada_id", "nombre", "telefono"].sort(),
+        [
+          "apellido",
+          "carga_horaria",
+          "categoria_id",
+          "cedula",
+          "jornada_id",
+          "nombre",
+          "telefono",
+          "vinculo",
+        ].sort(),
       );
     }
   });
@@ -105,6 +126,14 @@ describe("validarJornada", () => {
   it("pausa mayor que la jornada", () => {
     const r = validarJornada(f({ hora_salida: "08:00", pausa_min: "90" }));
     expect(!r.ok && r.errores.pausa_min).toBeTruthy();
+  });
+  it("jornada nocturna: requiere la marca y calcula la duración cruzando la medianoche", () => {
+    expect(validarJornada(f({ hora_entrada: "22:00", hora_salida: "06:00" })).ok).toBe(false);
+    const r = validarJornada(
+      f({ hora_entrada: "22:00", hora_salida: "06:00", nocturna: "si", pausa_min: "30" }),
+    );
+    expect(r.ok && r.datos.nocturna).toBe(true);
+    expect(validarJornada(f({ nocturna: "si" })).ok).toBe(false); // 07:00–16:00 no es nocturna
   });
   it("sin días y tolerancia inválida", () => {
     const r = validarJornada(f({ dias_laborables: [], tolerancia_min: "-5" }));

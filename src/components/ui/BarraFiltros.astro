@@ -1,0 +1,305 @@
+---
+/**
+ * Barra de filtros para tablas. Los filtros viven en la URL (se pueden compartir
+ * y sobreviven a recargas). Los selects envían el formulario al cambiar.
+ */
+import Icono from "./Icono.astro";
+
+export interface FiltroSelect {
+  nombre: string;
+  etiqueta: string;
+  opciones: { valor: string; texto: string }[];
+  /** Valor cuando el parámetro no está en la URL. */
+  porDefecto?: string;
+  /** Texto de la opción vacía ("Todos"). Si se omite, no hay opción vacía. */
+  vacia?: string;
+}
+
+interface Props {
+  busqueda?: { nombre?: string; etiqueta?: string; placeholder: string };
+  filtros: FiltroSelect[];
+  total: number;
+  unidad: [singular: string, plural: string];
+  /** Parámetros que se conservan (orden, dirección…). */
+  conservar?: string[];
+}
+
+const { busqueda, filtros, total, unidad, conservar = ["orden", "dir", "por"] } = Astro.props;
+const url = Astro.url;
+const p = url.searchParams;
+const nombreBusqueda = busqueda?.nombre ?? "q";
+const q = p.get(nombreBusqueda) ?? "";
+
+const valor = (f: FiltroSelect) => {
+  const v = p.get(f.nombre);
+  return v !== null && f.opciones.some((o) => o.valor === v) ? v : (f.porDefecto ?? "");
+};
+
+function sinParametro(nombre: string) {
+  const u = new URL(url);
+  u.searchParams.delete(nombre);
+  u.searchParams.delete("pagina");
+  return u.pathname + u.search;
+}
+
+const chips = [
+  ...(q ? [{ texto: `“${q}”`, quitar: sinParametro(nombreBusqueda) }] : []),
+  ...filtros.flatMap((f) => {
+    const v = valor(f);
+    if (v === "" || v === (f.porDefecto ?? "")) return [];
+    const opcion = f.opciones.find((o) => o.valor === v);
+    return [{ texto: `${f.etiqueta}: ${opcion?.texto ?? v}`, quitar: sinParametro(f.nombre) }];
+  }),
+];
+---
+
+<div class="barra-filtros">
+  <form
+    method="get"
+    class:list={["campos", filtros.length > 2 && "plegable"]}
+    role="search"
+    data-autoenviar
+  >
+    {filtros.length > 2 && (
+      <button type="button" class="alternar" aria-expanded="false" data-alternar-filtros>
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+        </svg>
+        Filtros{chips.length - (q ? 1 : 0) > 0 ? ` (${chips.length - (q ? 1 : 0)})` : ""}
+      </button>
+    )}
+    {busqueda && (
+      <div class="campo busqueda">
+        <label for="filtro-q">{busqueda.etiqueta ?? "Buscar"}</label>
+        <div class="con-icono">
+          <Icono nombre="buscar" tamano={18} class="lupa" />
+          <input
+            id="filtro-q"
+            type="search"
+            name={nombreBusqueda}
+            value={q}
+            placeholder={busqueda.placeholder}
+            autocomplete="off"
+            enterkeyhint="search"
+          />
+        </div>
+      </div>
+    )}
+    {filtros.map((f) => (
+      <div class="campo">
+        <label for={`filtro-${f.nombre}`}>{f.etiqueta}</label>
+        <select id={`filtro-${f.nombre}`} name={f.nombre}>
+          {f.vacia !== undefined && <option value="">{f.vacia}</option>}
+          {f.opciones.map((o) => (
+            <option value={o.valor} selected={o.valor === valor(f)}>
+              {o.texto}
+            </option>
+          ))}
+        </select>
+      </div>
+    ))}
+    {conservar.map((n) => {
+      const v = p.get(n);
+      return v ? <input type="hidden" name={n} value={v} /> : null;
+    })}
+    <button type="submit" class="aplicar">
+      Aplicar
+    </button>
+  </form>
+
+  <div class="resumen" aria-live="polite">
+    <span class="total">
+      <strong>{total}</strong> {total === 1 ? unidad[0] : unidad[1]}
+    </span>
+    {chips.length > 0 && (
+      <ul class="chips" aria-label="Filtros activos">
+        {chips.map((c) => (
+          <li>
+            <a href={c.quitar} class="chip" aria-label={`Quitar filtro ${c.texto}`}>
+              {c.texto}
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </a>
+          </li>
+        ))}
+        <li>
+          <a href={url.pathname} class="limpiar">
+            Limpiar filtros
+          </a>
+        </li>
+      </ul>
+    )}
+  </div>
+</div>
+
+<style>
+  .barra-filtros {
+    display: grid;
+    gap: var(--esp-3);
+    margin-bottom: var(--esp-4);
+  }
+  .campos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: var(--esp-3);
+    align-items: end;
+  }
+  .busqueda {
+    grid-column: 1 / -1;
+  }
+  .alternar {
+    display: none;
+  }
+  /* Móvil con JavaScript: los filtros se pliegan detrás de un botón */
+  @media (max-width: 700px) {
+    :global(.js) .plegable {
+      grid-template-columns: 1fr auto;
+    }
+    :global(.js) .plegable .busqueda {
+      grid-column: 1;
+      grid-row: 1;
+    }
+    :global(.js) .plegable .alternar {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--esp-2);
+      grid-column: 2;
+      grid-row: 1;
+      align-self: end;
+      min-height: 44px;
+      padding: 0 var(--esp-3);
+      border: 1px solid var(--color-borde-fuerte);
+      border-radius: var(--radio-sm);
+      background: var(--color-superficie);
+      font-weight: var(--peso-medio);
+      white-space: nowrap;
+    }
+    :global(.js) .plegable:not(.abierto) .campo:not(.busqueda),
+    :global(.js) .plegable:not(.abierto) .aplicar {
+      display: none;
+    }
+    :global(.js) .plegable.abierto .campo:not(.busqueda),
+    :global(.js) .plegable.abierto .aplicar {
+      grid-column: 1 / -1;
+    }
+  }
+  .campo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-1);
+    min-width: 0;
+  }
+  label {
+    font-size: var(--texto-xs);
+    font-weight: var(--peso-fuerte);
+    color: var(--color-texto-suave);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  input,
+  select {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 var(--esp-3);
+    border: 1px solid var(--color-borde-fuerte);
+    border-radius: var(--radio-sm);
+    background: var(--color-superficie);
+    transition: border-color var(--duracion-rapida) var(--curva);
+  }
+  input:focus-visible,
+  select:focus-visible {
+    outline: none;
+    border-color: var(--color-acento);
+    box-shadow: 0 0 0 3px rgb(37 99 235 / 0.2);
+  }
+  .con-icono {
+    position: relative;
+  }
+  .con-icono :global(.lupa) {
+    position: absolute;
+    left: var(--esp-3);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-texto-suave);
+    pointer-events: none;
+  }
+  .con-icono input {
+    padding-left: 2.5rem;
+  }
+  .aplicar {
+    min-height: 44px;
+    padding: 0 var(--esp-4);
+    border: 0;
+    border-radius: var(--radio-sm);
+    background: var(--color-primario);
+    color: #fff;
+    font-weight: var(--peso-fuerte);
+  }
+  /* Con JavaScript los selects se aplican solos: el botón solo hace falta para la búsqueda. */
+  :global(.js) .aplicar {
+    justify-self: start;
+  }
+  .resumen {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-2) var(--esp-4);
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-1);
+    min-height: 32px;
+    padding: 0 var(--esp-2) 0 var(--esp-3);
+    border-radius: 999px;
+    background: var(--color-acento-suave);
+    color: var(--color-acento-hover);
+    font-weight: var(--peso-medio);
+    text-decoration: none;
+    transition: background var(--duracion-rapida) var(--curva);
+  }
+  .chip:hover {
+    background: #dbeafe;
+  }
+  .limpiar {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    font-weight: var(--peso-medio);
+  }
+  @media (min-width: 900px) {
+    .busqueda {
+      grid-column: span 2;
+    }
+  }
+</style>

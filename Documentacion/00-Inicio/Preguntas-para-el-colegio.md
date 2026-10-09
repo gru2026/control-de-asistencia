@@ -149,6 +149,15 @@ Datos que debemos confirmar con la institución antes de cerrar el diseño. Marc
 
 ---
 
+## 15. Material pendiente para el jueves → *a [[03-Diseno/Registro-de-decisiones]] D-25*
+
+- [ ] **Logo del colegio** en buena calidad (PNG o SVG).
+- [ ] **Escudo del estado** en buena calidad (PNG o SVG).
+- [ ] Confirmar horarios reales: docentes, personal de 40 h, cocina y vigilancia (diurna y nocturna).
+- [ ] Revisar la transcripción de la nómina (orden nombre/apellido y la fila 08 «…Ingris Rivas», tapada en la foto).
+
+**Respuesta:** 🟡 Se piden en el colegio el próximo jueves.
+
 ## Registro de respuestas
 
 | # | Tema | ¿Resuelto? | Fecha | Respuesta resumida |

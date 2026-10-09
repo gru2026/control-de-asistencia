@@ -5,53 +5,72 @@ import Tabla from "@/components/ui/Tabla.astro";
 import Badge from "@/components/ui/Badge.astro";
 import Boton from "@/components/ui/Boton.astro";
 import Icono from "@/components/ui/Icono.astro";
-import Input from "@/components/ui/Input.astro";
-import Select from "@/components/ui/Select.astro";
 import Paginacion from "@/components/ui/Paginacion.astro";
+import BarraFiltros from "@/components/ui/BarraFiltros.astro";
+import EncabezadoOrden from "@/components/ui/EncabezadoOrden.astro";
+import ChipCategoria from "@/components/ui/ChipCategoria.astro";
+import { listarCategorias } from "@/lib/datos/categorias";
+import { listarJornadas } from "@/lib/datos/jornadas";
 import { terminosBusqueda } from "@/lib/validacion";
-import { CARGOS, NOMBRE_CARGO, type Cargo } from "@/types";
+import { NOMBRE_VINCULO, VINCULOS, type Vinculo } from "@/types";
 
-const POR_PAGINA = 20;
 const sb = Astro.locals.supabase;
 const perfil = Astro.locals.perfil!;
 const p = Astro.url.searchParams;
 
+const [categorias, jornadas] = await Promise.all([listarCategorias(sb), listarJornadas(sb)]);
+const catPorId = new Map(categorias.map((c) => [c.id, c]));
+
+// ── Filtros desde la URL (valores no válidos se ignoran) ──
+const uno = <T extends string>(nombre: string, validos: readonly T[]) =>
+  validos.includes(p.get(nombre) as T) ? (p.get(nombre) as T) : null;
+
 const q = (p.get("q") ?? "").slice(0, 80);
-const cargo = CARGOS.includes(p.get("cargo") as Cargo) ? (p.get("cargo") as Cargo) : "";
-const estado = ["activo", "inactivo", "todos"].includes(p.get("estado") ?? "")
-  ? p.get("estado")!
-  : "activo";
-const sinCuenta = p.get("cuenta") === "no";
-const sinJornada = p.get("jornada") === "no";
+const categoria = uno(
+  "categoria",
+  categorias.map((c) => c.id),
+);
+const vinculo = uno("vinculo", VINCULOS);
+const jornada = uno("jornada", [...jornadas.map((j) => j.id), "no"]);
+const estado = uno("estado", ["activo", "inactivo", "todos"] as const) ?? "activo";
+const cuenta = uno("cuenta", ["si", "no"] as const);
+const POR = [20, 50, 100] as const;
+const porPagina = POR.find((n) => String(n) === p.get("por")) ?? 20;
 const pagina = Math.max(1, Number.parseInt(p.get("pagina") ?? "1", 10) || 1);
+
+const COLUMNAS_ORDEN = ["apellido", "cedula", "carga_horaria", "estado"] as const;
+const orden = uno("orden", COLUMNAS_ORDEN) ?? "apellido";
+const dir = p.get("dir") === "desc" ? "desc" : "asc";
 
 let consulta = sb
   .from("personal")
   .select(
-    "id, nombre, apellido, cedula, cargo, estado, usuario_id, jornadas(nombre), usuarios(email)",
-    {
-      count: "exact",
-    },
+    "id, nombre, apellido, cedula, categoria_id, vinculo, carga_horaria, estado, usuario_id, jornadas(nombre), usuarios(email)",
+    { count: "exact" },
   )
-  .order("apellido")
+  .order(orden, { ascending: dir === "asc", nullsFirst: false })
   .order("nombre")
-  .range((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA - 1);
+  .range((pagina - 1) * porPagina, pagina * porPagina - 1);
 
-// Cada término debe aparecer en nombre, apellido o cédula ("Ana Pérez" → ambos).
 for (const t of terminosBusqueda(q)) {
   consulta = consulta.or(`nombre.ilike.*${t}*,apellido.ilike.*${t}*,cedula.ilike.*${t}*`);
 }
-if (cargo) consulta = consulta.eq("cargo", cargo);
+if (categoria) consulta = consulta.eq("categoria_id", categoria);
+if (vinculo) consulta = consulta.eq("vinculo", vinculo);
+if (jornada === "no") consulta = consulta.is("jornada_id", null);
+else if (jornada) consulta = consulta.eq("jornada_id", jornada);
 if (estado !== "todos") consulta = consulta.eq("estado", estado);
-if (sinCuenta) consulta = consulta.is("usuario_id", null);
-if (sinJornada) consulta = consulta.is("jornada_id", null);
+if (cuenta === "no") consulta = consulta.is("usuario_id", null);
+if (cuenta === "si") consulta = consulta.not("usuario_id", "is", null);
 
 interface Fila {
   id: string;
   nombre: string;
   apellido: string;
   cedula: string;
-  cargo: Cargo;
+  categoria_id: string;
+  vinculo: Vinculo;
+  carga_horaria: number | null;
   estado: "activo" | "inactivo";
   usuario_id: string | null;
   jornadas: { nombre: string } | null;
@@ -60,133 +79,168 @@ interface Fila {
 const { data, count, error } = await consulta;
 if (error) console.error("[personal] listado:", error);
 const filas = (data ?? []) as unknown as Fila[];
-const hayFiltros = q || cargo || estado !== "activo" || sinCuenta || sinJornada;
+const total = count ?? 0;
+const hayFiltros = Boolean(q || categoria || vinculo || jornada || cuenta || estado !== "activo");
 ---
 
-<PanelLayout titulo="Personal" subtitulo="Docentes y personal administrativo del colegio.">
+<PanelLayout
+  titulo="Personal"
+  subtitulo="Docentes, personal administrativo, obrero, cocina y vigilancia."
+  migas={[{ texto: "Panel", href: "/panel" }, { texto: "Personal" }]}
+>
   <Fragment slot="acciones">
     {perfil.rol === "directiva" && (
-      <Boton href="/personal/nuevo">
-        <Icono nombre="mas" tamano={18} />
-        Nuevo personal
-      </Boton>
+      <>
+        <Boton href="/personal/importar" variante="secundario">
+          Importar
+        </Boton>
+        <Boton href="/personal/nuevo">
+          <Icono nombre="mas" tamano={18} />
+          Nuevo personal
+        </Boton>
+      </>
     )}
   </Fragment>
 
   <Tarjeta>
-    <form method="get" class="filtros" role="search">
-      <Input
-        etiqueta="Buscar"
-        nombre="q"
-        value={q}
-        placeholder="Nombre, apellido o cédula"
-        type="search"
-      />
-      <Select
-        etiqueta="Cargo"
-        nombre="cargo"
-        valor={cargo}
-        vacia="Todos"
-        opciones={CARGOS.map((c) => ({ valor: c, texto: NOMBRE_CARGO[c] }))}
-      />
-      <Select
-        etiqueta="Estado"
-        nombre="estado"
-        valor={estado}
-        opciones={[
-          { valor: "activo", texto: "Activos" },
-          { valor: "inactivo", texto: "Inactivos" },
-          { valor: "todos", texto: "Todos" },
-        ]}
-      />
-      {sinCuenta && <input type="hidden" name="cuenta" value="no" />}
-      {sinJornada && <input type="hidden" name="jornada" value="no" />}
-      <div class="botones">
-        <Boton type="submit">Filtrar</Boton>
-        {hayFiltros && (
-          <Boton href="/personal" variante="fantasma">
-            Limpiar
-          </Boton>
-        )}
-      </div>
-    </form>
-    {(sinCuenta || sinJornada) && (
-      <p class="filtro-extra">
-        Mostrando solo personal {sinCuenta ? "sin cuenta de acceso" : "sin jornada asignada"}.
-      </p>
-    )}
+    <BarraFiltros
+      busqueda={{ placeholder: "Nombre, apellido o cédula" }}
+      total={total}
+      unidad={["persona", "personas"]}
+      filtros={[
+        {
+          nombre: "categoria",
+          etiqueta: "Categoría",
+          vacia: "Todas",
+          opciones: categorias.map((c) => ({ valor: c.id, texto: c.nombre })),
+        },
+        {
+          nombre: "vinculo",
+          etiqueta: "Vínculo",
+          vacia: "Todos",
+          opciones: VINCULOS.map((v) => ({ valor: v, texto: NOMBRE_VINCULO[v] })),
+        },
+        {
+          nombre: "jornada",
+          etiqueta: "Jornada",
+          vacia: "Todas",
+          opciones: [
+            { valor: "no", texto: "Sin asignar" },
+            ...jornadas.map((j) => ({ valor: j.id, texto: j.nombre })),
+          ],
+        },
+        {
+          nombre: "cuenta",
+          etiqueta: "Cuenta de acceso",
+          vacia: "Todas",
+          opciones: [
+            { valor: "si", texto: "Con cuenta" },
+            { valor: "no", texto: "Sin cuenta" },
+          ],
+        },
+        {
+          nombre: "estado",
+          etiqueta: "Estado",
+          porDefecto: "activo",
+          opciones: [
+            { valor: "activo", texto: "Activos" },
+            { valor: "inactivo", texto: "Inactivos" },
+            { valor: "todos", texto: "Todos" },
+          ],
+        },
+        {
+          nombre: "por",
+          etiqueta: "Mostrar",
+          porDefecto: "20",
+          opciones: POR.map((n) => ({ valor: String(n), texto: `${n} por página` })),
+        },
+      ]}
+    />
 
     {error && <p class="error">No se pudo cargar la lista. Recargue la página.</p>}
 
     <Tabla
       titulo="Lista de personal"
+      tarjetas
       hayFilas={filas.length > 0}
       vacio={hayFiltros ? "No hay resultados con esos filtros." : "Aún no hay personal registrado."}
     >
+      <Fragment slot="vacio">{hayFiltros && <a href="/personal">Limpiar filtros</a>}</Fragment>
       <thead>
         <tr>
-          <th scope="col">Nombre</th>
-          <th scope="col">Cédula</th>
-          <th scope="col">Cargo</th>
-          <th scope="col">Jornada</th>
+          <EncabezadoOrden campo="apellido" orden={orden} dir={dir}>
+            Nombre
+          </EncabezadoOrden>
+          <EncabezadoOrden campo="cedula" orden={orden} dir={dir}>
+            Cédula
+          </EncabezadoOrden>
+          <th scope="col">Categoría</th>
+          <th scope="col">Vínculo</th>
+          <EncabezadoOrden campo="carga_horaria" orden={orden} dir={dir}>
+            Carga
+          </EncabezadoOrden>
+          <th scope="col" class="col-jornada">
+            Jornada
+          </th>
           <th scope="col">Cuenta</th>
-          <th scope="col">Estado</th>
+          <EncabezadoOrden campo="estado" orden={orden} dir={dir}>
+            Estado
+          </EncabezadoOrden>
         </tr>
       </thead>
       <tbody>
-        {filas.map((f) => (
-          <tr>
-            <td>
-              <a href={`/personal/${f.id}`}>
-                {f.apellido}, {f.nombre}
-              </a>
-            </td>
-            <td>{f.cedula}</td>
-            <td>{NOMBRE_CARGO[f.cargo]}</td>
-            <td>{f.jornadas?.nombre ?? <span class="suave">Sin asignar</span>}</td>
-            <td>{f.usuarios?.email ?? <span class="suave">Sin cuenta</span>}</td>
-            <td>
-              <Badge tipo={f.estado}>{f.estado === "activo" ? "Activo" : "Inactivo"}</Badge>
-            </td>
-          </tr>
-        ))}
+        {filas.map((f) => {
+          const c = catPorId.get(f.categoria_id);
+          return (
+            <tr>
+              <td class="principal">
+                <a href={`/personal/${f.id}`} class="nombre">
+                  {f.apellido}, {f.nombre}
+                </a>
+              </td>
+              <td data-etiqueta="Cédula">{f.cedula}</td>
+              <td data-etiqueta="Categoría">
+                {c ? <ChipCategoria nombre={c.nombre} color={c.color} /> : "—"}
+              </td>
+              <td data-etiqueta="Vínculo">{NOMBRE_VINCULO[f.vinculo]}</td>
+              <td data-etiqueta="Carga" class="num">
+                {f.carga_horaria ? `${f.carga_horaria} h` : "—"}
+              </td>
+              <td data-etiqueta="Jornada" class="col-jornada">
+                {f.jornadas?.nombre ?? <span class="suave">Sin asignar</span>}
+              </td>
+              <td data-etiqueta="Cuenta">
+                {f.usuarios ? (
+                  <span title={f.usuarios.email}>Sí</span>
+                ) : (
+                  <span class="suave">No</span>
+                )}
+              </td>
+              <td data-etiqueta="Estado">
+                <Badge tipo={f.estado}>{f.estado === "activo" ? "Activo" : "Inactivo"}</Badge>
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </Tabla>
-    <Paginacion pagina={pagina} total={count ?? 0} porPagina={POR_PAGINA} />
+    <Paginacion pagina={pagina} total={total} porPagina={porPagina} />
   </Tarjeta>
 </PanelLayout>
 
 <style>
-  .filtros {
-    display: grid;
-    gap: var(--esp-3);
-    margin-bottom: var(--esp-4);
-  }
-  .botones {
-    display: flex;
-    gap: var(--esp-2);
-    align-items: flex-end;
-  }
-  @media (min-width: 768px) {
-    .filtros {
-      grid-template-columns: 2fr 1fr 1fr auto;
-      align-items: end;
-    }
-  }
   .suave {
     color: var(--color-texto-suave);
-  }
-  .filtro-extra {
-    margin: 0 0 var(--esp-3);
-    font-size: var(--texto-sm);
-    color: var(--color-alerta);
-    font-weight: 600;
   }
   .error {
     color: var(--color-error);
   }
-  a {
-    color: var(--color-acento);
-    font-weight: 600;
+  @media (min-width: 701px) and (max-width: 1200px) {
+    .col-jornada {
+      display: none;
+    }
+  }
+  .nombre {
+    font-weight: var(--peso-fuerte);
   }
 </style>

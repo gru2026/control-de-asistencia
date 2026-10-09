@@ -55,7 +55,10 @@ Extiende `auth.users` de Supabase.
 | `usuario_id` | uuid FK → usuarios, unique, null | NULL si aún no tiene cuenta |
 | `nombre`, `apellido` | text | |
 | `cedula` | text unique | Usada también en el kiosco |
-| `cargo` | text | `docente` \| `administrativo` \| `otro` |
+| `categoria_id` | uuid FK → categorias | Oficio (Docente, Secretaría, Cocina, Obrero, Vigilancia…) |
+| `vinculo` | text | `fijo` \| `contratado` \| `suplente` |
+| `carga_horaria` | int null | Horas semanales (columna de la planilla oficial) |
+| `origen` | text | `manual` \| `importado` |
 | `telefono` | text | Opcional |
 | `jornada_id` | uuid FK → jornadas | Plantilla de horario asignada |
 | `pin_hash` | text null | PIN del kiosco (hash, nunca en claro) |
@@ -64,6 +67,16 @@ Extiende `auth.users` de Supabase.
 | `fecha_ingreso` | date | |
 | `estado` | text | `activo` \| `inactivo` (nunca borrado físico) |
 | `creado_en` | timestamptz | |
+
+### `categorias`
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | uuid PK | |
+| `nombre` | text unique | Docente, Secretaría, Cocina, Obrero, Vigilancia, Otro |
+| `planilla` | text | `docentes` \| `personal` (planilla oficial donde aparece) |
+| `color` | text | Color en tablas y gráficas |
+| `jornada_sugerida_id` | uuid FK → jornadas null | Se propone al registrar personal |
+| `orden`, `activa` | int, bool | |
 
 ### `jornadas` (plantillas configurables)
 | Campo | Tipo | Descripción |
@@ -76,6 +89,7 @@ Extiende `auth.users` de Supabase.
 | `pausa_min` | int | Minutos de almuerzo a descontar (default 0) |
 | `dias_laborables` | int[] | 1=lunes … 7=domingo. Default `{1,2,3,4,5}` |
 | `activa` | bool | |
+| `nocturna` | bool | La salida ocurre al día siguiente |
 
 ### `horarios` (excepciones por persona y día)
 Opcional: sobrescribe la jornada para un día concreto de la semana.

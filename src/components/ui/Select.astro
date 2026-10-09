@@ -4,7 +4,7 @@ import type { HTMLAttributes } from "astro/types";
 type Props = Omit<HTMLAttributes<"select">, "name"> & {
   etiqueta: string;
   nombre: string;
-  opciones: { valor: string; texto: string }[];
+  opciones: { valor: string; texto: string; datos?: Record<string, string> }[];
   valor?: string | null | undefined;
   vacia?: string; // texto de la opción vacía (si se permite)
   error?: string | undefined;
@@ -45,7 +45,11 @@ const describe =
   >
     {vacia !== undefined && <option value="">{vacia}</option>}
     {opciones.map((o) => (
-      <option value={o.valor} selected={o.valor === (valor ?? "")}>
+      <option
+        value={o.valor}
+        selected={o.valor === (valor ?? "")}
+        {...Object.fromEntries(Object.entries(o.datos ?? {}).map(([k, v]) => [`data-${k}`, v]))}
+      >
         {o.texto}
       </option>
     ))}

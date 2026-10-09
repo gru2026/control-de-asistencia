@@ -9,24 +9,37 @@ interface Props {
   titulo: string;
   /** Texto bajo el título (opcional). */
   subtitulo?: string;
+  /** Migas de pan: el último elemento es la página actual (sin href). */
+  migas?: { texto: string; href?: string }[];
 }
 
-const { titulo, subtitulo } = Astro.props;
+const { titulo, subtitulo, migas } = Astro.props;
 const perfil = Astro.locals.perfil!;
 const flash = Astro.locals.flash;
 const ruta = Astro.url.pathname;
 
-// Ítems de navegación; se muestran solo los que el rol puede ver.
-const items: { href: string; texto: string; icono: NombreIcono }[] = [
-  { href: "/panel", texto: "Panel", icono: "panel" },
-  { href: "/asistencia", texto: "Mi asistencia", icono: "reloj" },
-  { href: "/personal", texto: "Personal", icono: "usuarios" },
-  { href: "/jornadas", texto: "Jornadas", icono: "calendario" },
-  { href: "/configuracion/usuarios", texto: "Usuarios", icono: "escudo" },
-];
-const visibles = items.filter((i) => puedeVer(i.href, perfil.rol));
+// Navegación por rol (máximo 5 ítems en la barra inferior del celular).
+type Item = { href: string; texto: string; icono: NombreIcono; activoEn?: string[] };
+const NAV: Record<typeof perfil.rol, Item[]> = {
+  directiva: [
+    { href: "/panel", texto: "Panel", icono: "panel" },
+    { href: "/personal", texto: "Personal", icono: "usuarios" },
+    { href: "/reportes", texto: "Reportes", icono: "documento" },
+    { href: "/jornadas", texto: "Jornadas", icono: "calendario" },
+    { href: "/configuracion", texto: "Ajustes", icono: "ajustes", activoEn: ["/configuracion"] },
+  ],
+  secretaria: [
+    { href: "/panel", texto: "Panel", icono: "panel" },
+    { href: "/personal", texto: "Personal", icono: "usuarios" },
+    { href: "/reportes", texto: "Reportes", icono: "documento" },
+    { href: "/asistencia", texto: "Mi asistencia", icono: "reloj" },
+  ],
+  personal: [{ href: "/asistencia", texto: "Mi asistencia", icono: "reloj" }],
+};
+const visibles = NAV[perfil.rol].filter((i) => puedeVer(i.href, perfil.rol));
 
-const activo = (href: string) => ruta === href || ruta.startsWith(href + "/");
+const activo = (i: Item) =>
+  [i.href, ...(i.activoEn ?? [])].some((h) => ruta === h || ruta.startsWith(h + "/"));
 const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
 ---
 
@@ -61,11 +74,11 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
   </header>
 
   <div class="marco">
-    <nav class="nav" aria-label="Principal">
+    <nav class:list={["nav", visibles.length < 2 && "solo-escritorio"]} aria-label="Principal">
       <ul style={`--columnas: ${visibles.length}`}>
         {visibles.map((i) => (
           <li>
-            <a href={i.href} aria-current={activo(i.href) ? "page" : undefined}>
+            <a href={i.href} aria-current={activo(i) ? "page" : undefined}>
               <Icono nombre={i.icono} tamano={22} />
               <span>{i.texto}</span>
             </a>
@@ -74,7 +87,22 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
       </ul>
     </nav>
 
-    <main id="contenido">
+    <main id="contenido" class:list={[visibles.length < 2 && "sin-barra"]}>
+      {migas && migas.length > 1 && (
+        <nav class="migas" aria-label="Ruta">
+          <ol>
+            {migas.map((m, i) => (
+              <li>
+                {m.href && i < migas.length - 1 ? (
+                  <a href={m.href}>{m.texto}</a>
+                ) : (
+                  <span aria-current="page">{m.texto}</span>
+                )}
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )}
       <div class="encabezado">
         <div>
           <h1>{titulo}</h1>
@@ -232,6 +260,41 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
   }
   .flash {
     margin-bottom: var(--esp-4);
+  }
+  .migas ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-1);
+    margin: 0 0 var(--esp-2);
+    padding: 0;
+    list-style: none;
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .migas li + li::before {
+    content: "/";
+    margin-right: var(--esp-1);
+    opacity: 0.5;
+  }
+  .migas a {
+    color: var(--color-texto-suave);
+    text-decoration: none;
+  }
+  .migas a:hover {
+    color: var(--color-acento);
+    text-decoration: underline;
+  }
+  .migas [aria-current] {
+    color: var(--color-texto);
+    font-weight: var(--peso-medio);
+  }
+  @media (max-width: 899px) {
+    .solo-escritorio {
+      display: none;
+    }
+    main.sin-barra {
+      padding-bottom: calc(var(--esp-8) + var(--seguro-abajo));
+    }
   }
 
   /* ── Navegación móvil: barra inferior ───────────────── */

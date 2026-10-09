@@ -1,7 +1,7 @@
 /** Tipos compartidos del dominio. Ver Documentacion/03-Diseno/Modelo-de-datos.md */
 
 export type Rol = "directiva" | "secretaria" | "personal";
-export type Cargo = "docente" | "administrativo" | "otro";
+export type Vinculo = "fijo" | "contratado" | "suplente";
 export type EstadoAsistencia = "presente" | "tarde" | "falta" | "permiso";
 export type MetodoMarcacion = "qr" | "asistido" | "kiosco" | "manual";
 export type EstadoDispositivo = "aprobado" | "pendiente" | "revocado";
@@ -13,7 +13,7 @@ export type DiaSemana = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export type HoraTexto = string;
 
 export const ROLES: readonly Rol[] = ["directiva", "secretaria", "personal"];
-export const CARGOS: readonly Cargo[] = ["docente", "administrativo", "otro"];
+export const VINCULOS: readonly Vinculo[] = ["fijo", "contratado", "suplente"];
 
 export const NOMBRE_ROL: Record<Rol, string> = {
   directiva: "Directiva",
@@ -21,11 +21,29 @@ export const NOMBRE_ROL: Record<Rol, string> = {
   personal: "Personal",
 };
 
-export const NOMBRE_CARGO: Record<Cargo, string> = {
-  docente: "Docente",
-  administrativo: "Administrativo",
-  otro: "Otro",
+export const NOMBRE_VINCULO: Record<Vinculo, string> = {
+  fijo: "Fijo",
+  contratado: "Contratado",
+  suplente: "Suplente",
 };
+
+export const NOMBRE_ESTADO: Record<EstadoAsistencia, string> = {
+  presente: "Presente",
+  tarde: "Tarde",
+  falta: "Falta",
+  permiso: "Permiso",
+};
+
+/** Categoría de personal (oficio). Configurable por la directiva. */
+export interface Categoria {
+  id: string;
+  nombre: string;
+  planilla: "docentes" | "personal";
+  color: string;
+  jornada_sugerida_id: string | null;
+  orden: number;
+  activa: boolean;
+}
 
 export const NOMBRE_DIA: Record<DiaSemana, string> = {
   1: "Lunes",
@@ -53,6 +71,8 @@ export interface Jornada {
   toleranciaMin: number;
   pausaMin: number;
   diasLaborables: DiaSemana[];
+  /** La salida ocurre al día siguiente (cruza la medianoche). */
+  nocturna?: boolean;
 }
 
 export interface ExcepcionHorario {
@@ -70,4 +90,5 @@ export interface ReglaDelDia {
   horaSalida: HoraTexto;
   toleranciaMin: number;
   pausaMin: number;
+  nocturna: boolean;
 }

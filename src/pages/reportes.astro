@@ -1,0 +1,343 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Icono from "@/components/ui/Icono.astro";
+import Badge from "@/components/ui/Badge.astro";
+import { listarCategorias } from "@/lib/datos/categorias";
+import { cargarInstitucion, cargarPlanilla } from "@/lib/reportes/datos";
+import type { TipoPlanilla } from "@/lib/reportes/planilla";
+import { fechaLarga, hoyEnZona } from "@/lib/fecha";
+import { sumarDias } from "@/lib/reglas/tiempo";
+
+const sb = Astro.locals.supabase;
+const p = Astro.url.searchParams;
+const hoy = hoyEnZona();
+const categorias = await listarCategorias(sb);
+
+const fecha = /^\d{4}-\d{2}-\d{2}$/.test(p.get("fecha") ?? "") ? p.get("fecha")! : hoy;
+const tipos: { valor: TipoPlanilla; texto: string }[] = [
+  { valor: "docentes", texto: "Asistencia docentes" },
+  { valor: "personal", texto: "Asistencia personal (por cargo)" },
+  ...categorias
+    .filter((c) => c.activa)
+    .map((c) => ({ valor: `categoria:${c.id}` as TipoPlanilla, texto: `Solo ${c.nombre}` })),
+];
+const tipo = tipos.find((t) => t.valor === p.get("tipo"))?.valor ?? "docentes";
+const [planilla, inst] = await Promise.all([
+  cargarPlanilla(sb, tipo, fecha),
+  cargarInstitucion(sb),
+]);
+const total = planilla.grupos.reduce((s, g) => s + g.filas.length, 0);
+const q = (formato: string, extra = "") =>
+  `/api/reportes/planilla?fecha=${fecha}&tipo=${encodeURIComponent(tipo)}&formato=${formato}${extra}`;
+const navegar = (f: string) => `/reportes?fecha=${f}&tipo=${encodeURIComponent(tipo)}`;
+const BADGE = {
+  presente: "presente",
+  tarde: "tarde",
+  falta: "falta",
+  permiso: "permiso",
+  sin_registro: "pendiente",
+} as const;
+---
+
+<PanelLayout
+  titulo="Reportes"
+  subtitulo="Planilla diaria de asistencia con el formato oficial del plantel."
+>
+  <div class="pila">
+    <Tarjeta>
+      <form method="get" class="controles" data-autoenviar>
+        <div class="campo">
+          <label for="r-fecha">Fecha</label>
+          <div class="fecha">
+            <a href={navegar(sumarDias(fecha, -1))} class="flecha" aria-label="Día anterior">
+              <Icono nombre="anterior" />
+            </a>
+            <input
+              id="r-fecha"
+              type="date"
+              name="fecha"
+              value={fecha}
+              max={hoy}
+              onchange="this.form.requestSubmit()"
+            />
+            {fecha < hoy ? (
+              <a href={navegar(sumarDias(fecha, 1))} class="flecha" aria-label="Día siguiente">
+                <Icono nombre="siguiente" />
+              </a>
+            ) : (
+              <span class="flecha inactiva" aria-hidden="true">
+                <Icono nombre="siguiente" />
+              </span>
+            )}
+          </div>
+        </div>
+        <div class="campo">
+          <label for="r-tipo">Planilla</label>
+          <select id="r-tipo" name="tipo">
+            {tipos.map((t) => (
+              <option value={t.valor} selected={t.valor === tipo}>
+                {t.texto}
+              </option>
+            ))}
+          </select>
+        </div>
+        <noscript>
+          <button type="submit">Ver</button>
+        </noscript>
+        <div class="descargas">
+          <Boton href={q("pdf")} download>
+            <Icono nombre="descargar" tamano={18} />
+            PDF
+          </Boton>
+          <Boton href={q("xlsx")} variante="secundario" download>
+            <Icono nombre="descargar" tamano={18} />
+            Excel
+          </Boton>
+          <Boton href={q("pdf", "&ver=1")} variante="fantasma" target="_blank" rel="noopener">
+            <Icono nombre="imprimir" tamano={18} />
+            Imprimir
+          </Boton>
+        </div>
+      </form>
+      <ul class="totales" aria-label="Resumen del día">
+        <li>
+          <Badge tipo="presente">Presentes {planilla.totales.presente}</Badge>
+        </li>
+        <li>
+          <Badge tipo="tarde">Tarde {planilla.totales.tarde}</Badge>
+        </li>
+        <li>
+          <Badge tipo="falta">Faltas {planilla.totales.falta}</Badge>
+        </li>
+        <li>
+          <Badge tipo="permiso">Permisos {planilla.totales.permiso}</Badge>
+        </li>
+        <li>
+          <Badge tipo="pendiente">Sin registro {planilla.totales.sin_registro}</Badge>
+        </li>
+      </ul>
+    </Tarjeta>
+
+    <!-- Vista previa con el formato del papel -->
+    <article class="hoja" aria-label={`Vista previa: ${planilla.titulo}, ${fechaLarga(fecha)}`}>
+      <header>
+        {inst.encabezado.map((l) => (
+          <p>{l}</p>
+        ))}
+        <p>{inst.nombre}</p>
+        <p>{inst.ubicacion}</p>
+        {inst.codDea && <p>COD. DEA: {inst.codDea}</p>}
+        <h2>{planilla.titulo}</h2>
+        <div class="dia">
+          <span>
+            DÍA: <strong>{planilla.dia}</strong>
+          </span>
+          <span>
+            FECHA: <strong>{planilla.fecha}</strong>
+          </span>
+        </div>
+      </header>
+      {total === 0 ? (
+        <p class="vacio">No hay personal en esta planilla.</p>
+      ) : (
+        <div class="tabla-hoja">
+          <table>
+            <thead>
+              <tr>
+                <th>N°</th>
+                <th>Nombres y apellidos</th>
+                <th>C.I.</th>
+                <th>Carga horaria</th>
+                <th>Cargo</th>
+                <th>Hora de llegada</th>
+                <th>Hora de salida</th>
+                <th>Observación</th>
+              </tr>
+            </thead>
+            {planilla.grupos.map((g, i) => (
+              <tbody>
+                {i > 0 && (
+                  <tr class="separador">
+                    <td colspan="8" />
+                  </tr>
+                )}
+                {g.filas.map((f) => (
+                  <tr class={`e-${f.estado}`}>
+                    <td class="c">{f.n}</td>
+                    <td>{f.nombre}</td>
+                    <td>{f.cedula}</td>
+                    <td class="c">{f.carga}</td>
+                    <td class="c cargo">{f.cargo}</td>
+                    <td class="c">{f.llegada}</td>
+                    <td class="c">{f.salida}</td>
+                    <td class="obs">
+                      <Badge tipo={BADGE[f.estado]}>{f.observacion || "Presente"}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            ))}
+          </table>
+        </div>
+      )}
+      {inst.firmante.nombre && (
+        <footer>
+          <span class="linea" />
+          <p>{inst.firmante.nombre}</p>
+          {inst.firmante.cedula && <p>V.- {inst.firmante.cedula.replace(/^V-?/i, "")}</p>}
+          {inst.firmante.cargo && <p>{inst.firmante.cargo}</p>}
+        </footer>
+      )}
+    </article>
+  </div>
+</PanelLayout>
+
+<style>
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  .controles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-3) var(--esp-4);
+    align-items: end;
+  }
+  .campo {
+    display: grid;
+    gap: var(--esp-1);
+  }
+  label {
+    font-size: var(--texto-xs);
+    font-weight: var(--peso-fuerte);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-texto-suave);
+  }
+  select,
+  input[type="date"] {
+    min-height: 44px;
+    padding: 0 var(--esp-3);
+    border: 1px solid var(--color-borde-fuerte);
+    border-radius: var(--radio-sm);
+    background: var(--color-superficie);
+  }
+  .fecha {
+    display: flex;
+    gap: var(--esp-1);
+    align-items: center;
+  }
+  .flecha {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radio-sm);
+    color: var(--color-texto);
+  }
+  .flecha:hover {
+    background: var(--color-superficie-hover);
+  }
+  .inactiva {
+    opacity: 0.3;
+  }
+  .descargas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2);
+    margin-left: auto;
+  }
+  .totales {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2);
+    margin: var(--esp-4) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .hoja {
+    background: #fff;
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+    padding: var(--esp-6) var(--esp-5);
+    color: #111;
+  }
+  .hoja header {
+    text-align: center;
+  }
+  .hoja header p {
+    margin: 0;
+    font-size: var(--texto-xs);
+    text-transform: uppercase;
+  }
+  .hoja h2 {
+    margin: var(--esp-4) 0 var(--esp-2);
+    font-size: var(--texto-base);
+    text-decoration: underline;
+  }
+  .dia {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--esp-6);
+    font-size: var(--texto-sm);
+    margin-bottom: var(--esp-3);
+  }
+  .tabla-hoja {
+    overflow-x: auto;
+  }
+  .hoja table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--texto-xs);
+  }
+  .hoja th,
+  .hoja td {
+    border: 1px solid #333;
+    padding: 4px 6px;
+  }
+  .hoja th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    text-align: center;
+  }
+  .hoja td {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .c {
+    text-align: center;
+  }
+  .cargo {
+    font-size: 0.68rem;
+  }
+  .obs :global(.badge) {
+    font-size: 0.7rem;
+    line-height: 1.4;
+  }
+  .separador td {
+    height: 12px;
+    background: #fafafa;
+  }
+  .hoja footer {
+    display: grid;
+    justify-items: center;
+    margin-top: var(--esp-8);
+    font-size: var(--texto-sm);
+  }
+  .hoja footer p {
+    margin: 0;
+  }
+  .linea {
+    width: 14rem;
+    border-top: 1px solid #333;
+    margin-bottom: var(--esp-1);
+  }
+  .vacio {
+    text-align: center;
+    color: var(--color-texto-suave);
+  }
+</style>

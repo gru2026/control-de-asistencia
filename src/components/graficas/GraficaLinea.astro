@@ -1,0 +1,136 @@
+---
+/** Línea de tendencia (0–100 %) con área, línea de referencia y puntos con tooltip nativo. */
+interface Punto {
+  etiqueta: string; // texto del eje X
+  valor: number;
+  detalle?: string; // tooltip
+}
+interface Props {
+  puntos: Punto[];
+  /** Línea de referencia horizontal (p. ej. la meta o el promedio). */
+  referencia?: { valor: number; etiqueta: string };
+  minimo?: number;
+}
+const { puntos, referencia, minimo } = Astro.props;
+
+const AN = 640;
+const AL = 220;
+const M = { arriba: 12, derecha: 12, abajo: 28, izquierda: 36 };
+const ancho = AN - M.izquierda - M.derecha;
+const alto = AL - M.arriba - M.abajo;
+
+// Eje Y: desde un mínimo "redondo" para que las variaciones se vean (nunca engañar: se rotula).
+const menor = Math.min(...puntos.map((p) => p.valor), referencia?.valor ?? 100);
+const yMin = minimo ?? Math.max(0, Math.floor((menor - 5) / 10) * 10);
+const yMax = 100;
+const x = (i: number) =>
+  M.izquierda + (puntos.length <= 1 ? ancho / 2 : (i / (puntos.length - 1)) * ancho);
+const y = (v: number) => M.arriba + alto - ((v - yMin) / (yMax - yMin)) * alto;
+
+const linea = puntos.map((p, i) => `${x(i).toFixed(1)},${y(p.valor).toFixed(1)}`).join(" ");
+const area = puntos.length
+  ? `M${x(0)},${y(yMin)} L${linea.replaceAll(" ", " L")} L${x(puntos.length - 1)},${y(yMin)} Z`
+  : "";
+const marcas = Array.from({ length: 5 }, (_, i) => yMin + ((yMax - yMin) / 4) * i);
+const cada = Math.max(1, Math.ceil(puntos.length / 8));
+---
+
+<div class="desplazable">
+  <svg
+    viewBox={`0 0 ${AN} ${AL}`}
+    class="linea"
+    role="img"
+    aria-label="Gráfica de tendencia; ver datos en la tabla debajo"
+  >
+    {marcas.map((m) => (
+      <g>
+        <line x1={M.izquierda} x2={AN - M.derecha} y1={y(m)} y2={y(m)} class="rejilla" />
+        <text x={M.izquierda - 6} y={y(m) + 4} class="eje" text-anchor="end">
+          {Math.round(m)}%
+        </text>
+      </g>
+    ))}
+    {referencia && (
+      <g>
+        <line
+          x1={M.izquierda}
+          x2={AN - M.derecha}
+          y1={y(referencia.valor)}
+          y2={y(referencia.valor)}
+          class="referencia"
+        />
+        <text x={M.izquierda + 6} y={y(referencia.valor) - 6} class="eje ref" text-anchor="start">
+          {referencia.etiqueta}
+        </text>
+      </g>
+    )}
+    <path d={area} class="area" />
+    <polyline points={linea} class="trazo" />
+    {puntos.map((p, i) => (
+      <g class="punto">
+        <circle cx={x(i)} cy={y(p.valor)} r="10" class="zona" />
+        <circle cx={x(i)} cy={y(p.valor)} r="3.5" class="marca" />
+        <title>{p.detalle ?? `${p.etiqueta}: ${p.valor}%`}</title>
+      </g>
+    ))}
+    {puntos.map((p, i) =>
+      i % cada === 0 || i === puntos.length - 1 ? (
+        <text x={x(i)} y={AL - 8} class="eje" text-anchor="middle">
+          {p.etiqueta}
+        </text>
+      ) : null,
+    )}
+  </svg>
+</div>
+
+<style>
+  .desplazable {
+    overflow-x: auto;
+  }
+  .linea {
+    min-width: 520px;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .rejilla {
+    stroke: var(--color-borde);
+    stroke-width: 1;
+  }
+  .eje {
+    font-size: 11px;
+    fill: var(--color-texto-suave);
+    font-variant-numeric: tabular-nums;
+  }
+  .ref {
+    fill: var(--color-alerta);
+    font-weight: 600;
+  }
+  .referencia {
+    stroke: var(--color-alerta);
+    stroke-dasharray: 6 4;
+    stroke-width: 1.5;
+  }
+  .area {
+    fill: var(--color-acento);
+    opacity: 0.08;
+  }
+  .trazo {
+    fill: none;
+    stroke: var(--color-acento);
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .marca {
+    fill: var(--color-superficie);
+    stroke: var(--color-acento);
+    stroke-width: 2;
+  }
+  .zona {
+    fill: transparent;
+  }
+  .punto:hover .marca {
+    fill: var(--color-acento);
+  }
+</style>

@@ -25,7 +25,7 @@ const [email, rol, nombre, apellido, clave] = args.filter((a) => !a.startsWith("
 
 if (!email || !["directiva", "secretaria", "personal"].includes(rol) || !nombre || !apellido) {
   console.error(
-    "Uso: npm run crear-usuario -- <email> <rol> <nombre> <apellido> [contraseña] [--cedula=V-123]",
+    "Uso: npm run crear-usuario -- <email> <rol> <nombre> <apellido> [contraseña] [--cedula=V-123] [--categoria=Docente]",
   );
   process.exit(1);
 }
@@ -55,20 +55,25 @@ if (e2) {
 
 if (rol === "personal" || opciones.cedula) {
   const cedula = opciones.cedula ?? `PRUEBA-${id.slice(0, 8)}`;
-  const { data: jornada } = await admin
-    .from("jornadas")
-    .select("id")
-    .eq("nombre", "General")
+  const nombreCat = opciones.categoria ?? "Docente";
+  const { data: cat } = await admin
+    .from("categorias")
+    .select("id, jornada_sugerida_id")
+    .ilike("nombre", nombreCat)
     .maybeSingle();
-  const { error: e3 } = await admin.from("personal").insert({
-    usuario_id: id,
-    nombre,
-    apellido,
-    cedula,
-    cargo: opciones.cargo ?? "docente",
-    jornada_id: jornada?.id ?? null,
-  });
-  if (e3) console.error("⚠ Ficha de personal no creada:", e3.message);
+  if (!cat) {
+    console.error(`⚠ Categoría «${nombreCat}» no existe; ficha de personal no creada.`);
+  } else {
+    const { error: e3 } = await admin.from("personal").insert({
+      usuario_id: id,
+      nombre,
+      apellido,
+      cedula,
+      categoria_id: cat.id,
+      jornada_id: cat.jornada_sugerida_id,
+    });
+    if (e3) console.error("⚠ Ficha de personal no creada:", e3.message);
+  }
 }
 
 console.log(`✓ ${rol} creado: ${email}`);

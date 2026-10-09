@@ -25,6 +25,10 @@ const RUTAS = [
   "/jornadas",
   "/configuracion",
   "/configuracion/usuarios",
+  "/configuracion/marcacion",
+  "/configuracion/qr",
+  "/permisos",
+  "/permisos/nuevo",
   "/asistencia",
 ];
 const PUERTO = 4399;

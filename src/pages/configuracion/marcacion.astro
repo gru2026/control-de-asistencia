@@ -252,12 +252,15 @@ const activasPrueba = ubicaciones.filter((u) => u.activa && u.es_prueba).length;
       id="ubicaciones"
     >
       {activasPrueba > 0 && (
-        <Alerta tipo="info">
-          {activasPrueba === 1
-            ? "Hay 1 ubicación de prueba activa."
-            : `Hay ${activasPrueba} ubicaciones de prueba activas.`}{" "}
-          Desactívelas cuando el sistema esté en uso real.
-        </Alerta>
+        <p class="aviso-linea">
+          <Icono nombre="info" tamano={18} />
+          <span>
+            {activasPrueba === 1
+              ? "Hay 1 ubicación de prueba activa."
+              : `Hay ${activasPrueba} ubicaciones de prueba activas.`}{" "}
+            Desactívelas cuando el sistema esté en uso real.
+          </span>
+        </p>
       )}
       {ubicaciones.length > 0 && (
         <ul class="lista">
@@ -405,10 +408,13 @@ const activasPrueba = ubicaciones.filter((u) => u.activa && u.es_prueba).length;
       id="cierre"
     >
       {!cfg.inicio_control && (
-        <Alerta tipo="alerta">
-          El cierre automático está en pausa: no crea faltas hasta que indique desde qué fecha rige
-          el control de asistencia.
-        </Alerta>
+        <p class="aviso-linea alerta">
+          <Icono nombre="alerta" tamano={18} />
+          <span>
+            El cierre automático está en pausa: no crea faltas hasta que indique desde qué fecha
+            rige el control de asistencia.
+          </span>
+        </p>
       )}
       <form method="post" class="rejilla inicio" novalidate>
         <input type="hidden" name="accion" value="inicio_control" />
@@ -543,6 +549,21 @@ const activasPrueba = ubicaciones.filter((u) => u.activa && u.es_prueba).length;
   }
   .nota {
     margin: 0;
+  }
+  .aviso-linea {
+    display: flex;
+    gap: var(--esp-2);
+    align-items: flex-start;
+    margin: 0;
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .aviso-linea :global(svg) {
+    margin-top: 1px;
+  }
+  .aviso-linea.alerta {
+    color: var(--color-alerta);
+    font-weight: var(--peso-medio);
   }
   .estado-cierre {
     margin: var(--esp-5) 0 var(--esp-4);

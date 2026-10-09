@@ -19,7 +19,7 @@ fecha: 2026-10-06
 - [x] Repositorio Git inicializado + `.gitignore`
 - [x] Andamiaje Astro + TypeScript + Vitest + ESLint/Prettier
 - [x] Migraciones SQL iniciales (borrador) + seed
-- [ ] Cargar coordenadas del colegio en el seed/configuración
+- [x] Cargar coordenadas del colegio en el seed/configuración
 - [ ] Obtener nombre y correo del administrador (directiva)
 
 ## Semana 1 — Cimientos, auth, personal y jornadas ✅
@@ -50,21 +50,24 @@ fecha: 2026-10-06
 - [x] Datos de demostración y botones de limpieza en Ajustes
 - [ ] Logo y escudo para el encabezado (pendiente: jueves)
 
-## Semana 2 — Marcación QR + GPS y reglas
+## Semana 2 — Marcación QR + GPS y reglas ✅
 
-- [ ] `/configuracion`: geocerca (coordenadas, radio, precisión)
-- [ ] `/configuracion/qr`: generar, regenerar, vencimiento, vista de impresión
-- [ ] Registro de dispositivo al login + aprobación/revocación (R11)
-- [ ] Escáner QR (`BarcodeDetector` + `jsQR`) + captura GPS
-- [ ] `/api/marcacion` con validación R10 (entrada y salida)
-- [ ] `lib/reglas/geocerca.ts` + tests
-- [ ] `lib/reglas/estados.ts` (R1) + tests
-- [ ] `lib/reglas/calculoHoras.ts` (R2) + tests
-- [ ] Prevención de duplicados (R7)
-- [ ] Permisos (R4)
-- [ ] Cierre diario (Vercel Cron → `/api/cierre-diario`) + faltas + notificaciones
+- [x] `/configuracion/marcacion`: geocerca (coordenadas, radio, precisión, activa), «usar mi ubicación», ubicaciones de prueba, franjas
+- [x] `/configuracion/qr`: generar, desactivar, vencimiento, historial, hoja A4 para imprimir
+- [x] Registro de teléfono al marcar + aprobación/revocación en la ficha (R11)
+- [x] Escáner QR (`BarcodeDetector` + `jsQR`) + captura GPS a pantalla completa
+- [x] `/api/marcacion` con validación R10 (entrada y salida), jornadas nocturnas
+- [x] `lib/reglas/geocerca.ts` + `marcacion.ts` (ubicaciones, franja, R7, fecha nocturna) + tests
+- [x] `lib/reglas/estados.ts` (R1) + tests
+- [x] `lib/reglas/calculoHoras.ts` (R2) + tests
+- [x] Prevención de duplicados (R7)
+- [x] Permisos (R4): `/permisos` + sección en la ficha
+- [x] Cierre diario (Vercel Cron → `/api/cierre-diario`) + faltas + notificaciones
+- [x] Coordenadas del colegio cargadas (corregido el signo de la longitud)
+- [ ] Prueba en celulares reales (Android + iPhone) — Hector, casos F13–F20
+- [ ] Definir la fecha de inicio del control de asistencia (Ajustes › Marcación)
 
-**🏁 Hito:** se marca un día completo con QR + GPS y el sistema calcula estados solo.
+**🏁 Hito:** ✅ se marca un día completo con QR + GPS y el sistema calcula estados solo (2026-10-09, probado con cámara y GPS simulados).
 
 ## Semana 3 — PC de respaldo, reportes y dashboard
 
@@ -101,11 +104,11 @@ fecha: 2026-10-06
 | Decisión | Estado | Nota |
 |---|---|---|
 | Jornada y tolerancia concretas | 🟡 Configurable, valores pendientes | [[00-Inicio/Preguntas-para-el-colegio]] #1-2 |
-| Coordenadas del colegio | 🟡 Disponibles, falta cargar | #14 |
+| Coordenadas del colegio | 🟢 Cargadas | #14 |
 | Administrador inicial | 🟡 Falta nombre/correo | #12 |
 | Canal de notificaciones | ⬜ Pendiente | #6 |
 | Formato de reportes | ⬜ Pendiente | #7 |
-| Política de salida no registrada | ⬜ Pendiente | [[03-Diseno/Reglas-de-negocio]] R3 |
+| Política de salida no registrada | 🟢 Sin horas + aviso a secretaría (D-35) | [[03-Diseno/Reglas-de-negocio]] R3 |
 
 ## Semáforo general
 
@@ -113,6 +116,6 @@ fecha: 2026-10-06
 |---|---|
 | 0 | 🟢 Terminada |
 | 1 | 🟢 Terminada |
-| 2 | ⬜ No iniciada |
+| 2 | 🟢 Terminada (falta prueba en celulares reales) |
 | 3 | ⬜ No iniciada |
 | 4 | ⬜ No iniciada |

@@ -31,7 +31,9 @@ Dos contextos de uso:
 /jornadas                       [directiva] Plantillas de jornada + feriados
 /reportes                       Reportes + exportación PDF/Excel
 /notificaciones                 Centro de alertas
-/configuracion                  [directiva] Institución, geocerca, franjas, kiosco
+/permisos                       Permisos (listado + filtros) · /permisos/[id] crear/editar
+/configuracion                  [directiva] Institución, accesos, demostración
+/configuracion/marcacion        [directiva] Geocerca, ubicaciones de prueba, franjas, cierre diario
 /configuracion/qr               [directiva] Generar / regenerar / imprimir QR
 /configuracion/usuarios         [directiva] Cuentas y roles
 
@@ -117,8 +119,9 @@ Dos contextos de uso:
 ## Navegación
 
 ```
-🖥️ PC: header (logo · 🔔 · 👤) + nav lateral
-   Panel · Registro del día · Revisión · Personal · Jornadas · Reportes · Configuración
+🖥️ PC: header (logo · 👤) + nav lateral
+   Directiva:  Panel · Personal · Permisos · Reportes · Ajustes (incluye Jornadas)
+   Secretaría: Panel · Personal · Permisos · Reportes · Mi asistencia
 
 📱 Celular: bottom bar
    Marcar · Historial · 🔔 · Perfil

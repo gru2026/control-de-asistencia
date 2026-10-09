@@ -198,6 +198,38 @@ try {
     await movil.$eval("form[data-autoenviar]", (f) => f.classList.contains("abierto")),
   );
 
+  r.seccion("Marcación, QR y permisos");
+  await pag.goto(`${B}/configuracion/marcacion`);
+  r.ok(
+    "ajustes de marcación: colegio en Venezuela (longitud negativa)",
+    Number(await pag.inputValue("#g-lng")) < 0,
+  );
+  r.ok("cierre diario visible", (await pag.locator("#cierre").count()) === 1);
+  await pag.goto(`${B}/configuracion/qr`);
+  r.ok("página del QR", (await pag.locator("h1:has-text('Código QR')").count()) === 1);
+  await pag.goto(`${B}/permisos`);
+  await marcarPagina(pag);
+  await pag.selectOption("#filtro-vigencia", "todos");
+  await pag.waitForFunction(() => location.search.includes("vigencia=todos"));
+  await esperarDatos(pag);
+  r.ok("permisos: filtro sin recarga", await sinRecarga(pag));
+  const api = await pag.evaluate(async () => {
+    const enviar = (cuerpo) =>
+      fetch("/api/marcacion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cuerpo),
+      }).then(async (x) => [x.status, (await x.json()).codigo]);
+    return {
+      formato: await enviar({}),
+      sinFicha: await enviar({ tipo: "entrada", codigo: "x" }),
+      cron: (await fetch("/api/cierre-diario")).status,
+    };
+  });
+  r.ok("API de marcación rechaza solicitudes mal formadas", api.formato[0] === 400);
+  r.ok("API de marcación exige ficha de personal", api.sinFicha[1] === "ficha");
+  r.ok("cierre diario exige la clave del cron", api.cron === 401);
+
   r.seccion("Errores");
   await pag.goto(`${B}/personal`);
   await pag.context().clearCookies();

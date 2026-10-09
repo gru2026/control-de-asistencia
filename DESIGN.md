@@ -57,6 +57,10 @@ Ritmo: dentro de un grupo 6–12 px; entre controles 16 px; entre bloques 32 px 
 - Panel en tres niveles: Hoy y 4 indicadores (detalle en tooltip) · «Requiere atención» (lista de pendientes con enlace) · Análisis en secciones plegables con la conclusión en el título.
 - Columna lateral del panel (≥ 1400 px, fija al desplazarse; en laptops y celular va entre «Requiere atención» y el análisis): calendario coloreado por asistencia (≥ 95 % verde · 85–94 % ámbar · < 85 % rojo), llegadas de hoy por categoría y ausentes de la semana con el próximo feriado.
 - Secciones plegables (`Seccion.astro`): `<details>` nativo, estado recordado por navegador.
+- Gráfica de tendencia: solo línea y área en SVG; ejes, promedio y globos en HTML (13 px); puntos por fecha real; 3 marcas en el eje Y.
+- Marcación (celular): una sola superficie con el reloj grande (hora del servidor), la jornada y un botón de ancho completo según el momento (entrada primario, salida secundario). El escáner ocupa toda la pantalla en azul noche con el visor cuadrado; el resultado se muestra en grande (sello verde a tiempo, ámbar con retraso, rojo si no se registró) con la hora.
+- Avisos dentro de una tarjeta: línea con ícono y texto (ámbar si es advertencia), nunca un recuadro, para no anidar superficies.
+- Hoja del QR para imprimir: A4, nombre del plantel, título, QR de 120 mm con corrección alta y 3 pasos numerados.
 
 ## Motion
 

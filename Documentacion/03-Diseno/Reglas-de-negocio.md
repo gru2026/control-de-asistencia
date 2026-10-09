@@ -59,12 +59,17 @@ Se ejecuta una vez al día después de la jornada (`configuracion.hora_cierre_di
    - Si no → `falta` + **notificación** a directiva y secretaría.
 2. Registros con entrada pero **sin salida**: `salida_no_registrada = true`, `horas_trabajadas = null` y notificación a secretaría para completarla manualmente con observación 🔶 (política por confirmar).
 3. Debe ser **idempotente**: ejecutarlo dos veces no duplica faltas ni notificaciones.
+4. Corre **todos los días** a las 18:00 y revisa ayer y hoy: solo cierra jornadas que ya terminaron (las nocturnas que empezaron ayer terminan hoy a la madrugada).
+5. Solo cierra días desde `configuracion.inicio_control`; sin esa fecha no crea faltas (D-36).
+6. Avisos agrupados por día (uno con las faltas, otro con las salidas no registradas). Política elegida para la salida no registrada: queda sin horas y con aviso (D-35).
 
 ## R4 · Permisos
 
 - Solo directiva/secretaría crean permisos (rango de fechas + motivo + observación).
 - Un permiso hace que el día quede como `permiso` (no cuenta como falta).
 - Si la persona ya tenía registro `falta` para ese día, al cargar el permiso pasa a `permiso`.
+- Al eliminar o acortar un permiso, los días `permiso` sin entrada que ya no cubre ningún otro vuelven a `falta`.
+- No se permiten dos permisos de la misma persona que se crucen.
 
 ## R5 · Acumulados por período
 
@@ -118,14 +123,19 @@ Orden de verificación en el servidor; el primer fallo detiene el proceso:
 | 8 | Precisión ≤ `precision_max_m` | ✅ se permite, pero `senalado = true` |
 | 9 | R7 (duplicados/orden) | Mensaje de R7 |
 
-Distancia: fórmula de **Haversine** entre (lat, lng) recibidos y (`colegio_lat`, `colegio_lng`).
+Distancia: fórmula de **Haversine** entre (lat, lng) recibidos y (`colegio_lat`, `colegio_lng`) o cualquier **ubicación de prueba** activa (tabla `ubicaciones`); en estas últimas la marcación queda señalada (D-32). Con la geocerca desactivada no se exige ubicación, pero se guarda si llega.
+
+Franja horaria (paso 5): solo se aplica a jornadas diurnas.
+
+Jornadas nocturnas: de madrugada (antes de las 12:00), si la jornada de ayer era nocturna y no está completa, la marcación pertenece a ayer.
 
 Si pasa todo → se guarda con hora del servidor, evidencia (lat, lng, precisión, qr_id, dispositivo_id) y estado según R1.
 
 ## R11 · Dispositivos
 
+- El teléfono se registra **al intentar marcar** por primera vez (D-34).
 - Primer celular de una cuenta → `aprobado` automáticamente.
-- Celular distinto → `pendiente` + notificación a secretaría.
+- Celular distinto → `pendiente` + notificación a secretaría y directiva. Solo se conserva la solicitud pendiente más reciente.
 - Al aprobar uno nuevo, el anterior pasa a `revocado` (máximo **uno** aprobado).
 - Solo directiva/secretaría aprueban o revocan.
 
@@ -144,4 +154,4 @@ Si pasa todo → se guarda con hora del servidor, evidencia (lat, lng, precisió
 
 ---
 
-**Implementación:** funciones puras en `src/lib/reglas/` (`jornada.ts`, `estados.ts`, `calculoHoras.ts`, `acumulados.ts`, `geocerca.ts`) con pruebas Vitest — ver [[05-Entregables/Plan-de-pruebas]].
+**Implementación:** funciones puras en `src/lib/reglas/` (`jornada.ts`, `estados.ts`, `calculoHoras.ts`, `acumulados.ts`, `geocerca.ts`, `marcacion.ts`, `dispositivos.ts`, `permisos.ts`, `cierre.ts`) con pruebas Vitest — ver [[05-Entregables/Plan-de-pruebas]].

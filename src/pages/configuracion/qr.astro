@@ -148,9 +148,9 @@ const vence = valores.vence === "si";
                 )}
               </dl>
               {!vigente && (
-                <Alerta tipo="alerta">
+                <p class="vencido">
                   El QR venció: nadie puede marcar con el teléfono. Genere uno nuevo.
-                </Alerta>
+                </p>
               )}
             </div>
           ) : (
@@ -344,6 +344,11 @@ const vence = valores.vence === "si";
   dd {
     margin: 0;
     font-weight: var(--peso-fuerte);
+  }
+  .vencido {
+    margin: 0;
+    color: var(--color-error);
+    font-weight: var(--peso-medio);
   }
   .vacio {
     margin: 0;

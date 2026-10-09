@@ -42,6 +42,12 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-36 | 2026-10-09 | **Fecha de inicio del control**: mientras no se defina, el cierre diario no crea faltas | ✅ Vigente |
+| D-35 | 2026-10-09 | Cierre diario **todos los días** a las 18:00 (incluye jornadas nocturnas y fines de semana); avisos agrupados por día; salida no registrada queda sin horas | ✅ Vigente |
+| D-34 | 2026-10-09 | El teléfono se registra **al marcar por primera vez** (no al iniciar sesión); solo se conserva la solicitud pendiente más reciente | ✅ Vigente |
+| D-33 | 2026-10-09 | Permisos con **página propia** (`/permisos`) y sección en la ficha; Jornadas pasa a Ajustes en el menú | ✅ Vigente |
+| D-32 | 2026-10-09 | **Ubicaciones de prueba** además del colegio; lo marcado en ellas queda señalado | ✅ Vigente |
+| D-31 | 2026-10-09 | Gráfica de tendencia: ejes y textos en HTML, posición por fecha real, días con poco personal programado no se grafican | ✅ Vigente |
 | D-30 | 2026-10-09 | Columna lateral del panel: calendario del período, llegadas de hoy por categoría y ausentes de la semana | ✅ Vigente |
 | D-29 | 2026-10-09 | Panel en tres niveles: Hoy + 4 indicadores · Requiere atención · Análisis en secciones plegables con su conclusión en el título | ✅ Vigente |
 | D-28 | 2026-10-08 | Skill de diseño **Impeccable** (reemplaza a ui-ux-pro-max): tipografía Onest, tokens refinados, `DESIGN.md`/`PRODUCT.md` y revisión automática `npm run diseno:revisar` | ✅ Vigente |
@@ -75,6 +81,16 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 - Vigilancia trabaja de noche: la jornada nocturna termina al día siguiente; una marca de madrugada pertenece a la jornada que empezó la noche anterior.
 - La planilla oficial no lleva firmas por persona (el sistema registra la hora). Solo se imprime y firma si la dirección lo desea.
 - La nómina real (51 personas) se cargó desde un CSV **privado** (no está en el repositorio). La asistencia de demostración es simulada; el panel lo indica con un aviso.
+
+### D-31 a D-36 · Semana 2: marcación QR + GPS
+- **D-31 · Gráfica de tendencia.** Solo la línea y el área son SVG; ejes, promedio y globos son HTML con la tipografía del sistema (13 px). Los puntos se ubican por fecha real. Escala de 3 marcas redondeadas a múltiplos de 5. Se omiten los días con menos del 30 % del personal de un día normal (mínimo 3), por ejemplo los domingos con solo vigilancia; la descripción lo indica.
+- **D-32 · Ubicaciones de prueba.** La ubicación principal sigue en `configuracion` (colegio). La tabla `ubicaciones` agrega lugares adicionales con su radio y un interruptor. Toda marcación hecha en una ubicación de prueba queda `senalado` con el motivo «Ubicación de prueba: …». Las coordenadas se validan dentro de Venezuela (la longitud es negativa); así se detectó y corrigió la del colegio, que estaba con el signo cambiado.
+- **D-33 · Permisos.** `/permisos` (directiva y secretaría) con filtros por vigencia, categoría y motivo; formulario propio para crear, editar y eliminar; sección «Permisos» en la ficha. Motivos predefinidos («Otro» exige observación). No se permiten permisos que se crucen para la misma persona. R4 se aplica en los dos sentidos: al cargar, las faltas sin entrada pasan a permiso; al eliminar o acortar, vuelven a falta. Para no pasar de 5 ítems en la barra del celular, Jornadas pasa a Ajustes.
+- **D-34 · Registro del teléfono.** Se registra al intentar marcar, no al iniciar sesión: así el PC donde secretaría inicia sesión no ocupa el lugar del celular. El identificador (UUID) vive en `localStorage` y en la cookie `gru_disp` (para que la página muestre si está pendiente). Un teléfono nuevo deja pendiente solo la última solicitud. Secretaría y directiva aprueban o revocan en la ficha; el aviso del panel lleva a esa ficha.
+- **D-35 · Cierre diario.** Vercel Cron llama a `/api/cierre-diario` todos los días a las 22:00 UTC (18:00 de Caracas) con `CRON_SECRET`. Revisa ayer y hoy y solo cierra jornadas ya terminadas, por lo que cubre las nocturnas y los fines de semana. Avisos agrupados: uno por día con las faltas (directiva y secretaría) y otro con las salidas no registradas. Política de R3 elegida: la salida no registrada queda sin horas y con aviso. También avisa si el QR venció o vence en 3 días. Cada ejecución queda en `cierres_diarios`; la clave única de `notificaciones` evita duplicados. Botón «Ejecutar cierre ahora» en Ajustes › Marcación.
+- **D-36 · Inicio del control.** `configuracion.inicio_control`: sin fecha, el cierre no crea faltas. Evita marcar ausente a toda la nómina mientras el colegio aún no usa la app.
+- **Escáner:** `BarcodeDetector` donde existe; `jsQR` se descarga solo si hace falta. El QR contiene `GRU1-` + 144 bits aleatorios; solo se guarda su SHA-256. La hora y el estado salen del servidor; la marcación real reemplaza un registro de demostración del mismo día.
+- **Franjas horarias:** opcionales y solo para jornadas diurnas.
 
 ### D-29 · Panel con divulgación progresiva
 - **Nivel 1 (de un vistazo):** barra de Hoy (leyenda solo con valores > 0) y 4 indicadores redondeados (Asistencia, Puntualidad, Faltas, Permisos) con flecha de variación. El detalle aparece al pasar el mouse o al tocar.

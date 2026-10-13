@@ -3,7 +3,7 @@ titulo: Equipo y reparto de tareas
 proyecto: PWA Control de Asistencia — U.E.E. General Rafael Urdaneta
 tipo: servicio-comunitario
 estado: activo
-fecha: 2026-10-07
+fecha: 2026-10-12
 ---
 
 # 👥 Equipo y reparto de tareas
@@ -26,7 +26,7 @@ fecha: 2026-10-07
 
 ---
 
-## Semana 1 — Planificación, decisiones y base del sistema (01/10 – 07/10/2026) · en curso
+## Semana 1 — Planificación, decisiones y base del sistema (01/10 – 07/10/2026) · terminada
 
 | Responsable | Actividad | Horas | Entregable / evidencia |
 |---|---|---|---|
@@ -67,7 +67,9 @@ fecha: 2026-10-07
 
 **Total por integrante: 25 h.** Detalle día por día y firmas en [[06-Servicio-comunitario/Registro-de-horas|Registro de horas]].
 
-## Semana 2 — Marcación QR + GPS
+## Semana 2 — Marcación QR + GPS (08/10 – 14/10/2026) · en curso
+
+> Avance del desarrollo: la marcación con QR + GPS, los permisos y el cierre diario ya están publicados (09/10). Las coordenadas del liceo y la nómina ya están cargadas, por lo que Antonio pasa a **verificarlas** en sitio y con secretaría, y la hoja del QR ya la genera la app (Mariansel la **revisa** en lugar de diseñarla desde cero). Detalle día por día en el [[06-Servicio-comunitario/Registro-de-horas|Registro de horas]].
 
 | Responsable | Actividad | Horas est. | Entregable / evidencia |
 |---|---|---|---|
@@ -81,14 +83,14 @@ fecha: 2026-10-07
 | | Redactar el manual: login, personal y jornadas | 8 | Secciones del manual |
 | | Acta de las reuniones del equipo | 3 | Actas |
 | **Antonio** | Reunión con la directiva: preguntas pendientes (#1, 2, 5–9, 11, 12) | 5 | Acta firmada por el colegio |
-| | Tomar las coordenadas de la entrada y medir el radio en sitio | 3 | Coordenadas + fotos |
+| | Verificar en sitio las coordenadas cargadas y medir el radio | 3 | Coordenadas + fotos |
 | | Recolectar la lista del personal (nombre, cédula, cargo, correo, horario) | 10 | Plantilla CSV completa |
 | | Recolectar jornadas reales y el calendario de feriados | 4 | Datos entregados |
 | | Pasar las respuestas a [[00-Inicio/Preguntas-para-el-colegio]] | 3 | Nota actualizada |
 | **Liz** | Buscar 4 antecedentes (tesis o artículos) y llenar la plantilla de [[Metodo foda]] | 12 | 4 fichas de antecedentes |
 | | Diagnóstico: entrevistar a secretaría sobre el tiempo que toma hoy el registro manual | 6 | Entrevista + resultados |
 | | Redactar el marco teórico breve (PWA, QR, geolocalización, control de asistencia) | 7 | Documento |
-| **Mariansel** | Diseñar el cartel del QR (formato A4 con instrucciones) | 6 | Diseño en PDF |
+| **Mariansel** | Revisar la hoja A4 del QR que genera la app y proponer mejoras | 6 | Hoja en PDF con observaciones |
 | | Guion y diapositivas iniciales de la [[05-Entregables/Presentacion-del-proyecto]] | 10 | Borrador de diapositivas |
 | | Encuesta al personal: tipo de teléfono, sistema operativo y datos móviles | 6 | Encuesta + resultados |
 | | Material de difusión: aviso al personal sobre la nueva app | 3 | Aviso |

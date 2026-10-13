@@ -2,7 +2,7 @@
 
 **Servicio comunitario — Documentación completa del proyecto**
 
-Fecha de generación: 2026-10-09
+Fecha de generación: 2026-10-13
 
 ---
 
@@ -514,6 +514,12 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-36 | 2026-10-09 | **Fecha de inicio del control**: mientras no se defina, el cierre diario no crea faltas | ✅ Vigente |
+| D-35 | 2026-10-09 | Cierre diario **todos los días** a las 18:00 (incluye jornadas nocturnas y fines de semana); avisos agrupados por día; salida no registrada queda sin horas | ✅ Vigente |
+| D-34 | 2026-10-09 | El teléfono se registra **al marcar por primera vez** (no al iniciar sesión); solo se conserva la solicitud pendiente más reciente | ✅ Vigente |
+| D-33 | 2026-10-09 | Permisos con **página propia** (`/permisos`) y sección en la ficha; Jornadas pasa a Ajustes en el menú | ✅ Vigente |
+| D-32 | 2026-10-09 | **Ubicaciones de prueba** además del colegio; lo marcado en ellas queda señalado | ✅ Vigente |
+| D-31 | 2026-10-09 | Gráfica de tendencia: ejes y textos en HTML, posición por fecha real, días con poco personal programado no se grafican | ✅ Vigente |
 | D-30 | 2026-10-09 | Columna lateral del panel: calendario del período, llegadas de hoy por categoría y ausentes de la semana | ✅ Vigente |
 | D-29 | 2026-10-09 | Panel en tres niveles: Hoy + 4 indicadores · Requiere atención · Análisis en secciones plegables con su conclusión en el título | ✅ Vigente |
 | D-28 | 2026-10-08 | Skill de diseño **Impeccable** (reemplaza a ui-ux-pro-max): tipografía Onest, tokens refinados, `DESIGN.md`/`PRODUCT.md` y revisión automática `npm run diseno:revisar` | ✅ Vigente |
@@ -547,6 +553,16 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 - Vigilancia trabaja de noche: la jornada nocturna termina al día siguiente; una marca de madrugada pertenece a la jornada que empezó la noche anterior.
 - La planilla oficial no lleva firmas por persona (el sistema registra la hora). Solo se imprime y firma si la dirección lo desea.
 - La nómina real (51 personas) se cargó desde un CSV **privado** (no está en el repositorio). La asistencia de demostración es simulada; el panel lo indica con un aviso.
+
+### D-31 a D-36 · Semana 2: marcación QR + GPS
+- **D-31 · Gráfica de tendencia.** Solo la línea y el área son SVG; ejes, promedio y globos son HTML con la tipografía del sistema (13 px). Los puntos se ubican por fecha real. Escala de 3 marcas redondeadas a múltiplos de 5. Se omiten los días con menos del 30 % del personal de un día normal (mínimo 3), por ejemplo los domingos con solo vigilancia; la descripción lo indica.
+- **D-32 · Ubicaciones de prueba.** La ubicación principal sigue en `configuracion` (colegio). La tabla `ubicaciones` agrega lugares adicionales con su radio y un interruptor. Toda marcación hecha en una ubicación de prueba queda `senalado` con el motivo «Ubicación de prueba: …». Las coordenadas se validan dentro de Venezuela (la longitud es negativa); así se detectó y corrigió la del colegio, que estaba con el signo cambiado.
+- **D-33 · Permisos.** `/permisos` (directiva y secretaría) con filtros por vigencia, categoría y motivo; formulario propio para crear, editar y eliminar; sección «Permisos» en la ficha. Motivos predefinidos («Otro» exige observación). No se permiten permisos que se crucen para la misma persona. R4 se aplica en los dos sentidos: al cargar, las faltas sin entrada pasan a permiso; al eliminar o acortar, vuelven a falta. Para no pasar de 5 ítems en la barra del celular, Jornadas pasa a Ajustes.
+- **D-34 · Registro del teléfono.** Se registra al intentar marcar, no al iniciar sesión: así el PC donde secretaría inicia sesión no ocupa el lugar del celular. El identificador (UUID) vive en `localStorage` y en la cookie `gru_disp` (para que la página muestre si está pendiente). Un teléfono nuevo deja pendiente solo la última solicitud. Secretaría y directiva aprueban o revocan en la ficha; el aviso del panel lleva a esa ficha.
+- **D-35 · Cierre diario.** Vercel Cron llama a `/api/cierre-diario` todos los días a las 22:00 UTC (18:00 de Caracas) con `CRON_SECRET`. Revisa ayer y hoy y solo cierra jornadas ya terminadas, por lo que cubre las nocturnas y los fines de semana. Avisos agrupados: uno por día con las faltas (directiva y secretaría) y otro con las salidas no registradas. Política de R3 elegida: la salida no registrada queda sin horas y con aviso. También avisa si el QR venció o vence en 3 días. Cada ejecución queda en `cierres_diarios`; la clave única de `notificaciones` evita duplicados. Botón «Ejecutar cierre ahora» en Ajustes › Marcación.
+- **D-36 · Inicio del control.** `configuracion.inicio_control`: sin fecha, el cierre no crea faltas. Evita marcar ausente a toda la nómina mientras el colegio aún no usa la app.
+- **Escáner:** `BarcodeDetector` donde existe; `jsQR` se descarga solo si hace falta. El QR contiene `GRU1-` + 144 bits aleatorios; solo se guarda su SHA-256. La hora y el estado salen del servidor; la marcación real reemplaza un registro de demostración del mismo día.
+- **Franjas horarias:** opcionales y solo para jornadas diurnas.
 
 ### D-29 · Panel con divulgación progresiva
 - **Nivel 1 (de un vistazo):** barra de Hoy (leyenda solo con valores > 0) y 4 indicadores redondeados (Asistencia, Puntualidad, Faltas, Permisos) con flecha de variación. El detalle aparece al pasar el mouse o al tocar.
@@ -1016,12 +1032,17 @@ Se ejecuta una vez al día después de la jornada (`configuracion.hora_cierre_di
    - Si no → `falta` + **notificación** a directiva y secretaría.
 2. Registros con entrada pero **sin salida**: `salida_no_registrada = true`, `horas_trabajadas = null` y notificación a secretaría para completarla manualmente con observación 🔶 (política por confirmar).
 3. Debe ser **idempotente**: ejecutarlo dos veces no duplica faltas ni notificaciones.
+4. Corre **todos los días** a las 18:00 y revisa ayer y hoy: solo cierra jornadas que ya terminaron (las nocturnas que empezaron ayer terminan hoy a la madrugada).
+5. Solo cierra días desde `configuracion.inicio_control`; sin esa fecha no crea faltas (D-36).
+6. Avisos agrupados por día (uno con las faltas, otro con las salidas no registradas). Política elegida para la salida no registrada: queda sin horas y con aviso (D-35).
 
 ## R4 · Permisos
 
 - Solo directiva/secretaría crean permisos (rango de fechas + motivo + observación).
 - Un permiso hace que el día quede como `permiso` (no cuenta como falta).
 - Si la persona ya tenía registro `falta` para ese día, al cargar el permiso pasa a `permiso`.
+- Al eliminar o acortar un permiso, los días `permiso` sin entrada que ya no cubre ningún otro vuelven a `falta`.
+- No se permiten dos permisos de la misma persona que se crucen.
 
 ## R5 · Acumulados por período
 
@@ -1075,14 +1096,19 @@ Orden de verificación en el servidor; el primer fallo detiene el proceso:
 | 8 | Precisión ≤ `precision_max_m` | ✅ se permite, pero `senalado = true` |
 | 9 | R7 (duplicados/orden) | Mensaje de R7 |
 
-Distancia: fórmula de **Haversine** entre (lat, lng) recibidos y (`colegio_lat`, `colegio_lng`).
+Distancia: fórmula de **Haversine** entre (lat, lng) recibidos y (`colegio_lat`, `colegio_lng`) o cualquier **ubicación de prueba** activa (tabla `ubicaciones`); en estas últimas la marcación queda señalada (D-32). Con la geocerca desactivada no se exige ubicación, pero se guarda si llega.
+
+Franja horaria (paso 5): solo se aplica a jornadas diurnas.
+
+Jornadas nocturnas: de madrugada (antes de las 12:00), si la jornada de ayer era nocturna y no está completa, la marcación pertenece a ayer.
 
 Si pasa todo → se guarda con hora del servidor, evidencia (lat, lng, precisión, qr_id, dispositivo_id) y estado según R1.
 
 ## R11 · Dispositivos
 
+- El teléfono se registra **al intentar marcar** por primera vez (D-34).
 - Primer celular de una cuenta → `aprobado` automáticamente.
-- Celular distinto → `pendiente` + notificación a secretaría.
+- Celular distinto → `pendiente` + notificación a secretaría y directiva. Solo se conserva la solicitud pendiente más reciente.
 - Al aprobar uno nuevo, el anterior pasa a `revocado` (máximo **uno** aprobado).
 - Solo directiva/secretaría aprueban o revocan.
 
@@ -1101,7 +1127,7 @@ Si pasa todo → se guarda con hora del servidor, evidencia (lat, lng, precisió
 
 ---
 
-**Implementación:** funciones puras en `src/lib/reglas/` (`jornada.ts`, `estados.ts`, `calculoHoras.ts`, `acumulados.ts`, `geocerca.ts`) con pruebas Vitest — ver Plan-de-pruebas.
+**Implementación:** funciones puras en `src/lib/reglas/` (`jornada.ts`, `estados.ts`, `calculoHoras.ts`, `acumulados.ts`, `geocerca.ts`, `marcacion.ts`, `dispositivos.ts`, `permisos.ts`, `cierre.ts`) con pruebas Vitest — ver Plan-de-pruebas.
 
 ---
 
@@ -1130,7 +1156,9 @@ Dos contextos de uso:
 /jornadas                       [directiva] Plantillas de jornada + feriados
 /reportes                       Reportes + exportación PDF/Excel
 /notificaciones                 Centro de alertas
-/configuracion                  [directiva] Institución, geocerca, franjas, kiosco
+/permisos                       Permisos (listado + filtros) · /permisos/[id] crear/editar
+/configuracion                  [directiva] Institución, accesos, demostración
+/configuracion/marcacion        [directiva] Geocerca, ubicaciones de prueba, franjas, cierre diario
 /configuracion/qr               [directiva] Generar / regenerar / imprimir QR
 /configuracion/usuarios         [directiva] Cuentas y roles
 
@@ -1216,8 +1244,9 @@ Dos contextos de uso:
 ## Navegación
 
 ```
-🖥️ PC: header (logo · 🔔 · 👤) + nav lateral
-   Panel · Registro del día · Revisión · Personal · Jornadas · Reportes · Configuración
+🖥️ PC: header (logo · 👤) + nav lateral
+   Directiva:  Panel · Personal · Permisos · Reportes · Ajustes (incluye Jornadas)
+   Secretaría: Panel · Personal · Permisos · Reportes · Mi asistencia
 
 📱 Celular: bottom bar
    Marcar · Historial · 🔔 · Perfil
@@ -1659,7 +1688,7 @@ test: casos de tardanza con tolerancia 15 min
 - [x] Repositorio Git inicializado + `.gitignore`
 - [x] Andamiaje Astro + TypeScript + Vitest + ESLint/Prettier
 - [x] Migraciones SQL iniciales (borrador) + seed
-- [ ] Cargar coordenadas del colegio en el seed/configuración
+- [x] Cargar coordenadas del colegio en el seed/configuración
 - [ ] Obtener nombre y correo del administrador (directiva)
 
 ## Semana 1 — Cimientos, auth, personal y jornadas ✅
@@ -1690,21 +1719,24 @@ test: casos de tardanza con tolerancia 15 min
 - [x] Datos de demostración y botones de limpieza en Ajustes
 - [ ] Logo y escudo para el encabezado (pendiente: jueves)
 
-## Semana 2 — Marcación QR + GPS y reglas
+## Semana 2 — Marcación QR + GPS y reglas ✅
 
-- [ ] `/configuracion`: geocerca (coordenadas, radio, precisión)
-- [ ] `/configuracion/qr`: generar, regenerar, vencimiento, vista de impresión
-- [ ] Registro de dispositivo al login + aprobación/revocación (R11)
-- [ ] Escáner QR (`BarcodeDetector` + `jsQR`) + captura GPS
-- [ ] `/api/marcacion` con validación R10 (entrada y salida)
-- [ ] `lib/reglas/geocerca.ts` + tests
-- [ ] `lib/reglas/estados.ts` (R1) + tests
-- [ ] `lib/reglas/calculoHoras.ts` (R2) + tests
-- [ ] Prevención de duplicados (R7)
-- [ ] Permisos (R4)
-- [ ] Cierre diario (Vercel Cron → `/api/cierre-diario`) + faltas + notificaciones
+- [x] `/configuracion/marcacion`: geocerca (coordenadas, radio, precisión, activa), «usar mi ubicación», ubicaciones de prueba, franjas
+- [x] `/configuracion/qr`: generar, desactivar, vencimiento, historial, hoja A4 para imprimir
+- [x] Registro de teléfono al marcar + aprobación/revocación en la ficha (R11)
+- [x] Escáner QR (`BarcodeDetector` + `jsQR`) + captura GPS a pantalla completa
+- [x] `/api/marcacion` con validación R10 (entrada y salida), jornadas nocturnas
+- [x] `lib/reglas/geocerca.ts` + `marcacion.ts` (ubicaciones, franja, R7, fecha nocturna) + tests
+- [x] `lib/reglas/estados.ts` (R1) + tests
+- [x] `lib/reglas/calculoHoras.ts` (R2) + tests
+- [x] Prevención de duplicados (R7)
+- [x] Permisos (R4): `/permisos` + sección en la ficha
+- [x] Cierre diario (Vercel Cron → `/api/cierre-diario`) + faltas + notificaciones
+- [x] Coordenadas del colegio cargadas (corregido el signo de la longitud)
+- [ ] Prueba en celulares reales (Android + iPhone) — Hector, casos F13–F20
+- [ ] Definir la fecha de inicio del control de asistencia (Ajustes › Marcación)
 
-**🏁 Hito:** se marca un día completo con QR + GPS y el sistema calcula estados solo.
+**🏁 Hito:** ✅ se marca un día completo con QR + GPS y el sistema calcula estados solo (2026-10-09, probado con cámara y GPS simulados).
 
 ## Semana 3 — PC de respaldo, reportes y dashboard
 
@@ -1741,11 +1773,11 @@ test: casos de tardanza con tolerancia 15 min
 | Decisión | Estado | Nota |
 |---|---|---|
 | Jornada y tolerancia concretas | 🟡 Configurable, valores pendientes | Preguntas-para-el-colegio #1-2 |
-| Coordenadas del colegio | 🟡 Disponibles, falta cargar | #14 |
+| Coordenadas del colegio | 🟢 Cargadas | #14 |
 | Administrador inicial | 🟡 Falta nombre/correo | #12 |
 | Canal de notificaciones | ⬜ Pendiente | #6 |
 | Formato de reportes | ⬜ Pendiente | #7 |
-| Política de salida no registrada | ⬜ Pendiente | Reglas-de-negocio R3 |
+| Política de salida no registrada | 🟢 Sin horas + aviso a secretaría (D-35) | Reglas-de-negocio R3 |
 
 ## Semáforo general
 
@@ -1753,7 +1785,7 @@ test: casos de tardanza con tolerancia 15 min
 |---|---|
 | 0 | 🟢 Terminada |
 | 1 | 🟢 Terminada |
-| 2 | ⬜ No iniciada |
+| 2 | 🟢 Terminada (falta prueba en celulares reales) |
 | 3 | ⬜ No iniciada |
 | 4 | ⬜ No iniciada |
 
@@ -2232,7 +2264,7 @@ Estructura sugerida para exponer ante el docente y el equipo (10-12 minutos + de
 
 ---
 
-## Semana 1 — Planificación, decisiones y base del sistema (01/10 – 07/10/2026) · en curso
+## Semana 1 — Planificación, decisiones y base del sistema (01/10 – 07/10/2026) · terminada
 
 | Responsable | Actividad | Horas | Entregable / evidencia |
 |---|---|---|---|
@@ -2273,7 +2305,9 @@ Estructura sugerida para exponer ante el docente y el equipo (10-12 minutos + de
 
 **Total por integrante: 25 h.** Detalle día por día y firmas en Registro de horas.
 
-## Semana 2 — Marcación QR + GPS
+## Semana 2 — Marcación QR + GPS (08/10 – 14/10/2026) · en curso
+
+> Avance del desarrollo: la marcación con QR + GPS, los permisos y el cierre diario ya están publicados (09/10). Las coordenadas del liceo y la nómina ya están cargadas, por lo que Antonio pasa a **verificarlas** en sitio y con secretaría, y la hoja del QR ya la genera la app (Mariansel la **revisa** en lugar de diseñarla desde cero). Detalle día por día en el Registro de horas.
 
 | Responsable | Actividad | Horas est. | Entregable / evidencia |
 |---|---|---|---|
@@ -2287,14 +2321,14 @@ Estructura sugerida para exponer ante el docente y el equipo (10-12 minutos + de
 | | Redactar el manual: login, personal y jornadas | 8 | Secciones del manual |
 | | Acta de las reuniones del equipo | 3 | Actas |
 | **Antonio** | Reunión con la directiva: preguntas pendientes (#1, 2, 5–9, 11, 12) | 5 | Acta firmada por el colegio |
-| | Tomar las coordenadas de la entrada y medir el radio en sitio | 3 | Coordenadas + fotos |
+| | Verificar en sitio las coordenadas cargadas y medir el radio | 3 | Coordenadas + fotos |
 | | Recolectar la lista del personal (nombre, cédula, cargo, correo, horario) | 10 | Plantilla CSV completa |
 | | Recolectar jornadas reales y el calendario de feriados | 4 | Datos entregados |
 | | Pasar las respuestas a Preguntas-para-el-colegio | 3 | Nota actualizada |
 | **Liz** | Buscar 4 antecedentes (tesis o artículos) y llenar la plantilla de Metodo foda | 12 | 4 fichas de antecedentes |
 | | Diagnóstico: entrevistar a secretaría sobre el tiempo que toma hoy el registro manual | 6 | Entrevista + resultados |
 | | Redactar el marco teórico breve (PWA, QR, geolocalización, control de asistencia) | 7 | Documento |
-| **Mariansel** | Diseñar el cartel del QR (formato A4 con instrucciones) | 6 | Diseño en PDF |
+| **Mariansel** | Revisar la hoja A4 del QR que genera la app y proponer mejoras | 6 | Hoja en PDF con observaciones |
 | | Guion y diapositivas iniciales de la Presentacion-del-proyecto | 10 | Borrador de diapositivas |
 | | Encuesta al personal: tipo de teléfono, sistema operativo y datos móviles | 6 | Encuesta + resultados |
 | | Material de difusión: aviso al personal sobre la nueva app | 3 | Aviso |
@@ -2474,16 +2508,137 @@ Firma: ______________________
 
 Firma: ______________________
 
+## Semana 2 (08/10 – 14/10/2026)
+
+> **Borrador para revisión**
+> Se armó con el reparto de la Semana 2 y, en el caso del desarrollo, con los commits de GitHub. Cada integrante revisa **sus** filas, corrige lo que no coincida con lo que hizo, agrega su evidencia y firma.
+> Las filas marcadas *(previsto)* corresponden al martes 13 y miércoles 14: se confirman o se corrigen al terminar el día.
+
+### Schormeiker Lugo · Coordinación y desarrollo
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 08/10 | App instalable (GRU-system), categorías, panel directivo, planilla oficial PDF/Excel, importación de la nómina | 3 | Commits `a590346`, `02fd2cb` |
+|  | Filtros sin recargar la página, esqueletos de carga, pruebas de navegador y refinamiento visual | 2 | Commits `5f31397`, `4714c84`, `5138d40` |
+| Vie 09/10 | Panel en tres niveles, columna lateral y gráfica de tendencia | 2 | Commits `156c104`, `dd2c75a`, `ba2d375` |
+|  | Marcación con QR + GPS, teléfonos, permisos y cierre diario | 3 | Commits `ce39283` a `03d649e` |
+| Lun 12/10 | Verificación en producción (cierre diario, cron, 39 pruebas de navegador) y registro de decisiones D-31 a D-36 | 3 | Commit `4961a8f`, Registro-de-decisiones |
+|  | Actualización del registro de horas y del reparto de tareas | 2 | Este documento |
+| Mar 13/10 | Prueba de la marcación en celulares reales junto con Hector *(previsto)* | 3 | Resultados F13–F20 |
+|  | Correcciones de lo encontrado en la prueba *(previsto)* | 2 | Commits |
+| Mié 14/10 | Preparación de la reunión del jueves: demostración, QR de prueba, fecha de inicio del control *(previsto)* | 3 | Guion de la demostración |
+|  | Coordinación del equipo y revisión de entregables de la semana *(previsto)* | 2 | Acta |
+| | **Total semana 2** | **25** | |
+
+Firma: ______________________
+
+
+### Hector Diaz · Pruebas y calidad
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 08/10 | Estudio del plan de pruebas y preparación de los casos F6–F20 | 3 | Casos listos |
+|  | Prueba de login y roles en el PC | 2 | Registro de resultados |
+| Vie 09/10 | Prueba de personal, jornadas y feriados en el PC | 3 | Registro de resultados |
+|  | Prueba de la app instalada en 2 celulares | 2 | Registro de resultados |
+| Lun 12/10 | Reporte de fallas encontradas (descripción + captura) | 3 | Lista de incidencias |
+|  | Prueba de permisos y de la generación del QR | 2 | Registro de resultados |
+| Mar 13/10 | Prueba de la marcación QR + GPS en Android y iPhone *(previsto)* | 4 | Resultados F13–F20 |
+|  | Prueba de teléfono nuevo pendiente y su aprobación *(previsto)* | 1 | Resultados |
+| Mié 14/10 | Prueba de marcación fuera del radio, QR inválido y entrada duplicada *(previsto)* | 3 | Resultados F13–F20 |
+|  | Informe de resultados de la semana *(previsto)* | 2 | Informe |
+| | **Total semana 2** | **25** | |
+
+Firma: ______________________
+
+
+### Rebeca Nexans · Documentación
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 08/10 | Revisión y corrección de la redacción del vault (inicio y proyecto) | 3 | Notas corregidas |
+|  | Acta de la reunión del equipo | 2 | Acta |
+| Vie 09/10 | Revisión y corrección de la redacción del vault (requisitos y diseño) | 3 | Notas corregidas |
+|  | Capturas de pantalla de login y personal | 2 | Capturas |
+| Lun 12/10 | Capturas de pantalla de jornadas, permisos y marcación | 3 | Capturas en el manual |
+|  | Revisión y corrección de la redacción del vault (desarrollo y entregables) | 2 | Notas corregidas |
+| Mar 13/10 | Redacción del manual: inicio de sesión y personal *(previsto)* | 4 | Secciones del manual |
+|  | Acta de la reunión del equipo *(previsto)* | 1 | Acta |
+| Mié 14/10 | Redacción del manual: jornadas, permisos y marcación con el celular *(previsto)* | 4 | Secciones del manual |
+|  | Revisión final de la redacción de la semana *(previsto)* | 1 | Notas corregidas |
+| | **Total semana 2** | **25** | |
+
+Firma: ______________________
+
+
+### Antonio Gonzalez · Enlace con el colegio
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 08/10 | Reunión con la directiva: preguntas pendientes (#1, 2, 5–9, 11, 12) | 3 | Acta firmada por el colegio |
+|  | Verificación de la nómina cargada con secretaría | 2 | Lista revisada |
+| Vie 09/10 | Coordenadas de la entrada del liceo y medición del radio en sitio | 3 | Coordenadas + fotos |
+|  | Pasar las respuestas a «Preguntas para el colegio» | 2 | Preguntas-para-el-colegio |
+| Lun 12/10 | Recolección de correos y teléfonos del personal | 3 | Plantilla CSV |
+|  | Recolección de jornadas reales y horarios especiales | 2 | Datos entregados |
+| Mar 13/10 | Calendario de feriados y días no laborables del lapso *(previsto)* | 2 | Datos entregados |
+|  | Revisión de la transcripción de la nómina con secretaría *(previsto)* | 3 | Lista revisada |
+| Mié 14/10 | Coordinar con el colegio la reunión del jueves (logo, escudo, fecha de inicio) *(previsto)* | 3 | Mensajes o acta |
+|  | Revisión de los datos recolectados antes de la carga *(previsto)* | 2 | Datos entregados |
+| | **Total semana 2** | **25** | |
+
+Firma: ______________________
+
+
+### Liz Espinoza · Investigación
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 08/10 | Búsqueda de antecedentes (tesis y artículos) | 3 | Lista de fuentes |
+|  | Ficha del antecedente 1 | 2 | Ficha |
+| Vie 09/10 | Ficha del antecedente 2 | 3 | Ficha |
+|  | Preparación de la entrevista a secretaría | 2 | Guion de entrevista |
+| Lun 12/10 | Fichas de los antecedentes 3 y 4 | 4 | Fichas |
+|  | Actualización del análisis FODA con los antecedentes | 1 | Metodo foda |
+| Mar 13/10 | Entrevista a secretaría: tiempo que toma hoy el registro manual *(previsto)* | 3 | Entrevista |
+|  | Análisis de los resultados de la entrevista *(previsto)* | 2 | Resultados |
+| Mié 14/10 | Redacción del marco teórico (PWA, QR, geolocalización, control de asistencia) *(previsto)* | 5 | Documento |
+| | **Total semana 2** | **25** | |
+
+Firma: ______________________
+
+
+### Mariansel Herrera · Capacitación y presentación
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 08/10 | Guion de la presentación del proyecto | 3 | Guion |
+|  | Diseño de la encuesta al personal (teléfono, sistema y datos móviles) | 2 | Encuesta |
+| Vie 09/10 | Diapositivas iniciales de la presentación | 3 | Borrador de diapositivas |
+|  | Aplicación de la encuesta al personal | 2 | Respuestas |
+| Lun 12/10 | Revisión de la hoja del QR que genera la app y propuesta de mejoras | 3 | Hoja en PDF con observaciones |
+|  | Diapositivas: problema, objetivos y solución | 2 | Borrador de diapositivas |
+| Mar 13/10 | Tabulación de la encuesta *(previsto)* | 3 | Resultados |
+|  | Aviso al personal sobre la nueva app *(previsto)* | 2 | Aviso |
+| Mié 14/10 | Diapositivas: demostración de la marcación *(previsto)* | 3 | Borrador de diapositivas |
+|  | Ensayo de la presentación con el equipo *(previsto)* | 2 | Lista de asistencia |
+| | **Total semana 2** | **25** | |
+
+Firma: ______________________
+
 ## Resumen acumulado
 
 | Integrante | Sem. 1 | Sem. 2 | Sem. 3 | Sem. 4 | Total |
 |---|---|---|---|---|---|
-| Schormeiker Lugo | 25 | | | | 25 |
-| Hector Diaz | 25 | | | | 25 |
-| Rebeca Nexans | 25 | | | | 25 |
-| Antonio Gonzalez | 25 | | | | 25 |
-| Liz Espinoza | 25 | | | | 25 |
-| Mariansel Herrera | 25 | | | | 25 |
+| Schormeiker Lugo | 25 | 25 | | | 50 |
+| Hector Diaz | 25 | 25 | | | 50 |
+| Rebeca Nexans | 25 | 25 | | | 50 |
+| Antonio Gonzalez | 25 | 25 | | | 50 |
+| Liz Espinoza | 25 | 25 | | | 50 |
+| Mariansel Herrera | 25 | 25 | | | 50 |
+| **Equipo** | **150** | **150** | | | **300** |
+
+> La Semana 2 incluye horas *(previstas)* del 13 y 14/10: el total se confirma el miércoles 14 al cerrar la semana.
 
 ---
 

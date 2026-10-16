@@ -39,6 +39,16 @@ const NAV: Record<typeof perfil.rol, Item[]> = {
   ],
   personal: [{ href: "/asistencia", texto: "Mi asistencia", icono: "reloj" }],
 };
+// La directiva marca su asistencia solo si tiene una ficha de personal.
+if (perfil.rol === "directiva") {
+  const { data: ficha } = await Astro.locals.supabase
+    .from("personal")
+    .select("id")
+    .eq("usuario_id", perfil.id)
+    .eq("estado", "activo")
+    .maybeSingle();
+  if (ficha) NAV.directiva.push({ href: "/asistencia", texto: "Mi asistencia", icono: "reloj" });
+}
 const visibles = NAV[perfil.rol].filter((i) => puedeVer(i.href, perfil.rol));
 
 const activo = (i: Item) =>

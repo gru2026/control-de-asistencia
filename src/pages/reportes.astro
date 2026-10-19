@@ -4,6 +4,7 @@ import Tarjeta from "@/components/ui/Tarjeta.astro";
 import Boton from "@/components/ui/Boton.astro";
 import Icono from "@/components/ui/Icono.astro";
 import Badge from "@/components/ui/Badge.astro";
+import Pestanas from "@/components/ui/Pestanas.astro";
 import { listarCategorias } from "@/lib/datos/categorias";
 import { cargarInstitucion, cargarPlanilla } from "@/lib/reportes/datos";
 import type { TipoPlanilla } from "@/lib/reportes/planilla";
@@ -41,10 +42,14 @@ const BADGE = {
 } as const;
 ---
 
-<PanelLayout
-  titulo="Reportes"
-  subtitulo="Planilla diaria de asistencia con el formato oficial del plantel."
->
+<PanelLayout titulo="Reportes" subtitulo="Planilla diaria con el formato oficial del plantel.">
+  <Pestanas
+    etiqueta="Tipos de reporte"
+    items={[
+      { href: "/reportes", texto: "Planilla diaria" },
+      { href: "/reportes/resumen", texto: "Resumen del período" },
+    ]}
+  />
   <div class="pila">
     <Tarjeta>
       <form method="get" class="controles" data-autoenviar>

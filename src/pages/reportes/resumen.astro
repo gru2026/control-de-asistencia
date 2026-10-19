@@ -1,0 +1,321 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Tabla from "@/components/ui/Tabla.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Icono from "@/components/ui/Icono.astro";
+import Pestanas from "@/components/ui/Pestanas.astro";
+import ChipCategoria from "@/components/ui/ChipCategoria.astro";
+import EncabezadoOrden from "@/components/ui/EncabezadoOrden.astro";
+import { listarCategorias } from "@/lib/datos/categorias";
+import { cargarResumen } from "@/lib/reportes/datos";
+import { ordenarResumen, rangoResumen, type OrdenResumen } from "@/lib/reportes/resumen";
+import { fechaCorta, hoyEnZona } from "@/lib/fecha";
+import { numero, plural } from "@/lib/formato";
+import { sumarDias } from "@/lib/reglas/tiempo";
+
+const sb = Astro.locals.supabase;
+const p = Astro.url.searchParams;
+const hoy = hoyEnZona();
+const categorias = await listarCategorias(sb);
+const catPorId = new Map(categorias.map((c) => [c.id, c]));
+const { desde, hasta } = rangoResumen(p.get("desde"), p.get("hasta"), hoy);
+const categoria = catPorId.has(p.get("categoria") ?? "") ? p.get("categoria") : null;
+
+const ORDENES: OrdenResumen[] = ["nombre", "asistencia", "faltas", "tardanzas", "horas"];
+const orden = ORDENES.find((o) => o === p.get("orden")) ?? "nombre";
+const dir = p.get("dir") === "desc" ? "desc" : "asc";
+
+const resumen = await cargarResumen(sb, desde, hasta, categoria);
+const filas = ordenarResumen(resumen.filas, orden, dir);
+const t = resumen.totales;
+
+// Accesos rápidos de período
+const inicioMes = `${hoy.slice(0, 8)}01`;
+const finMesAnterior = sumarDias(inicioMes, -1);
+const atajos = [
+  { texto: "Este mes", desde: inicioMes, hasta: hoy },
+  { texto: "Mes anterior", desde: `${finMesAnterior.slice(0, 8)}01`, hasta: finMesAnterior },
+  { texto: "Últimos 30 días", desde: sumarDias(hoy, -29), hasta: hoy },
+];
+const enlace = (d: string, h: string) => {
+  const u = new URL(Astro.url);
+  u.searchParams.set("desde", d);
+  u.searchParams.set("hasta", h);
+  return u.pathname + u.search;
+};
+const descarga = (formato: string, extra = "") =>
+  `/api/reportes/resumen?desde=${desde}&hasta=${hasta}${categoria ? `&categoria=${categoria}` : ""}&formato=${formato}${extra}`;
+const pct = (n: number, dias: number) => (dias ? `${Math.round(n)} %` : "—");
+const horas = (n: number) => n.toFixed(1).replace(".", ",");
+---
+
+<PanelLayout titulo="Reportes" subtitulo="Resumen de asistencia por persona en un período.">
+  <Pestanas
+    etiqueta="Tipos de reporte"
+    items={[
+      { href: "/reportes", texto: "Planilla diaria" },
+      { href: "/reportes/resumen", texto: "Resumen del período" },
+    ]}
+  />
+
+  <div class="pila">
+    <Tarjeta>
+      <form method="get" class="controles" data-autoenviar>
+        <div class="campo">
+          <label for="r-desde">Desde</label>
+          <input id="r-desde" type="date" name="desde" value={desde} max={hoy} />
+        </div>
+        <div class="campo">
+          <label for="r-hasta">Hasta</label>
+          <input id="r-hasta" type="date" name="hasta" value={hasta} max={hoy} />
+        </div>
+        <div class="campo">
+          <label for="r-categoria">Categoría</label>
+          <select id="r-categoria" name="categoria">
+            <option value="">Todas</option>
+            {categorias.map((c) => (
+              <option value={c.id} selected={c.id === categoria}>
+                {c.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        {orden !== "nombre" && <input type="hidden" name="orden" value={orden} />}
+        {dir !== "asc" && <input type="hidden" name="dir" value={dir} />}
+        <noscript>
+          <button type="submit">Ver</button>
+        </noscript>
+        <div class="descargas">
+          <Boton href={descarga("pdf")} download>
+            <Icono nombre="descargar" tamano={18} />
+            PDF
+          </Boton>
+          <Boton href={descarga("xlsx")} variante="secundario" download>
+            <Icono nombre="descargar" tamano={18} />
+            Excel
+          </Boton>
+          <Boton
+            href={descarga("pdf", "&ver=1")}
+            variante="fantasma"
+            target="_blank"
+            rel="noopener"
+          >
+            <Icono nombre="imprimir" tamano={18} />
+            Imprimir
+          </Boton>
+        </div>
+      </form>
+      <p class="atajos">
+        {atajos.map((a) => (
+          <a
+            href={enlace(a.desde, a.hasta)}
+            aria-current={a.desde === desde && a.hasta === hasta ? "true" : undefined}
+          >
+            {a.texto}
+          </a>
+        ))}
+      </p>
+    </Tarjeta>
+
+    <dl class="cifras" data-datos="linea">
+      <div>
+        <dt>Asistencia</dt>
+        <dd>{pct(t.porcentajeAsistencia, t.diasLaborables)}</dd>
+      </div>
+      <div>
+        <dt>Tardanzas</dt>
+        <dd>{numero(t.tardanzas)}</dd>
+      </div>
+      <div>
+        <dt>Faltas</dt>
+        <dd>{numero(t.faltas)}</dd>
+      </div>
+      <div>
+        <dt>Permisos</dt>
+        <dd>{numero(t.permisos)}</dd>
+      </div>
+      <div>
+        <dt>Horas trabajadas</dt>
+        <dd>{numero(Math.round(t.totalHoras))}</dd>
+      </div>
+    </dl>
+    <p class="nota">
+      Del {fechaCorta(resumen.desde)} al {fechaCorta(resumen.hasta)} ·{" "}
+      {plural(filas.length, "persona", "personas")}.
+      {t.sinRegistro > 0 &&
+        ` ${plural(t.sinRegistro, "día laborable sin registro", "días laborables sin registro")}: no cuentan como asistencia.`}
+    </p>
+
+    <Tarjeta>
+      <Tabla
+        titulo="Resumen por persona"
+        tarjetas
+        hayFilas={filas.length > 0}
+        vacio="No hay personal en este filtro."
+      >
+        <thead>
+          <tr>
+            <EncabezadoOrden campo="nombre" orden={orden} dir={dir}>
+              Persona
+            </EncabezadoOrden>
+            <th scope="col" class="num">
+              Días
+            </th>
+            <th scope="col" class="num">
+              Presente
+            </th>
+            <EncabezadoOrden campo="tardanzas" orden={orden} dir={dir}>
+              Tarde
+            </EncabezadoOrden>
+            <EncabezadoOrden campo="faltas" orden={orden} dir={dir}>
+              Faltas
+            </EncabezadoOrden>
+            <th scope="col" class="num">
+              Permisos
+            </th>
+            <th scope="col" class="num col-extra">
+              Sin registro
+            </th>
+            <EncabezadoOrden campo="asistencia" orden={orden} dir={dir}>
+              Asistencia
+            </EncabezadoOrden>
+            <EncabezadoOrden campo="horas" orden={orden} dir={dir}>
+              Horas
+            </EncabezadoOrden>
+            <th scope="col" class="num col-extra">
+              En secretaría
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map((f) => {
+            const c = catPorId.get(f.categoriaId);
+            return (
+              <tr>
+                <td class="principal">
+                  <a href={`/personal/${f.personalId}`} class="nombre">
+                    {f.nombre}
+                  </a>
+                  {c && <ChipCategoria nombre={c.nombre} color={c.color} />}
+                </td>
+                <td data-etiqueta="Días laborables" class="num">
+                  {f.diasLaborables}
+                </td>
+                <td data-etiqueta="Presente" class="num">
+                  {f.presentes}
+                </td>
+                <td data-etiqueta="Tarde" class="num">
+                  {f.tardanzas}
+                </td>
+                <td data-etiqueta="Faltas" class:list={["num", f.faltas > 0 && "alto"]}>
+                  {f.faltas}
+                </td>
+                <td data-etiqueta="Permisos" class="num">
+                  {f.permisos}
+                </td>
+                <td data-etiqueta="Sin registro" class="num col-extra">
+                  {f.sinRegistro || "—"}
+                </td>
+                <td data-etiqueta="Asistencia" class="num">
+                  {pct(f.porcentajeAsistencia, f.diasLaborables)}
+                </td>
+                <td data-etiqueta="Horas" class="num">
+                  {horas(f.totalHoras)}
+                </td>
+                <td data-etiqueta="En secretaría" class="num col-extra">
+                  {f.marcacionesPc || "—"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </Tabla>
+    </Tarjeta>
+  </div>
+</PanelLayout>
+
+<style>
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  .pila > :global(*) {
+    min-width: 0;
+  }
+  .controles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-3) var(--esp-4);
+    align-items: end;
+  }
+  .campo {
+    display: grid;
+    gap: var(--esp-1);
+  }
+  label {
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+    color: var(--color-texto-suave);
+  }
+  input,
+  select {
+    min-height: 44px;
+    padding: 0 var(--esp-3);
+    border: 1px solid var(--color-borde-fuerte);
+    border-radius: var(--radio-sm);
+    background: var(--color-superficie);
+  }
+  .descargas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2);
+    margin-left: auto;
+  }
+  .atajos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2) var(--esp-4);
+    margin: var(--esp-4) 0 0;
+    font-size: var(--texto-sm);
+  }
+  .atajos a[aria-current] {
+    color: var(--color-texto);
+    font-weight: var(--peso-fuerte);
+    text-decoration: none;
+  }
+  .cifras {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-3) var(--esp-8);
+    margin: var(--esp-2) 0 0;
+  }
+  .cifras dt {
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .cifras dd {
+    margin: 0;
+    font-size: var(--texto-xl);
+    font-weight: var(--peso-fuerte);
+    font-variant-numeric: tabular-nums;
+  }
+  .nota {
+    margin: 0;
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .nombre {
+    font-weight: var(--peso-fuerte);
+    margin-right: var(--esp-2);
+  }
+  .alto {
+    color: var(--color-error);
+    font-weight: var(--peso-fuerte);
+  }
+  @media (min-width: 701px) and (max-width: 1440px) {
+    .col-extra {
+      display: none;
+    }
+  }
+</style>

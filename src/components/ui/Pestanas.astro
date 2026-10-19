@@ -9,7 +9,7 @@ interface Props {
 }
 const { etiqueta, items } = Astro.props;
 const ruta = Astro.url.pathname;
-const actual = (href: string) => ruta === href || ruta.startsWith(href + "/");
+const actual = (href: string) => ruta === href;
 ---
 
 <nav class="pestanas" aria-label={etiqueta}>

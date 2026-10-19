@@ -1,9 +1,18 @@
 /** Carga los datos de una planilla diaria desde la BD (sesión de directiva o secretaría). */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { listarCategorias } from "@/lib/datos/categorias";
+import { listarCategorias, traerTodo } from "@/lib/datos/categorias";
+import {
+  aExcepcion,
+  aJornada,
+  COLUMNAS_JORNADA,
+  type FilaHorario,
+  type FilaJornada,
+} from "@/lib/datos/jornadas";
+import { hoyEnZona } from "@/lib/fecha";
+import { construirResumen, type Resumen } from "./resumen";
 import { diferenciaMin } from "@/lib/reglas/estados";
 import { horaEnZona } from "@/lib/reglas/tiempo";
-import type { EstadoAsistencia } from "@/types";
+import type { EstadoAsistencia, MetodoMarcacion } from "@/types";
 import {
   categoriasDelTipo,
   construirPlanilla,
@@ -100,4 +109,75 @@ export async function cargarPlanilla(
     .filter((p) => p.estado === "activo" || marcas.has(p.id))
     .map((p) => ({ ...p, nocturna: p.jornadas?.nocturna ?? false }));
   return construirPlanilla(tipo, fecha, categorias, personas, marcas);
+}
+
+/** Datos del resumen del período (R5) para la página y las descargas. */
+export async function cargarResumen(
+  sb: SupabaseClient,
+  desde: string,
+  hasta: string,
+  categoriaId: string | null,
+): Promise<Resumen> {
+  let qPer = sb
+    .from("personal")
+    .select(
+      `id, nombre, apellido, cedula, categoria_id, fecha_ingreso, jornadas(${COLUMNAS_JORNADA}), horarios(dia_semana, hora_entrada, hora_salida, tolerancia_min, libre)`,
+    )
+    .eq("estado", "activo")
+    .order("apellido")
+    .order("nombre");
+  if (categoriaId) qPer = qPer.eq("categoria_id", categoriaId);
+  const [{ data: per, error }, registros, { data: fers }] = await Promise.all([
+    qPer,
+    traerTodo<{
+      personal_id: string;
+      fecha: string;
+      estado: EstadoAsistencia;
+      horas_trabajadas: number | string | null;
+      entrada_metodo: MetodoMarcacion | null;
+    }>((i, f) =>
+      sb
+        .from("registros_asistencia")
+        .select("personal_id, fecha, estado, horas_trabajadas, entrada_metodo")
+        .gte("fecha", desde)
+        .lte("fecha", hasta)
+        .order("id")
+        .range(i, f),
+    ),
+    sb.from("feriados").select("fecha").gte("fecha", desde).lte("fecha", hasta),
+  ]);
+  if (error) throw new Error(error.message);
+  type FilaPer = {
+    id: string;
+    nombre: string;
+    apellido: string;
+    cedula: string;
+    categoria_id: string;
+    fecha_ingreso: string | null;
+    jornadas: FilaJornada | null;
+    horarios: FilaHorario[];
+  };
+  return construirResumen({
+    desde,
+    hasta,
+    hoy: hoyEnZona(),
+    feriados: (fers ?? []).map((f) => f.fecha as string),
+    personas: ((per ?? []) as unknown as FilaPer[]).map((x) => ({
+      id: x.id,
+      nombre: x.nombre,
+      apellido: x.apellido,
+      cedula: x.cedula,
+      categoriaId: x.categoria_id,
+      fechaIngreso: x.fecha_ingreso,
+      jornada: x.jornadas ? aJornada(x.jornadas) : null,
+      excepciones: x.horarios.map(aExcepcion),
+    })),
+    registros: registros.map((r) => ({
+      personalId: r.personal_id,
+      fecha: r.fecha,
+      estado: r.estado,
+      horasTrabajadas: r.horas_trabajadas === null ? null : Number(r.horas_trabajadas),
+      entradaMetodo: r.entrada_metodo,
+    })),
+  });
 }

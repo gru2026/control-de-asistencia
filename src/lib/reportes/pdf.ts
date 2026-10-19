@@ -15,12 +15,10 @@ const COLUMNAS = [
   "OBSERVACIÓN",
 ];
 
-export function planillaPdf(p: Planilla, inst: Institucion, generado: string): ArrayBuffer {
-  const doc = new jsPDF({ unit: "pt", format: "letter", orientation: "portrait" });
-  const ancho = doc.internal.pageSize.getWidth();
-  const centro = ancho / 2;
+/** Encabezado institucional y título subrayado. Devuelve la altura donde sigue el contenido. */
+export function encabezadoPdf(doc: jsPDF, inst: Institucion, titulo: string): number {
+  const centro = doc.internal.pageSize.getWidth() / 2;
   let y = 40;
-
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   const lineas = [
@@ -33,21 +31,54 @@ export function planillaPdf(p: Planilla, inst: Institucion, generado: string): A
     doc.text(l.toUpperCase(), centro, y, { align: "center" });
     y += 11;
   }
-
   y += 10;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text(p.titulo, centro, y, { align: "center" });
-  const anchoTitulo = doc.getTextWidth(p.titulo);
+  doc.text(titulo, centro, y, { align: "center" });
+  const anchoTitulo = doc.getTextWidth(titulo);
   doc.setLineWidth(0.8);
   doc.line(centro - anchoTitulo / 2, y + 2, centro + anchoTitulo / 2, y + 2);
+  doc.setFont("helvetica", "normal");
+  return y;
+}
+
+/** Firma de la dirección (última página) y numeración (todas). */
+export function piePdf(doc: jsPDF, inst: Institucion, generado: string): void {
+  const ancho = doc.internal.pageSize.getWidth();
+  const centro = ancho / 2;
+  const altura = doc.internal.pageSize.getHeight();
+  const paginas = doc.getNumberOfPages();
+  const f = inst.firmante;
+  doc.setPage(paginas);
+  if (f.nombre) {
+    const yf = altura - 70;
+    doc.setLineWidth(0.6);
+    doc.line(centro - 80, yf - 12, centro + 80, yf - 12);
+    doc.setFontSize(10);
+    doc.text(f.nombre, centro, yf, { align: "center" });
+    if (f.cedula)
+      doc.text(`V.- ${f.cedula.replace(/^V-?/i, "")}`, centro, yf + 12, { align: "center" });
+    if (f.cargo) doc.text(f.cargo, centro, yf + 24, { align: "center" });
+  }
+  for (let i = 1; i <= paginas; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(110);
+    doc.text(`Generado por GRU-system · ${generado}`, 30, altura - 18);
+    doc.text(`Página ${i} de ${paginas}`, ancho - 30, altura - 18, { align: "right" });
+    doc.setTextColor(0);
+  }
+}
+
+export function planillaPdf(p: Planilla, inst: Institucion, generado: string): ArrayBuffer {
+  const doc = new jsPDF({ unit: "pt", format: "letter", orientation: "portrait" });
+  const ancho = doc.internal.pageSize.getWidth();
+  let y = encabezadoPdf(doc, inst, p.titulo);
 
   y += 18;
   doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
   doc.text(`DÍA: ${p.dia}`, ancho - 230, y);
   doc.text(`FECHA: ${p.fecha}`, ancho - 40, y, { align: "right" });
-
   const cuerpo: RowInput[] = [];
   p.grupos.forEach((g, i) => {
     if (i > 0)
@@ -93,28 +124,6 @@ export function planillaPdf(p: Planilla, inst: Institucion, generado: string): A
     },
   });
 
-  // Pie: firma de la dirección (al final) y numeración (todas las páginas)
-  const altura = doc.internal.pageSize.getHeight();
-  const paginas = doc.getNumberOfPages();
-  const f = inst.firmante;
-  doc.setPage(paginas);
-  if (f.nombre) {
-    const yf = altura - 70;
-    doc.setLineWidth(0.6);
-    doc.line(centro - 80, yf - 12, centro + 80, yf - 12);
-    doc.setFontSize(10);
-    doc.text(f.nombre, centro, yf, { align: "center" });
-    if (f.cedula)
-      doc.text(`V.- ${f.cedula.replace(/^V-?/i, "")}`, centro, yf + 12, { align: "center" });
-    if (f.cargo) doc.text(f.cargo, centro, yf + 24, { align: "center" });
-  }
-  for (let i = 1; i <= paginas; i++) {
-    doc.setPage(i);
-    doc.setFontSize(7);
-    doc.setTextColor(110);
-    doc.text(`Generado por GRU-system · ${generado}`, 30, altura - 18);
-    doc.text(`Página ${i} de ${paginas}`, ancho - 30, altura - 18, { align: "right" });
-    doc.setTextColor(0);
-  }
+  piePdf(doc, inst, generado);
   return doc.output("arraybuffer");
 }

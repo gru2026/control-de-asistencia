@@ -24,7 +24,7 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-05 | 2026-10-06 | Validación **QR + GPS + fecha/hora del servidor** en **entrada y salida** | ✅ Vigente |
 | D-06 | 2026-10-06 | Geocerca: **fuera del radio = bloqueo**; GPS impreciso = permitir y **señalar** | ✅ Vigente |
 | D-07 | 2026-10-06 | **Un celular por cuenta**; cambio de teléfono aprobado por secretaría desde el PC | ✅ Vigente |
-| D-08 | 2026-10-06 | Respaldo sin teléfono en el PC: **secretaría marca** o **autoservicio cédula + PIN** | ✅ Vigente |
+| D-08 | 2026-10-06 | Respaldo sin teléfono en el PC: **secretaría marca** o **autoservicio cédula + PIN** | 🔁 Parcialmente reemplazada por D-37 (sin kiosco) |
 | D-09 | 2026-10-06 | **Marcar requiere internet**; contingencia manual desde el PC. Offline real → v2 | ✅ Vigente |
 | D-10 | 2026-10-06 | **Jornada y tolerancia configurables** (plantillas) + copia de la regla en cada registro | ✅ Vigente |
 | D-11 | 2026-10-06 | Cantidad de personal **variable**: búsqueda + paginación, sin límites fijos | ✅ Vigente |
@@ -42,6 +42,11 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-41 | 2026-10-19 | Avisos con campana en la barra superior y `/notificaciones`; historial personal por mes en `/historial` | ✅ Vigente |
+| D-40 | 2026-10-19 | **Resumen del período** (R5) por persona con PDF y Excel; la planilla diaria se mantiene | ✅ Vigente |
+| D-39 | 2026-10-19 | **Cambiar de teléfono** desde la ficha: el próximo teléfono con que la persona marque queda aprobado solo | ✅ Vigente |
+| D-38 | 2026-10-19 | **Marca en secretaría** para quien no tiene teléfono; hora manual con motivo (directiva y secretaría) queda señalada | ✅ Vigente |
+| D-37 | 2026-10-19 | **Sin kiosco ni PIN**: el colegio no tiene un equipo para eso; el respaldo es el registro del día en el PC de secretaría | ✅ Vigente |
 | D-36 | 2026-10-09 | **Fecha de inicio del control**: mientras no se defina, el cierre diario no crea faltas | ✅ Vigente |
 | D-35 | 2026-10-09 | Cierre diario **todos los días** a las 18:00 (incluye jornadas nocturnas y fines de semana); avisos agrupados por día; salida no registrada queda sin horas | ✅ Vigente |
 | D-34 | 2026-10-09 | El teléfono se registra **al marcar por primera vez** (no al iniciar sesión); solo se conserva la solicitud pendiente más reciente | ✅ Vigente |
@@ -81,6 +86,14 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 - Vigilancia trabaja de noche: la jornada nocturna termina al día siguiente; una marca de madrugada pertenece a la jornada que empezó la noche anterior.
 - La planilla oficial no lleva firmas por persona (el sistema registra la hora). Solo se imprime y firma si la dirección lo desea.
 - La nómina real (51 personas) se cargó desde un CSV **privado** (no está en el repositorio). La asistencia de demostración es simulada; el panel lo indica con un aviso.
+
+### D-37 a D-41 · Semana 3: respaldo en el PC, reportes y avisos
+- **D-37 · Sin kiosco ni PIN.** El colegio no tiene un equipo para dejar como kiosco; secretaría maneja el sistema en su PC. Se descartan `/kiosco` y el PIN (los campos `pin_*` quedan sin uso). D-08 se mantiene solo en su modo asistido.
+- **D-38 · Registro del día y marca en secretaría.** `/asistencia/registro` lista al personal programado del día (R0) con su estado: por llegar, presente, tarde, falta, permiso o sin salida. Directiva y secretaría marcan entrada o salida con la hora del servidor (`metodo = asistido`) o escriben la hora con un motivo obligatorio (`metodo = manual`, queda señalada). Para días anteriores la hora es obligatoria. Una falta del cierre se corrige marcando la entrada. La salida guarda `salida_registrada_por`. La casilla `personal.marca_en_pc` identifica a quien no tiene teléfono: aparece primero en el registro del día, no puede marcar desde la app y no cuenta como «sin cuenta» en el panel.
+- **D-39 · Cambio de teléfono.** En la ficha, «Cambiar de teléfono» revoca el aprobado y los pendientes y activa `personal.cambio_telefono`; el próximo teléfono con que la persona marque queda aprobado y la marca se apaga. Aprobar o revocar a mano sigue disponible.
+- **Revisión.** `/asistencia/revision` muestra lo señalado (GPS impreciso, ubicación de prueba, hora manual) con distancia, precisión y mapa; «Revisada» guarda `revisado_por` y `revisado_en`. El menú agrupa Registro del día · Por revisar · Permisos bajo «Asistencia» para no pasar de 5 botones en el celular; «Mi asistencia» de la directiva pasa a la barra superior.
+- **D-40 · Resumen del período.** `/reportes/resumen`: rango (por defecto el mes en curso, máximo un año), categoría y orden por columna. Por persona: días laborables (R0, desde el ingreso, hasta hoy), presente, tarde, faltas, permisos, sin registro, % de asistencia (R5), horas y marcaciones en secretaría. PDF carta horizontal con el encabezado oficial y la firma; Excel con números. El formato oficial del colegio (pregunta #7) se ajustará cuando lo entreguen.
+- **D-41 · Avisos e historial.** Campana con el número sin leer; `/notificaciones` permite abrir el aviso (lo marca leído y lleva a su pantalla) o marcarlos como leídos. Los avisos de faltas y salidas del cierre llevan al registro de ese día filtrado. `/historial` muestra a cada persona su mes en calendario, con totales, permisos y días registrados.
 
 ### D-31 a D-36 · Semana 2: marcación QR + GPS
 - **D-31 · Gráfica de tendencia.** Solo la línea y el área son SVG; ejes, promedio y globos son HTML con la tipografía del sistema (13 px). Los puntos se ubican por fecha real. Escala de 3 marcas redondeadas a múltiplos de 5. Se omiten los días con menos del 30 % del personal de un día normal (mínimo 3), por ejemplo los domingos con solo vigilancia; la descripción lo indica.

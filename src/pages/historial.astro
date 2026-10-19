@@ -1,0 +1,442 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Alerta from "@/components/ui/Alerta.astro";
+import Badge from "@/components/ui/Badge.astro";
+import Icono from "@/components/ui/Icono.astro";
+import { cargarFicha } from "@/lib/servicios/marcacion";
+import { aExcepcion, aJornada } from "@/lib/datos/jornadas";
+import { resolverJornada } from "@/lib/reglas/jornada";
+import { horaEnZona } from "@/lib/reglas/tiempo";
+import {
+  calendarioPersonal,
+  diasDelMes,
+  mesValido,
+  mesVecino,
+  type EstadoDiaHistorial,
+} from "@/lib/reglas/historial";
+import { construirResumen } from "@/lib/reportes/resumen";
+import { hoyEnZona } from "@/lib/fecha";
+import { NOMBRE_ESTADO, type EstadoAsistencia, type MetodoMarcacion } from "@/types";
+
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+const hoy = hoyEnZona();
+const mes = mesValido(Astro.url.searchParams.get("mes"), hoy);
+const { desde, hasta } = diasDelMes(mes);
+const ficha = await cargarFicha(sb, perfil.id);
+
+interface FilaReg {
+  fecha: string;
+  estado: EstadoAsistencia;
+  hora_entrada: string | null;
+  hora_salida: string | null;
+  horas_trabajadas: number | string | null;
+  entrada_metodo: MetodoMarcacion | null;
+  salida_no_registrada: boolean;
+  es_demo: boolean;
+}
+const [{ data: regs }, { data: fers }, { data: perms }] = ficha
+  ? await Promise.all([
+      sb
+        .from("registros_asistencia")
+        .select(
+          "fecha, estado, hora_entrada, hora_salida, horas_trabajadas, entrada_metodo, salida_no_registrada, es_demo",
+        )
+        .eq("personal_id", ficha.id)
+        .gte("fecha", desde)
+        .lte("fecha", hasta)
+        .order("fecha", { ascending: false }),
+      sb.from("feriados").select("fecha, descripcion").gte("fecha", desde).lte("fecha", hasta),
+      sb
+        .from("permisos")
+        .select("fecha_desde, fecha_hasta, motivo")
+        .eq("personal_id", ficha.id)
+        .lte("fecha_desde", hasta)
+        .gte("fecha_hasta", desde)
+        .order("fecha_desde"),
+    ])
+  : [{ data: [] }, { data: [] }, { data: [] }];
+const registros = (regs ?? []) as FilaReg[];
+const feriados = ((fers ?? []) as { fecha: string }[]).map((f) => f.fecha);
+const jornada = ficha?.jornadas ? aJornada(ficha.jornadas) : null;
+const excepciones = ficha?.horarios.map(aExcepcion) ?? [];
+const laborable = (fecha: string) => !!resolverJornada({ fecha, jornada, excepciones, feriados });
+
+const semanas = calendarioPersonal({
+  mes,
+  hoy,
+  estados: new Map(registros.map((r) => [r.fecha, r.estado])),
+  laborable,
+  feriados,
+});
+const resumen = ficha
+  ? construirResumen({
+      desde,
+      hasta,
+      hoy,
+      feriados,
+      personas: [
+        {
+          id: ficha.id,
+          nombre: ficha.nombre,
+          apellido: ficha.apellido,
+          cedula: "",
+          categoriaId: "",
+          fechaIngreso: null,
+          jornada,
+          excepciones,
+        },
+      ],
+      registros: registros.map((r) => ({
+        personalId: ficha.id,
+        fecha: r.fecha,
+        estado: r.estado,
+        horasTrabajadas: r.horas_trabajadas === null ? null : Number(r.horas_trabajadas),
+        entradaMetodo: r.entrada_metodo,
+      })),
+    }).filas[0]
+  : null;
+
+const MESES = [
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
+];
+const nombreMes = (m: string) => `${MESES[Number(m.slice(5)) - 1]} ${m.slice(0, 4)}`;
+const anterior = mesVecino(mes, -1);
+const siguiente = mesVecino(mes, 1);
+const haySiguiente = siguiente <= hoy.slice(0, 7);
+const NOMBRE_DIA: Record<EstadoDiaHistorial, string> = {
+  ...NOMBRE_ESTADO,
+  sin_registro: "Sin registro",
+  libre: "Día libre",
+  feriado: "Feriado",
+  futuro: "",
+};
+const corta = (f: string) =>
+  new Intl.DateTimeFormat("es-VE", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  })
+    .format(new Date(`${f}T00:00:00Z`))
+    .replace(".", "");
+const horas = (n: number | string | null) =>
+  n === null ? "" : `${Number(n).toFixed(1).replace(".", ",")} h`;
+const LEYENDA: EstadoAsistencia[] = ["presente", "tarde", "falta", "permiso"];
+---
+
+<PanelLayout titulo="Mi historial" subtitulo="Su asistencia mes a mes.">
+  {!ficha ? (
+    <Alerta tipo="info">
+      Su cuenta no tiene una ficha de personal asociada, por lo que no registra asistencia.
+    </Alerta>
+  ) : (
+    <div class="pila">
+      <nav class="mes" aria-label="Cambiar de mes">
+        <a
+          href={`/historial?mes=${anterior}`}
+          class="flecha"
+          aria-label={`Ver ${nombreMes(anterior)}`}
+        >
+          <Icono nombre="anterior" />
+        </a>
+        <h2>{nombreMes(mes)}</h2>
+        {haySiguiente ? (
+          <a
+            href={`/historial?mes=${siguiente}`}
+            class="flecha"
+            aria-label={`Ver ${nombreMes(siguiente)}`}
+          >
+            <Icono nombre="siguiente" />
+          </a>
+        ) : (
+          <span class="flecha inactiva" aria-hidden="true">
+            <Icono nombre="siguiente" />
+          </span>
+        )}
+      </nav>
+
+      {resumen && (
+        <dl class="cifras">
+          <div>
+            <dt>Asistencia</dt>
+            <dd>
+              {resumen.diasLaborables ? `${Math.round(resumen.porcentajeAsistencia)} %` : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt>Tardanzas</dt>
+            <dd>{resumen.tardanzas}</dd>
+          </div>
+          <div>
+            <dt>Faltas</dt>
+            <dd>{resumen.faltas}</dd>
+          </div>
+          <div>
+            <dt>Horas</dt>
+            <dd>{Math.round(resumen.totalHoras)}</dd>
+          </div>
+        </dl>
+      )}
+
+      <Tarjeta>
+        <table class="calendario">
+          <caption class="visualmente-oculto">Calendario de {nombreMes(mes)}</caption>
+          <thead>
+            <tr>
+              {["L", "M", "X", "J", "V", "S", "D"].map((d) => (
+                <th scope="col">{d}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {semanas.map((s) => (
+              <tr>
+                {s.map((c) =>
+                  c ? (
+                    <td>
+                      <span
+                        class:list={["dia", c.estado, c.fecha === hoy && "hoy"]}
+                        title={NOMBRE_DIA[c.estado] || undefined}
+                      >
+                        {c.dia}
+                        {NOMBRE_DIA[c.estado] && (
+                          <span class="visualmente-oculto">: {NOMBRE_DIA[c.estado]}</span>
+                        )}
+                      </span>
+                    </td>
+                  ) : (
+                    <td />
+                  ),
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <ul class="leyenda">
+          {LEYENDA.map((e) => (
+            <li>
+              <span class:list={["muestra", e]} aria-hidden="true"></span>
+              {NOMBRE_ESTADO[e]}
+            </li>
+          ))}
+        </ul>
+      </Tarjeta>
+
+      {(perms ?? []).length > 0 && (
+        <Tarjeta titulo="Permisos del mes">
+          <ul class="lista">
+            {(perms as { fecha_desde: string; fecha_hasta: string; motivo: string }[]).map((x) => (
+              <li>
+                <span class="fecha">
+                  {x.fecha_desde === x.fecha_hasta
+                    ? corta(x.fecha_desde)
+                    : `${corta(x.fecha_desde)} – ${corta(x.fecha_hasta)}`}
+                </span>
+                <span class="suave">{x.motivo}</span>
+              </li>
+            ))}
+          </ul>
+        </Tarjeta>
+      )}
+
+      <Tarjeta titulo="Días registrados">
+        {registros.length ? (
+          <ul class="lista">
+            {registros.map((r) => (
+              <li>
+                <span class="fecha">{corta(r.fecha)}</span>
+                <span class="suave horas">
+                  {r.hora_entrada ? horaEnZona(r.hora_entrada) : ""}
+                  {r.hora_salida
+                    ? ` – ${horaEnZona(r.hora_salida)}`
+                    : r.salida_no_registrada
+                      ? " – sin salida"
+                      : ""}
+                  {r.horas_trabajadas !== null && ` · ${horas(r.horas_trabajadas)}`}
+                </span>
+                <Badge tipo={r.estado}>{NOMBRE_ESTADO[r.estado]}</Badge>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="suave vacio">No hay días registrados en este mes.</p>
+        )}
+      </Tarjeta>
+    </div>
+  )}
+</PanelLayout>
+
+<style>
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+    max-width: 36rem;
+  }
+  .mes {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-2);
+  }
+  .mes h2 {
+    min-width: 11rem;
+    text-align: center;
+    font-size: var(--texto-lg);
+  }
+  .mes h2::first-letter {
+    text-transform: uppercase;
+  }
+  .flecha {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radio-sm);
+    color: var(--color-texto);
+  }
+  .flecha:hover {
+    background: var(--color-superficie-hover);
+  }
+  .flecha.inactiva {
+    color: var(--color-borde-fuerte);
+  }
+  .cifras {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--esp-3);
+    margin: 0;
+  }
+  .cifras dt {
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .cifras dd {
+    margin: 0;
+    font-size: var(--texto-xl);
+    font-weight: var(--peso-fuerte);
+    font-variant-numeric: tabular-nums;
+  }
+  .calendario {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 4px;
+    table-layout: fixed;
+  }
+  .calendario th {
+    font-size: var(--texto-xs);
+    font-weight: var(--peso-medio);
+    color: var(--color-texto-suave);
+    padding-bottom: var(--esp-1);
+  }
+  .calendario td {
+    padding: 0;
+  }
+  .dia {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    max-height: 3rem;
+    margin: 0 auto;
+    width: 100%;
+    border-radius: var(--radio-sm);
+    font-size: var(--texto-sm);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-texto-suave);
+  }
+  .presente {
+    background: var(--color-exito-suave);
+    color: var(--color-exito);
+    font-weight: var(--peso-fuerte);
+  }
+  .tarde {
+    background: var(--color-alerta-suave);
+    color: var(--color-alerta);
+    font-weight: var(--peso-fuerte);
+  }
+  .falta {
+    background: var(--color-error-suave);
+    color: var(--color-error);
+    font-weight: var(--peso-fuerte);
+  }
+  .permiso {
+    background: var(--color-acento-suave);
+    color: var(--color-acento-texto);
+    font-weight: var(--peso-fuerte);
+  }
+  .sin_registro {
+    background: var(--color-hundido);
+    color: var(--color-texto);
+  }
+  .libre,
+  .feriado,
+  .futuro {
+    color: var(--color-texto-tenue);
+  }
+  .hoy {
+    outline: 2px solid var(--color-acento);
+    outline-offset: -2px;
+  }
+  .leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2) var(--esp-4);
+    margin: var(--esp-4) 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .leyenda li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+  }
+  .muestra {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+  .lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .lista li {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-3);
+    padding: var(--esp-3) 0;
+    border-top: 1px solid var(--color-borde);
+  }
+  .lista li:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .fecha {
+    min-width: 5.5rem;
+    font-weight: var(--peso-medio);
+  }
+  .horas {
+    flex: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .suave {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .vacio {
+    margin: 0;
+  }
+</style>

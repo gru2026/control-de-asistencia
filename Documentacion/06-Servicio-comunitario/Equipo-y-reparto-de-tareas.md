@@ -99,9 +99,9 @@ fecha: 2026-10-12
 
 | Responsable | Actividad | Horas est. |
 |---|---|---|
-| **Schormeiker** | Desarrollo: kiosco, PIN, registro del día, reportes PDF/Excel, panel | 25 |
-| **Hector** | Probar el kiosco, el PIN, los reportes, y comparar un reporte contra un cálculo manual (F21–F34) | 25 |
-| **Rebeca** | Manual: marcación, kiosco, reportes; guía rápida de 1 página para el personal | 25 |
+| **Schormeiker** | Desarrollo: registro del día, revisión, teléfonos, resumen del período PDF/Excel, avisos e historial | 25 |
+| **Hector** | Probar el registro del día (marcar, hora manual, cambio de teléfono), la revisión y los reportes, y comparar un resumen contra un cálculo manual (F21–F34) | 25 |
+| **Rebeca** | Manual: marcación, registro del día en secretaría, reportes; guía rápida de 1 página para el personal | 25 |
 | **Antonio** | Cargar al personal real y las jornadas en la plataforma; verificar los datos con secretaría | 25 |
 | **Liz** | Análisis de resultados del diagnóstico; capítulo de metodología del informe | 25 |
 | **Mariansel** | Plan de capacitación (agenda y material); video tutorial corto de marcación | 25 |

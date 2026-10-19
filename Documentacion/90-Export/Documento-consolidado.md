@@ -2,7 +2,7 @@
 
 **Servicio comunitario — Documentación completa del proyecto**
 
-Fecha de generación: 2026-10-13
+Fecha de generación: 2026-10-19
 
 ---
 
@@ -496,7 +496,7 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-05 | 2026-10-06 | Validación **QR + GPS + fecha/hora del servidor** en **entrada y salida** | ✅ Vigente |
 | D-06 | 2026-10-06 | Geocerca: **fuera del radio = bloqueo**; GPS impreciso = permitir y **señalar** | ✅ Vigente |
 | D-07 | 2026-10-06 | **Un celular por cuenta**; cambio de teléfono aprobado por secretaría desde el PC | ✅ Vigente |
-| D-08 | 2026-10-06 | Respaldo sin teléfono en el PC: **secretaría marca** o **autoservicio cédula + PIN** | ✅ Vigente |
+| D-08 | 2026-10-06 | Respaldo sin teléfono en el PC: **secretaría marca** o **autoservicio cédula + PIN** | 🔁 Parcialmente reemplazada por D-37 (sin kiosco) |
 | D-09 | 2026-10-06 | **Marcar requiere internet**; contingencia manual desde el PC. Offline real → v2 | ✅ Vigente |
 | D-10 | 2026-10-06 | **Jornada y tolerancia configurables** (plantillas) + copia de la regla en cada registro | ✅ Vigente |
 | D-11 | 2026-10-06 | Cantidad de personal **variable**: búsqueda + paginación, sin límites fijos | ✅ Vigente |
@@ -514,6 +514,11 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-41 | 2026-10-19 | Avisos con campana en la barra superior y `/notificaciones`; historial personal por mes en `/historial` | ✅ Vigente |
+| D-40 | 2026-10-19 | **Resumen del período** (R5) por persona con PDF y Excel; la planilla diaria se mantiene | ✅ Vigente |
+| D-39 | 2026-10-19 | **Cambiar de teléfono** desde la ficha: el próximo teléfono con que la persona marque queda aprobado solo | ✅ Vigente |
+| D-38 | 2026-10-19 | **Marca en secretaría** para quien no tiene teléfono; hora manual con motivo (directiva y secretaría) queda señalada | ✅ Vigente |
+| D-37 | 2026-10-19 | **Sin kiosco ni PIN**: el colegio no tiene un equipo para eso; el respaldo es el registro del día en el PC de secretaría | ✅ Vigente |
 | D-36 | 2026-10-09 | **Fecha de inicio del control**: mientras no se defina, el cierre diario no crea faltas | ✅ Vigente |
 | D-35 | 2026-10-09 | Cierre diario **todos los días** a las 18:00 (incluye jornadas nocturnas y fines de semana); avisos agrupados por día; salida no registrada queda sin horas | ✅ Vigente |
 | D-34 | 2026-10-09 | El teléfono se registra **al marcar por primera vez** (no al iniciar sesión); solo se conserva la solicitud pendiente más reciente | ✅ Vigente |
@@ -553,6 +558,14 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 - Vigilancia trabaja de noche: la jornada nocturna termina al día siguiente; una marca de madrugada pertenece a la jornada que empezó la noche anterior.
 - La planilla oficial no lleva firmas por persona (el sistema registra la hora). Solo se imprime y firma si la dirección lo desea.
 - La nómina real (51 personas) se cargó desde un CSV **privado** (no está en el repositorio). La asistencia de demostración es simulada; el panel lo indica con un aviso.
+
+### D-37 a D-41 · Semana 3: respaldo en el PC, reportes y avisos
+- **D-37 · Sin kiosco ni PIN.** El colegio no tiene un equipo para dejar como kiosco; secretaría maneja el sistema en su PC. Se descartan `/kiosco` y el PIN (los campos `pin_*` quedan sin uso). D-08 se mantiene solo en su modo asistido.
+- **D-38 · Registro del día y marca en secretaría.** `/asistencia/registro` lista al personal programado del día (R0) con su estado: por llegar, presente, tarde, falta, permiso o sin salida. Directiva y secretaría marcan entrada o salida con la hora del servidor (`metodo = asistido`) o escriben la hora con un motivo obligatorio (`metodo = manual`, queda señalada). Para días anteriores la hora es obligatoria. Una falta del cierre se corrige marcando la entrada. La salida guarda `salida_registrada_por`. La casilla `personal.marca_en_pc` identifica a quien no tiene teléfono: aparece primero en el registro del día, no puede marcar desde la app y no cuenta como «sin cuenta» en el panel.
+- **D-39 · Cambio de teléfono.** En la ficha, «Cambiar de teléfono» revoca el aprobado y los pendientes y activa `personal.cambio_telefono`; el próximo teléfono con que la persona marque queda aprobado y la marca se apaga. Aprobar o revocar a mano sigue disponible.
+- **Revisión.** `/asistencia/revision` muestra lo señalado (GPS impreciso, ubicación de prueba, hora manual) con distancia, precisión y mapa; «Revisada» guarda `revisado_por` y `revisado_en`. El menú agrupa Registro del día · Por revisar · Permisos bajo «Asistencia» para no pasar de 5 botones en el celular; «Mi asistencia» de la directiva pasa a la barra superior.
+- **D-40 · Resumen del período.** `/reportes/resumen`: rango (por defecto el mes en curso, máximo un año), categoría y orden por columna. Por persona: días laborables (R0, desde el ingreso, hasta hoy), presente, tarde, faltas, permisos, sin registro, % de asistencia (R5), horas y marcaciones en secretaría. PDF carta horizontal con el encabezado oficial y la firma; Excel con números. El formato oficial del colegio (pregunta #7) se ajustará cuando lo entreguen.
+- **D-41 · Avisos e historial.** Campana con el número sin leer; `/notificaciones` permite abrir el aviso (lo marca leído y lleva a su pantalla) o marcarlos como leídos. Los avisos de faltas y salidas del cierre llevan al registro de ese día filtrado. `/historial` muestra a cada persona su mes en calendario, con totales, permisos y días registrados.
 
 ### D-31 a D-36 · Semana 2: marcación QR + GPS
 - **D-31 · Gráfica de tendencia.** Solo la línea y el área son SVG; ejes, promedio y globos son HTML con la tipografía del sistema (13 px). Los puntos se ubican por fecha real. Escala de 3 marcas redondeadas a múltiplos de 5. Se omiten los días con menos del 30 % del personal de un día normal (mínimo 3), por ejemplo los domingos con solo vigilancia; la descripción lo indica.
@@ -1115,9 +1128,10 @@ Si pasa todo → se guarda con hora del servidor, evidencia (lat, lng, precisió
 ## R12 · Marcación en el PC (respaldo)
 
 - **Asistido:** secretaría/directiva marca a la persona → `metodo = asistido`, sin QR ni GPS, con `registrado_por`.
-- **Kiosco (autoservicio):** cédula + PIN en `/kiosco` desde el dispositivo de tipo `kiosco` aprobado → `metodo = kiosco`.
-  - 5 PIN erróneos → bloqueo de 15 min.
-  - Aplica R0, R1, R7 igual que el celular.
+- **Hora manual (contingencia):** directiva o secretaría escriben la hora con un motivo obligatorio → `metodo = manual`, `senalado = true`. No se aceptan horas futuras, salidas anteriores a la entrada ni jornadas de más de 20 h. En jornadas nocturnas, una hora de la mañana es del día siguiente.
+- Aplica R0, R1 y R7 igual que el celular; una falta del cierre se corrige marcando la entrada.
+- **Marca en secretaría:** quien no tiene teléfono (`personal.marca_en_pc`) no puede marcar desde la app.
+- ~~Kiosco con cédula + PIN~~: descartado (D-37).
 
 ## R13 · Código QR
 
@@ -1162,8 +1176,13 @@ Dos contextos de uso:
 /configuracion/qr               [directiva] Generar / regenerar / imprimir QR
 /configuracion/usuarios         [directiva] Cuentas y roles
 
-🖥️ Kiosco (solo en el PC autorizado)
-/kiosco                         Autoservicio: cédula + PIN → entrada/salida
+/asistencia/registro            Registro del día: marcar entrada/salida, hora manual
+/asistencia/revision            Marcaciones señaladas
+/reportes/resumen               Resumen del período (PDF/Excel)
+/notificaciones                 Avisos
+/historial                      Historial personal del mes
+
+(El kiosco con cédula + PIN se descartó: D-37.)
 ```
 
 > **Protección**
@@ -1738,18 +1757,18 @@ test: casos de tardanza con tolerancia 15 min
 
 **🏁 Hito:** ✅ se marca un día completo con QR + GPS y el sistema calcula estados solo (2026-10-09, probado con cámara y GPS simulados).
 
-## Semana 3 — PC de respaldo, reportes y dashboard
+## Semana 3 — PC de respaldo, reportes y dashboard ✅
 
-- [ ] `/asistencia/registro`: tabla del día + marcación asistida + contingencia
-- [ ] `/kiosco` cédula + PIN (bloqueo 5 intentos) + gestión de PIN
-- [ ] `/asistencia/revision`: marcaciones señaladas
-- [ ] `/reportes` con filtros + `acumulados.ts` (R5) + tests
-- [x] Export **PDF** (jsPDF) — planilla oficial
-- [x] Export **Excel** (ExcelJS) — planilla oficial
+- [x] `/asistencia/registro`: tabla del día + marcación asistida + hora manual (contingencia) + días anteriores
+- [x] ~~`/kiosco` cédula + PIN~~ → descartado (D-37); en su lugar «Marca en secretaría» y «Cambiar de teléfono» en la ficha
+- [x] `/asistencia/revision`: marcaciones señaladas
+- [x] `/reportes/resumen` con filtros + `acumulados.ts` (R5) + tests
+- [x] Export **PDF** (jsPDF) — planilla oficial y resumen del período
+- [x] Export **Excel** (ExcelJS) — planilla oficial y resumen del período
 - [x] `/panel` con KPIs y gráficas
-- [ ] `/notificaciones` y `/historial`
+- [x] `/notificaciones` (campana en la barra) y `/historial`
 
-**🏁 Hito:** reportes listos y PC operativo como respaldo.
+**🏁 Hito:** ✅ reportes listos y PC operativo como respaldo (2026-10-19).
 
 ## Semana 4 — PWA, pulido y despliegue
 
@@ -1759,7 +1778,6 @@ test: casos de tardanza con tolerancia 15 min
 - [ ] Auditoría: seguridad (checklist RNF), rendimiento, accesibilidad
 - [ ] Deploy a Vercel + variables de entorno + cron
 - [ ] Cargar datos reales (personal, jornadas, coordenadas) + imprimir QR
-- [ ] Autorizar el PC del colegio como kiosco
 - [ ] `README.md` del repo
 - [ ] Manual de usuario final
 - [ ] Capacitación + entrega de la cuenta `directiva`
@@ -1786,7 +1804,7 @@ test: casos de tardanza con tolerancia 15 min
 | 0 | 🟢 Terminada |
 | 1 | 🟢 Terminada |
 | 2 | 🟢 Terminada (falta prueba en celulares reales) |
-| 3 | ⬜ No iniciada |
+| 3 | 🟢 Terminada |
 | 4 | ⬜ No iniciada |
 
 ---
@@ -2337,9 +2355,9 @@ Estructura sugerida para exponer ante el docente y el equipo (10-12 minutos + de
 
 | Responsable | Actividad | Horas est. |
 |---|---|---|
-| **Schormeiker** | Desarrollo: kiosco, PIN, registro del día, reportes PDF/Excel, panel | 25 |
-| **Hector** | Probar el kiosco, el PIN, los reportes, y comparar un reporte contra un cálculo manual (F21–F34) | 25 |
-| **Rebeca** | Manual: marcación, kiosco, reportes; guía rápida de 1 página para el personal | 25 |
+| **Schormeiker** | Desarrollo: registro del día, revisión, teléfonos, resumen del período PDF/Excel, avisos e historial | 25 |
+| **Hector** | Probar el registro del día (marcar, hora manual, cambio de teléfono), la revisión y los reportes, y comparar un resumen contra un cálculo manual (F21–F34) | 25 |
+| **Rebeca** | Manual: marcación, registro del día en secretaría, reportes; guía rápida de 1 página para el personal | 25 |
 | **Antonio** | Cargar al personal real y las jornadas en la plataforma; verificar los datos con secretaría | 25 |
 | **Liz** | Análisis de resultados del diagnóstico; capítulo de metodología del informe | 25 |
 | **Mariansel** | Plan de capacitación (agenda y material); video tutorial corto de marcación | 25 |

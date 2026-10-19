@@ -37,8 +37,13 @@ Dos contextos de uso:
 /configuracion/qr               [directiva] Generar / regenerar / imprimir QR
 /configuracion/usuarios         [directiva] Cuentas y roles
 
-🖥️ Kiosco (solo en el PC autorizado)
-/kiosco                         Autoservicio: cédula + PIN → entrada/salida
+/asistencia/registro            Registro del día: marcar entrada/salida, hora manual
+/asistencia/revision            Marcaciones señaladas
+/reportes/resumen               Resumen del período (PDF/Excel)
+/notificaciones                 Avisos
+/historial                      Historial personal del mes
+
+(El kiosco con cédula + PIN se descartó: D-37.)
 ```
 
 > [!info] Protección

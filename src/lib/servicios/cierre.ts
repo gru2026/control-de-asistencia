@@ -156,7 +156,7 @@ export async function ejecutarCierre(p: {
       avisos += await notificarRoles(["directiva", "secretaria"], {
         tipo: "falta",
         mensaje: `${plural(faltas.length, "falta", "faltas")} el ${fechaBreve(fecha)}: ${listaNombres(faltas.map((f) => nombrePorId.get(f.personal_id) ?? "—"))}.`,
-        enlace: "/panel",
+        enlace: `/asistencia/registro?fecha=${fecha}&ver=faltas`,
         clave: `faltas:${fecha}`,
       });
     }
@@ -165,7 +165,7 @@ export async function ejecutarCierre(p: {
       avisos += await notificarRoles(["secretaria", "directiva"], {
         tipo: "salida",
         mensaje: `${plural(sinSalida.length, "persona no marcó", "personas no marcaron")} la salida el ${fechaBreve(fecha)}: ${listaNombres(sinSalida.map((s) => nombrePorId.get(s.personalId) ?? "—"))}. Complete la hora de salida.`,
-        enlace: "/panel",
+        enlace: `/asistencia/registro?fecha=${fecha}&ver=salida`,
         clave: `salida:${fecha}`,
       });
     }

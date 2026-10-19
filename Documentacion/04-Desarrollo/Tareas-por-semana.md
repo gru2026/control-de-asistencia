@@ -69,18 +69,18 @@ fecha: 2026-10-06
 
 **🏁 Hito:** ✅ se marca un día completo con QR + GPS y el sistema calcula estados solo (2026-10-09, probado con cámara y GPS simulados).
 
-## Semana 3 — PC de respaldo, reportes y dashboard
+## Semana 3 — PC de respaldo, reportes y dashboard ✅
 
-- [ ] `/asistencia/registro`: tabla del día + marcación asistida + contingencia
-- [ ] `/kiosco` cédula + PIN (bloqueo 5 intentos) + gestión de PIN
-- [ ] `/asistencia/revision`: marcaciones señaladas
-- [ ] `/reportes` con filtros + `acumulados.ts` (R5) + tests
-- [x] Export **PDF** (jsPDF) — planilla oficial
-- [x] Export **Excel** (ExcelJS) — planilla oficial
+- [x] `/asistencia/registro`: tabla del día + marcación asistida + hora manual (contingencia) + días anteriores
+- [x] ~~`/kiosco` cédula + PIN~~ → descartado (D-37); en su lugar «Marca en secretaría» y «Cambiar de teléfono» en la ficha
+- [x] `/asistencia/revision`: marcaciones señaladas
+- [x] `/reportes/resumen` con filtros + `acumulados.ts` (R5) + tests
+- [x] Export **PDF** (jsPDF) — planilla oficial y resumen del período
+- [x] Export **Excel** (ExcelJS) — planilla oficial y resumen del período
 - [x] `/panel` con KPIs y gráficas
-- [ ] `/notificaciones` y `/historial`
+- [x] `/notificaciones` (campana en la barra) y `/historial`
 
-**🏁 Hito:** reportes listos y PC operativo como respaldo.
+**🏁 Hito:** ✅ reportes listos y PC operativo como respaldo (2026-10-19).
 
 ## Semana 4 — PWA, pulido y despliegue
 
@@ -90,7 +90,6 @@ fecha: 2026-10-06
 - [ ] Auditoría: seguridad (checklist RNF), rendimiento, accesibilidad
 - [ ] Deploy a Vercel + variables de entorno + cron
 - [ ] Cargar datos reales (personal, jornadas, coordenadas) + imprimir QR
-- [ ] Autorizar el PC del colegio como kiosco
 - [ ] `README.md` del repo
 - [ ] [[05-Entregables/Manual-de-usuario|Manual de usuario]] final
 - [ ] Capacitación + entrega de la cuenta `directiva`
@@ -117,5 +116,5 @@ fecha: 2026-10-06
 | 0 | 🟢 Terminada |
 | 1 | 🟢 Terminada |
 | 2 | 🟢 Terminada (falta prueba en celulares reales) |
-| 3 | ⬜ No iniciada |
+| 3 | 🟢 Terminada |
 | 4 | ⬜ No iniciada |

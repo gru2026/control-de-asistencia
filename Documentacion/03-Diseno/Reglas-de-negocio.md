@@ -142,9 +142,10 @@ Si pasa todo → se guarda con hora del servidor, evidencia (lat, lng, precisió
 ## R12 · Marcación en el PC (respaldo)
 
 - **Asistido:** secretaría/directiva marca a la persona → `metodo = asistido`, sin QR ni GPS, con `registrado_por`.
-- **Kiosco (autoservicio):** cédula + PIN en `/kiosco` desde el dispositivo de tipo `kiosco` aprobado → `metodo = kiosco`.
-  - 5 PIN erróneos → bloqueo de 15 min.
-  - Aplica R0, R1, R7 igual que el celular.
+- **Hora manual (contingencia):** directiva o secretaría escriben la hora con un motivo obligatorio → `metodo = manual`, `senalado = true`. No se aceptan horas futuras, salidas anteriores a la entrada ni jornadas de más de 20 h. En jornadas nocturnas, una hora de la mañana es del día siguiente.
+- Aplica R0, R1 y R7 igual que el celular; una falta del cierre se corrige marcando la entrada.
+- **Marca en secretaría:** quien no tiene teléfono (`personal.marca_en_pc`) no puede marcar desde la app.
+- ~~Kiosco con cédula + PIN~~: descartado (D-37).
 
 ## R13 · Código QR
 

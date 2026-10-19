@@ -59,6 +59,10 @@ Ritmo: dentro de un grupo 6–12 px; entre controles 16 px; entre bloques 32 px 
 - Secciones plegables (`Seccion.astro`): `<details>` nativo, estado recordado por navegador.
 - Gráfica de tendencia: solo línea y área en SVG; ejes, promedio y globos en HTML (13 px); puntos por fecha real; 3 marcas en el eje Y.
 - Marcación (celular): una sola superficie con el reloj grande (hora del servidor), la jornada y un botón de ancho completo según el momento (entrada primario, salida secundario). El escáner ocupa toda la pantalla en azul noche con el visor cuadrado; el resultado se muestra en grande (sello verde a tiempo, ámbar con retraso, rojo si no se registró) con la hora.
+- Pestañas entre páginas hermanas (`Pestanas.astro`): enlaces con subrayado azul en la actual y contador ámbar opcional (Registro del día · Por revisar · Permisos; Planilla diaria · Resumen del período; avisos).
+- Registro del día: cifras del día en línea (sin tarjetas), tabla con botón «Marcar» secundario por fila; el diálogo pide la hora solo si es contingencia.
+- Barra superior: campana de avisos con contador rojo; en celular se oculta el avatar.
+- Historial: calendario del mes con celdas cuadradas tintadas por estado (verde, ámbar, rojo, azul) y leyenda; hoy con contorno azul.
 - Avisos dentro de una tarjeta: línea con ícono y texto (ámbar si es advertencia), nunca un recuadro, para no anidar superficies.
 - Hoja del QR para imprimir: A4, nombre del plantel, título, QR de 120 mm con corrección alta y 3 pasos numerados.
 

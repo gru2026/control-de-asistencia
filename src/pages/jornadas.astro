@@ -763,8 +763,9 @@ const eF = accion === "feriado_agregar" ? errores : {};
     display: grid;
     gap: var(--esp-3);
   }
-  .pasado {
-    opacity: 0.55;
+  /* Feriados pasados: texto atenuado sin perder contraste (opacidad no) */
+  .pasado td:not(:last-child) {
+    color: var(--color-texto-suave);
   }
   @media (min-width: 768px) {
     .formulario {

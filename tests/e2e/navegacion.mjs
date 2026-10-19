@@ -235,6 +235,44 @@ try {
   );
   r.ok("cierre diario exige la clave del cron", api.cron === 401);
 
+  r.seccion("Semana 3: registro del día, revisión, resumen y avisos");
+  await pag.goto(`${B}/asistencia/registro`);
+  await marcarPagina(pag);
+  r.ok("registro del día con personal programado", (await pag.locator("tbody tr").count()) > 0);
+  await pag.selectOption("#filtro-ver", "pendientes");
+  await pag.waitForFunction(() => location.search.includes("ver=pendientes"));
+  await esperarDatos(pag);
+  r.ok("registro del día: filtro sin recarga", await sinRecarga(pag));
+  await pag.locator("[data-marcar-persona]").first().click();
+  r.ok(
+    "el diálogo de marcar muestra a la persona",
+    (await pag.locator("#modal-marcar[open] [data-campo=texto]").innerText()).length > 10,
+  );
+  await pag.keyboard.press("Escape");
+  await pag.goto(`${B}/asistencia/revision`);
+  r.ok(
+    "página de revisión",
+    (await pag.locator("nav.pestanas a[aria-current=page]").innerText()).includes("revisar"),
+  );
+  await pag.goto(`${B}/reportes/resumen`);
+  await marcarPagina(pag);
+  r.ok("resumen del período con filas", (await pag.locator("tbody tr").count()) > 0);
+  await pag.click('th a.orden:has-text("Faltas")');
+  await esperarDatos(pag);
+  r.ok(
+    "resumen: ordenar sin recarga",
+    (await sinRecarga(pag)) && pag.url().includes("orden=faltas"),
+  );
+  const descarga = await pag.evaluate(async () => {
+    const x = await fetch("/api/reportes/resumen?formato=xlsx");
+    return [x.status, x.headers.get("content-type")];
+  });
+  r.ok("resumen en Excel", descarga[0] === 200 && String(descarga[1]).includes("spreadsheet"));
+  await pag.goto(`${B}/notificaciones`);
+  r.ok("página de avisos", (await pag.locator("h1:has-text('Avisos')").count()) === 1);
+  await pag.goto(`${B}/historial`);
+  r.ok("historial con calendario", (await pag.locator("table.calendario .dia").count()) >= 28);
+
   r.seccion("Errores");
   await pag.goto(`${B}/personal`);
   await pag.context().clearCookies();

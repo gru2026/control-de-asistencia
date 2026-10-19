@@ -1,0 +1,240 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Icono, { type NombreIcono } from "@/components/ui/Icono.astro";
+import Paginacion from "@/components/ui/Paginacion.astro";
+import Pestanas from "@/components/ui/Pestanas.astro";
+import { esUuid, texto } from "@/lib/validacion";
+import { fechaCorta, hoyEnZona } from "@/lib/fecha";
+import { horaEnZona } from "@/lib/reglas/tiempo";
+import { plural } from "@/lib/formato";
+import { ponerFlash } from "@/lib/flash";
+
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+const p = Astro.url.searchParams;
+
+// La política de RLS solo permite leer y marcar las propias.
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  const accion = texto(f, "accion");
+  const id = texto(f, "id");
+  if (accion === "abrir" && esUuid(id)) {
+    const { data } = await sb
+      .from("notificaciones")
+      .update({ leida: true })
+      .eq("id", id)
+      .select("enlace")
+      .maybeSingle();
+    const enlace = data?.enlace as string | null | undefined;
+    const seguro = enlace && enlace.startsWith("/") && !enlace.startsWith("//");
+    return Astro.redirect(seguro ? enlace : Astro.url.pathname + Astro.url.search, 303);
+  }
+  if (accion === "leer" && esUuid(id)) {
+    await sb.from("notificaciones").update({ leida: true }).eq("id", id);
+  } else if (accion === "leer_todas") {
+    const { data } = await sb
+      .from("notificaciones")
+      .update({ leida: true })
+      .eq("usuario_destino", perfil.id)
+      .eq("leida", false)
+      .select("id");
+    ponerFlash(
+      Astro.cookies,
+      "exito",
+      data?.length
+        ? `${plural(data.length, "aviso marcado", "avisos marcados")} como leído${data.length === 1 ? "" : "s"}.`
+        : "No había avisos sin leer.",
+    );
+  }
+  return Astro.redirect(Astro.url.pathname + Astro.url.search, 303);
+}
+
+const vista = p.get("ver") === "todas" ? "todas" : "sin_leer";
+const porPagina = 30;
+const pagina = Math.max(1, Number.parseInt(p.get("pagina") ?? "1", 10) || 1);
+let consulta = sb
+  .from("notificaciones")
+  .select("id, tipo, mensaje, enlace, leida, fecha", { count: "exact" })
+  .order("fecha", { ascending: false })
+  .range((pagina - 1) * porPagina, pagina * porPagina - 1);
+if (vista === "sin_leer") consulta = consulta.eq("leida", false);
+
+interface Aviso {
+  id: string;
+  tipo: string;
+  mensaje: string;
+  enlace: string | null;
+  leida: boolean;
+  fecha: string;
+}
+const [{ data, count }, { count: sinLeer }] = await Promise.all([
+  consulta,
+  sb.from("notificaciones").select("id", { count: "exact", head: true }).eq("leida", false),
+]);
+const avisos = (data ?? []) as Aviso[];
+const total = count ?? 0;
+const hoy = hoyEnZona();
+const ICONO: Record<string, NombreIcono> = {
+  falta: "alerta",
+  tarde: "reloj",
+  senalado: "alerta",
+  dispositivo: "telefono",
+  salida: "reloj",
+  qr: "qr",
+  permiso: "permiso",
+  sistema: "info",
+};
+const cuando = (iso: string) => {
+  const dia = hoyEnZona(undefined, new Date(iso));
+  return `${dia === hoy ? "Hoy" : fechaCorta(dia)} · ${horaEnZona(iso)}`;
+};
+---
+
+<PanelLayout
+  titulo="Avisos"
+  subtitulo="Lo que el sistema le informa: faltas, salidas sin marcar, teléfonos y el QR."
+>
+  <Fragment slot="acciones">
+    {sinLeer ? (
+      <form method="post">
+        <input type="hidden" name="accion" value="leer_todas" />
+        <Boton type="submit" variante="secundario">
+          Marcar todos como leídos
+        </Boton>
+      </form>
+    ) : null}
+  </Fragment>
+
+  <Pestanas
+    etiqueta="Filtrar avisos"
+    items={[
+      { href: "/notificaciones", texto: "Sin leer", contador: sinLeer },
+      { href: "/notificaciones?ver=todas", texto: "Todos" },
+    ]}
+  />
+
+  <div class="pila">
+    <Tarjeta>
+      {avisos.length === 0 ? (
+        <p class="vacio">
+          <Icono nombre="campana" tamano={22} />
+          {vista === "sin_leer" ? "No tiene avisos sin leer." : "Aún no tiene avisos."}
+        </p>
+      ) : (
+        <ul class="avisos">
+          {avisos.map((a) => (
+            <li class:list={[!a.leida && "nuevo"]}>
+              <span class="icono-aviso" aria-hidden="true">
+                <Icono nombre={ICONO[a.tipo] ?? "info"} tamano={18} />
+              </span>
+              <div class="texto">
+                {a.enlace ? (
+                  <form method="post">
+                    <input type="hidden" name="accion" value="abrir" />
+                    <input type="hidden" name="id" value={a.id} />
+                    <button type="submit" class="mensaje enlace">
+                      {a.mensaje}
+                    </button>
+                  </form>
+                ) : (
+                  <p class="mensaje">{a.mensaje}</p>
+                )}
+                <span class="cuando">
+                  {!a.leida && <span class="visualmente-oculto">Sin leer. </span>}
+                  {cuando(a.fecha)}
+                </span>
+              </div>
+              {!a.leida && (
+                <form method="post">
+                  <input type="hidden" name="accion" value="leer" />
+                  <input type="hidden" name="id" value={a.id} />
+                  <Boton type="submit" variante="fantasma" tamano="pequeno">
+                    Leído
+                  </Boton>
+                </form>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {total > porPagina && <Paginacion pagina={pagina} total={total} porPagina={porPagina} />}
+    </Tarjeta>
+  </div>
+</PanelLayout>
+
+<style>
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+    max-width: 48rem;
+  }
+  .vacio {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-3);
+    margin: 0;
+    color: var(--color-texto-suave);
+  }
+  .avisos {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .avisos li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--esp-3);
+    padding: var(--esp-4) 0;
+    border-top: 1px solid var(--color-borde);
+  }
+  .avisos li:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .icono-aviso {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-hundido);
+    color: var(--color-texto-suave);
+  }
+  .nuevo .icono-aviso {
+    background: var(--color-acento-suave);
+    color: var(--color-acento-texto);
+  }
+  .texto {
+    display: grid;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+  .mensaje {
+    margin: 0;
+    color: var(--color-texto-suave);
+  }
+  .nuevo .mensaje {
+    color: var(--color-texto);
+    font-weight: var(--peso-medio);
+  }
+  .enlace {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .enlace:hover {
+    color: var(--color-acento-texto);
+    text-decoration: underline;
+  }
+  .cuando {
+    font-size: var(--texto-xs);
+    color: var(--color-texto-tenue);
+  }
+</style>

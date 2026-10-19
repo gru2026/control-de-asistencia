@@ -182,6 +182,9 @@ const horas = (n: number | null) =>
 
         {ultimos.length > 0 && (
           <Tarjeta titulo="Últimos días">
+            <a slot="acciones" href="/historial" class="ver-historial">
+              Ver historial
+            </a>
             <ul class="ultimos">
               {ultimos.map((u) => (
                 <li>
@@ -311,6 +314,10 @@ const horas = (n: number | null) =>
     margin: 0;
     font-size: var(--texto-sm);
     color: var(--color-texto-suave);
+  }
+  .ver-historial {
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
   }
   .ultimos {
     list-style: none;

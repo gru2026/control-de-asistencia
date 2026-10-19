@@ -8,8 +8,11 @@ interface Props {
   items: { href: string; texto: string; contador?: number | null }[];
 }
 const { etiqueta, items } = Astro.props;
-const ruta = Astro.url.pathname;
-const actual = (href: string) => ruta === href;
+// Coincidencia exacta con la ruta y la consulta; si ninguna coincide, solo con la ruta.
+const completa = Astro.url.pathname + Astro.url.search;
+const elegida =
+  items.find((i) => i.href === completa) ?? items.find((i) => i.href === Astro.url.pathname);
+const actual = (href: string) => href === elegida?.href;
 ---
 
 <nav class="pestanas" aria-label={etiqueta}>

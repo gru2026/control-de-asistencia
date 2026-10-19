@@ -29,6 +29,11 @@ const RUTAS = [
   "/configuracion/qr",
   "/permisos",
   "/permisos/nuevo",
+  "/asistencia/registro",
+  "/asistencia/revision",
+  "/reportes/resumen",
+  "/notificaciones",
+  "/historial",
   "/asistencia",
 ];
 const PUERTO = 4399;

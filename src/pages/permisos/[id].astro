@@ -21,7 +21,9 @@ const sb = Astro.locals.supabase;
 const perfil = Astro.locals.perfil!;
 const volverA = (() => {
   const v = Astro.url.searchParams.get("volver");
-  return v && /^\/personal\/[0-9a-f-]{36}$/.test(v) ? v : "/permisos";
+  return v && (/^\/personal\/[0-9a-f-]{36}$/.test(v) || v === "/asistencia/registro")
+    ? v
+    : "/permisos";
 })();
 
 interface FilaPermiso {
@@ -107,6 +109,9 @@ const personas = (gente ?? []) as {
 }[];
 
 const hoy = hoyEnZona();
+const desdeParam = /^\d{4}-\d{2}-\d{2}$/.test(Astro.url.searchParams.get("desde") ?? "")
+  ? Astro.url.searchParams.get("desde")
+  : null;
 const inicial: Record<string, string> = actual
   ? {
       personal_id: actual.personal_id,
@@ -117,8 +122,8 @@ const inicial: Record<string, string> = actual
     }
   : {
       personal_id: Astro.url.searchParams.get("persona") ?? "",
-      fecha_desde: hoy,
-      fecha_hasta: hoy,
+      fecha_desde: desdeParam ?? hoy,
+      fecha_hasta: desdeParam ?? hoy,
       motivo: "",
       observacion: "",
     };

@@ -84,6 +84,9 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
         403,
       );
     if (ficha.estado !== "activo") return rechazar("inactivo", "Su cuenta está inactiva.", 403);
+    if (ficha.marca_en_pc) {
+      return rechazar("marca_en_pc", "Su asistencia la registra secretaría.", 403);
+    }
     const nombre = `${ficha.nombre} ${ficha.apellido}`;
 
     // 2 · Dispositivo aprobado (R11)
@@ -96,6 +99,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
       userAgent: request.headers.get("User-Agent"),
       nombrePersona: nombre,
       personalId: ficha.id,
+      cambioAutorizado: ficha.cambio_telefono,
     });
     const motivoDisp = motivoDispositivo(dispositivo.estado);
     if (motivoDisp) return rechazar(`dispositivo_${dispositivo.estado}`, motivoDisp);

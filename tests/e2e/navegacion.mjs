@@ -227,7 +227,12 @@ try {
     };
   });
   r.ok("API de marcación rechaza solicitudes mal formadas", api.formato[0] === 400);
-  r.ok("API de marcación exige ficha de personal", api.sinFicha[1] === "ficha");
+  // Sin ficha de personal → «ficha»; con ficha, sin identificador de teléfono → «dispositivo».
+  r.ok(
+    "API de marcación rechaza sin ficha o sin teléfono identificado",
+    ["ficha", "dispositivo"].includes(api.sinFicha[1]),
+    api.sinFicha[1],
+  );
   r.ok("cierre diario exige la clave del cron", api.cron === 401);
 
   r.seccion("Errores");

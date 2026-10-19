@@ -1,0 +1,315 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Tabla from "@/components/ui/Tabla.astro";
+import Badge from "@/components/ui/Badge.astro";
+import Boton from "@/components/ui/Boton.astro";
+import BarraFiltros from "@/components/ui/BarraFiltros.astro";
+import Paginacion from "@/components/ui/Paginacion.astro";
+import PestanasAsistencia from "@/components/asistencia/PestanasAsistencia.astro";
+import { clienteAdmin } from "@/lib/supabase/servidor";
+import { esUuid, lista, texto } from "@/lib/validacion";
+import { ponerFlash } from "@/lib/flash";
+import { fechaCorta, hoyEnZona } from "@/lib/fecha";
+import { plural } from "@/lib/formato";
+import { enlaceMapa } from "@/lib/datos/marcacion";
+import { horaEnZona } from "@/lib/reglas/tiempo";
+import { textoDistancia } from "@/lib/reglas/marcacion";
+import { NOMBRE_ESTADO, type EstadoAsistencia } from "@/types";
+
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+const p = Astro.url.searchParams;
+
+// ── Marcar como revisada (una o todas las de la página) ────────
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  const ids = lista(f, "id").filter(esUuid).slice(0, 100);
+  const nota = texto(f, "nota").slice(0, 300) || null;
+  if (ids.length) {
+    const { data, error } = await clienteAdmin()
+      .from("registros_asistencia")
+      .update({
+        revisado_por: perfil.id,
+        revisado_en: new Date().toISOString(),
+        nota_revision: nota,
+      })
+      .in("id", ids)
+      .eq("senalado", true)
+      .is("revisado_por", null)
+      .select("id");
+    if (error) {
+      console.error("[asistencia/revision]", error);
+      ponerFlash(Astro.cookies, "error", "No se pudo guardar la revisión. Intente de nuevo.");
+    } else {
+      const n = data?.length ?? 0;
+      ponerFlash(
+        Astro.cookies,
+        "exito",
+        n === 1
+          ? "Marcación revisada."
+          : `${plural(n, "marcación revisada", "marcaciones revisadas")}.`,
+      );
+    }
+  }
+  return Astro.redirect(Astro.url.pathname + Astro.url.search, 303);
+}
+
+const vista = p.get("ver") === "revisadas" ? "revisadas" : "pendientes";
+const porPagina = 25;
+const pagina = Math.max(1, Number.parseInt(p.get("pagina") ?? "1", 10) || 1);
+
+let consulta = sb
+  .from("registros_asistencia")
+  .select(
+    "id, fecha, estado, hora_entrada, hora_salida, entrada_metodo, salida_metodo, entrada_lat, entrada_lng, entrada_precision_m, entrada_distancia_m, entrada_ubicacion, salida_lat, salida_lng, salida_precision_m, salida_distancia_m, motivo_senal, observacion, revisado_en, nota_revision, es_demo, personal!inner(id, nombre, apellido)",
+    { count: "exact" },
+  )
+  .eq("senalado", true)
+  .order("fecha", { ascending: false })
+  .order("hora_entrada", { ascending: false })
+  .range((pagina - 1) * porPagina, pagina * porPagina - 1);
+consulta =
+  vista === "pendientes"
+    ? consulta.is("revisado_por", null)
+    : consulta.not("revisado_por", "is", null);
+
+interface Fila {
+  id: string;
+  fecha: string;
+  estado: EstadoAsistencia;
+  hora_entrada: string | null;
+  hora_salida: string | null;
+  entrada_metodo: string | null;
+  salida_metodo: string | null;
+  entrada_lat: number | null;
+  entrada_lng: number | null;
+  entrada_precision_m: number | null;
+  entrada_distancia_m: number | null;
+  entrada_ubicacion: string | null;
+  salida_lat: number | null;
+  salida_lng: number | null;
+  salida_precision_m: number | null;
+  salida_distancia_m: number | null;
+  motivo_senal: string | null;
+  observacion: string | null;
+  revisado_en: string | null;
+  nota_revision: string | null;
+  es_demo: boolean;
+  personal: { id: string; nombre: string; apellido: string };
+}
+const { data, count, error } = await consulta;
+if (error) console.error("[asistencia/revision] listado:", error);
+const filas = (data ?? []) as unknown as Fila[];
+const total = count ?? 0;
+const METODO: Record<string, string> = { qr: "teléfono", asistido: "secretaría", manual: "a mano" };
+const evidencia = (
+  lat: number | null,
+  lng: number | null,
+  precision: number | null,
+  distancia: number | null,
+) =>
+  lat !== null && lng !== null
+    ? {
+        mapa: enlaceMapa(lat, lng),
+        texto: [
+          distancia !== null ? `a ${textoDistancia(distancia)}` : null,
+          precision !== null ? `±${precision} m` : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      }
+    : null;
+const hoy = hoyEnZona();
+---
+
+<PanelLayout
+  titulo="Asistencia"
+  subtitulo="Marcaciones señaladas: ubicación dudosa u hora escrita a mano."
+>
+  <PestanasAsistencia />
+
+  <Tarjeta>
+    <BarraFiltros
+      total={total}
+      unidad={["marcación", "marcaciones"]}
+      conservar={[]}
+      filtros={[
+        {
+          nombre: "ver",
+          etiqueta: "Mostrar",
+          porDefecto: "pendientes",
+          opciones: [
+            { valor: "pendientes", texto: "Por revisar" },
+            { valor: "revisadas", texto: "Revisadas" },
+          ],
+        },
+      ]}
+    />
+
+    {error && <p class="error">No se pudo cargar la lista. Recargue la página.</p>}
+
+    <Tabla
+      titulo="Marcaciones señaladas"
+      tarjetas
+      hayFilas={filas.length > 0}
+      vacio={
+        vista === "pendientes"
+          ? "No hay marcaciones por revisar."
+          : "Aún no hay marcaciones revisadas."
+      }
+    >
+      <thead>
+        <tr>
+          <th scope="col">Persona</th>
+          <th scope="col">Motivo</th>
+          <th scope="col">Entrada</th>
+          <th scope="col">Salida</th>
+          <th scope="col">
+            {vista === "pendientes" ? <span class="visualmente-oculto">Acciones</span> : "Revisión"}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {filas.map((f) => {
+          const ent = evidencia(
+            f.entrada_lat,
+            f.entrada_lng,
+            f.entrada_precision_m,
+            f.entrada_distancia_m,
+          );
+          const sal = evidencia(
+            f.salida_lat,
+            f.salida_lng,
+            f.salida_precision_m,
+            f.salida_distancia_m,
+          );
+          return (
+            <tr>
+              <td class="principal">
+                <a href={`/personal/${f.personal.id}`} class="nombre">
+                  {f.personal.apellido}, {f.personal.nombre}
+                </a>
+                <span class="suave">
+                  {f.fecha === hoy ? "hoy" : fechaCorta(f.fecha)}
+                  {f.es_demo && " · demostración"}
+                </span>
+              </td>
+              <td data-etiqueta="Motivo">
+                <span class="motivo">{f.motivo_senal ?? "—"}</span>
+              </td>
+              <td data-etiqueta="Entrada" class="num">
+                {f.hora_entrada ? (
+                  <span class="marca">
+                    <span>
+                      {horaEnZona(f.hora_entrada)}{" "}
+                      <Badge tipo={f.estado}>{NOMBRE_ESTADO[f.estado]}</Badge>
+                    </span>
+                    <span class="suave">
+                      {f.entrada_metodo ? (METODO[f.entrada_metodo] ?? f.entrada_metodo) : ""}
+                      {ent && (
+                        <>
+                          {" · "}
+                          <a href={ent.mapa} target="_blank" rel="noopener">
+                            {ent.texto || "ver mapa"}
+                          </a>
+                        </>
+                      )}
+                    </span>
+                  </span>
+                ) : (
+                  <span class="suave">—</span>
+                )}
+              </td>
+              <td data-etiqueta="Salida" class="num">
+                {f.hora_salida ? (
+                  <span class="marca">
+                    <span>{horaEnZona(f.hora_salida)}</span>
+                    <span class="suave">
+                      {f.salida_metodo ? (METODO[f.salida_metodo] ?? f.salida_metodo) : ""}
+                      {sal && (
+                        <>
+                          {" · "}
+                          <a href={sal.mapa} target="_blank" rel="noopener">
+                            {sal.texto || "ver mapa"}
+                          </a>
+                        </>
+                      )}
+                    </span>
+                  </span>
+                ) : (
+                  <span class="suave">—</span>
+                )}
+              </td>
+              <td
+                class="acciones-fila"
+                data-etiqueta={vista === "revisadas" ? "Revisión" : undefined}
+              >
+                {vista === "pendientes" ? (
+                  <form method="post" class="revisar">
+                    <input type="hidden" name="id" value={f.id} />
+                    <Boton type="submit" tamano="pequeno" variante="secundario">
+                      Revisada
+                    </Boton>
+                  </form>
+                ) : (
+                  <span class="suave">
+                    {f.revisado_en && fechaCorta(hoyEnZona(undefined, new Date(f.revisado_en)))}
+                    {f.nota_revision && ` · ${f.nota_revision}`}
+                  </span>
+                )}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </Tabla>
+    {vista === "pendientes" && filas.length > 1 && (
+      <form method="post" class="todas">
+        {filas.map((f) => (
+          <input type="hidden" name="id" value={f.id} />
+        ))}
+        <Boton type="submit" variante="fantasma" tamano="pequeno">
+          Marcar las {filas.length} como revisadas
+        </Boton>
+      </form>
+    )}
+    <Paginacion pagina={pagina} total={total} porPagina={porPagina} />
+  </Tarjeta>
+</PanelLayout>
+
+<style>
+  .nombre {
+    font-weight: var(--peso-fuerte);
+    margin-right: var(--esp-2);
+  }
+  .suave {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .error {
+    color: var(--color-error);
+  }
+  .motivo {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-width: 18rem;
+  }
+  .marca {
+    display: grid;
+    gap: 2px;
+  }
+  .revisar {
+    display: flex;
+    gap: var(--esp-2);
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .todas {
+    display: flex;
+    justify-content: flex-end;
+    padding: var(--esp-3) 0 0;
+  }
+</style>

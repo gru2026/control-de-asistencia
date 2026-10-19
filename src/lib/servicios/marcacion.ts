@@ -27,6 +27,8 @@ export interface FichaMarcacion {
   nombre: string;
   apellido: string;
   estado: "activo" | "inactivo";
+  marca_en_pc: boolean;
+  cambio_telefono: boolean;
   jornadas: FilaJornada | null;
   horarios: FilaHorario[];
 }
@@ -81,7 +83,7 @@ export async function cargarFicha(
   const { data } = await sb
     .from("personal")
     .select(
-      `id, nombre, apellido, estado, jornadas(${COLUMNAS_JORNADA}), horarios(dia_semana, hora_entrada, hora_salida, tolerancia_min, libre)`,
+      `id, nombre, apellido, estado, marca_en_pc, cambio_telefono, jornadas(${COLUMNAS_JORNADA}), horarios(dia_semana, hora_entrada, hora_salida, tolerancia_min, libre)`,
     )
     .eq("usuario_id", usuarioId)
     .maybeSingle<FichaMarcacion>();

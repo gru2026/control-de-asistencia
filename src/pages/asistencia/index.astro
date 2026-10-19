@@ -30,8 +30,11 @@ if (uidValido(uid)) {
     .maybeSingle<{ estado: EstadoDispositivo }>();
   estadoTelefono = data?.estado ?? null;
 }
+// Con un cambio de teléfono autorizado, este teléfono quedará aprobado al marcar.
 const avisoTelefono =
-  estadoTelefono && estadoTelefono !== "aprobado" ? motivoDispositivo(estadoTelefono) : null;
+  estadoTelefono && estadoTelefono !== "aprobado" && !ficha?.cambio_telefono
+    ? motivoDispositivo(estadoTelefono)
+    : null;
 
 interface FilaUltimo {
   fecha: string;
@@ -56,8 +59,13 @@ const ultimos = (ult ?? []) as FilaUltimo[];
 const reg = ctx?.registro && !ctx.registro.es_demo ? ctx.registro : null;
 const sig = ctx?.siguiente ?? null;
 const inactiva = ficha?.estado === "inactivo";
+const enSecretaria = !!ficha?.marca_en_pc;
 const puedeMarcar =
-  !!ctx && !inactiva && !avisoTelefono && (sig === "salida" || (sig === "entrada" && !!ctx.regla));
+  !!ctx &&
+  !inactiva &&
+  !enSecretaria &&
+  !avisoTelefono &&
+  (sig === "salida" || (sig === "entrada" && !!ctx.regla));
 const esOtroDia = !!ctx && ctx.fecha !== hoyEnZona(undefined, ctx.ahora);
 const corta = (f: string) =>
   new Intl.DateTimeFormat("es-VE", {
@@ -85,6 +93,12 @@ const horas = (n: number | null) =>
             Sin conexión. Conéctese a internet para marcar o diríjase a secretaría.
           </Alerta>
         </div>
+        {enSecretaria && !inactiva && (
+          <Alerta tipo="info">
+            Su asistencia la registra secretaría. Si ya tiene un teléfono para marcar, avise en
+            secretaría.
+          </Alerta>
+        )}
         {inactiva && (
           <Alerta tipo="alerta">
             Su ficha de personal está inactiva. Consulte con la directiva.

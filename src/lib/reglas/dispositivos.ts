@@ -9,8 +9,15 @@ export interface DispositivoResumen {
   tipo: "celular" | "kiosco";
 }
 
-/** El primer celular de una cuenta se aprueba solo; los siguientes quedan pendientes. */
-export function estadoParaNuevoCelular(existentes: DispositivoResumen[]): EstadoDispositivo {
+/**
+ * El primer celular de una cuenta se aprueba solo; los siguientes quedan pendientes,
+ * salvo que secretaría o directiva hayan autorizado un cambio de teléfono.
+ */
+export function estadoParaNuevoCelular(
+  existentes: DispositivoResumen[],
+  cambioAutorizado = false,
+): EstadoDispositivo {
+  if (cambioAutorizado) return "aprobado";
   return existentes.some((d) => d.tipo === "celular") ? "pendiente" : "aprobado";
 }
 

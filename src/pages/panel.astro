@@ -53,6 +53,7 @@ interface FilaPersona {
   apellido: string;
   categoria_id: string;
   usuario_id: string | null;
+  marca_en_pc: boolean;
   jornada_id: string | null;
   jornadas: FilaJornada | null;
   horarios: FilaHorario[];
@@ -60,7 +61,7 @@ interface FilaPersona {
 let qPersonal = sb
   .from("personal")
   .select(
-    "id, nombre, apellido, categoria_id, usuario_id, jornada_id, jornadas(id, nombre, hora_entrada, hora_salida, tolerancia_min, pausa_min, dias_laborables, activa, nocturna), horarios(dia_semana, hora_entrada, hora_salida, tolerancia_min, libre)",
+    "id, nombre, apellido, categoria_id, usuario_id, marca_en_pc, jornada_id, jornadas(id, nombre, hora_entrada, hora_salida, tolerancia_min, pausa_min, dias_laborables, activa, nocturna), horarios(dia_semana, hora_entrada, hora_salida, tolerancia_min, libre)",
   )
   .eq("estado", "activo");
 if (categoriaId) qPersonal = qPersonal.eq("categoria_id", categoriaId);
@@ -200,7 +201,8 @@ const concl = conclusiones(
 );
 
 // Nómina
-const sinCuenta = personas.filter((x) => !x.usuario_id).length;
+// Quien marca en secretaría no necesita cuenta.
+const sinCuenta = personas.filter((x) => !x.usuario_id && !x.marca_en_pc).length;
 const sinJornada = personas.filter((x) => !x.jornada_id).length;
 
 // ── Nivel 1: cuatro indicadores (el detalle se descubre al pasar el mouse o tocar) ──

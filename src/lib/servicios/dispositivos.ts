@@ -30,6 +30,8 @@ export async function obtenerORegistrar(p: {
   userAgent: string | null;
   nombrePersona: string;
   personalId: string | null;
+  /** Secretaría o directiva autorizó un cambio de teléfono (D-39). */
+  cambioAutorizado?: boolean;
 }): Promise<{ dispositivo: FilaDispositivo; nuevo: boolean }> {
   const sb = clienteAdmin();
   const { data: lista, error } = await sb
@@ -39,14 +41,17 @@ export async function obtenerORegistrar(p: {
   if (error) throw new Error(error.message);
   const existentes = (lista ?? []) as FilaDispositivo[];
   const actual = existentes.find((d) => d.dispositivo_uid === p.uid);
-  if (actual) return { dispositivo: actual, nuevo: false };
+  if (actual && !(p.cambioAutorizado && actual.estado !== "aprobado")) {
+    return { dispositivo: actual, nuevo: false };
+  }
 
   const estado = estadoParaNuevoCelular(
     existentes.map((d) => ({ dispositivoUid: d.dispositivo_uid, estado: d.estado, tipo: d.tipo })),
+    p.cambioAutorizado,
   );
   const ahora = new Date().toISOString();
   // Solo se conserva la solicitud más reciente: los pendientes anteriores nunca marcaron.
-  if (estado === "pendiente") {
+  if (estado === "pendiente" && !actual) {
     await sb.from("dispositivos").delete().eq("usuario_id", p.usuarioId).eq("estado", "pendiente");
   }
   const { data, error: e2 } = await sb
@@ -59,6 +64,7 @@ export async function obtenerORegistrar(p: {
         descripcion: describirDispositivo(p.userAgent),
         estado,
         aprobado_en: estado === "aprobado" ? ahora : null,
+        aprobado_por: null,
       },
       { onConflict: "usuario_id,dispositivo_uid" },
     )
@@ -66,6 +72,18 @@ export async function obtenerORegistrar(p: {
     .single();
   if (e2 || !data) throw new Error(e2?.message ?? "No se pudo registrar el dispositivo");
   const dispositivo = data as FilaDispositivo;
+
+  if (p.cambioAutorizado && p.personalId) {
+    // El cambio se usa una sola vez: el anterior queda revocado.
+    await sb
+      .from("dispositivos")
+      .update({ estado: "revocado" })
+      .eq("usuario_id", p.usuarioId)
+      .eq("tipo", "celular")
+      .eq("estado", "aprobado")
+      .neq("id", dispositivo.id);
+    await sb.from("personal").update({ cambio_telefono: false }).eq("id", p.personalId);
+  }
 
   if (estado === "pendiente") {
     await notificarRoles(["directiva", "secretaria"], {
@@ -122,4 +140,43 @@ export async function revocarDispositivo(
 ): Promise<{ ok: true } | { ok: false; mensaje: string }> {
   const { error } = await sb.from("dispositivos").update({ estado: "revocado" }).eq("id", id);
   return error ? { ok: false, mensaje: "No se pudo revocar el teléfono." } : { ok: true };
+}
+
+/**
+ * Cambio de teléfono (D-39): revoca el aprobado y descarta pendientes; el
+ * próximo teléfono con que la persona marque queda aprobado solo.
+ */
+export async function autorizarCambioTelefono(
+  personalId: string,
+  usuarioId: string,
+): Promise<void> {
+  const sb = clienteAdmin();
+  const { error } = await sb
+    .from("personal")
+    .update({ cambio_telefono: true })
+    .eq("id", personalId);
+  if (error) throw new Error(error.message);
+  await sb
+    .from("dispositivos")
+    .update({ estado: "revocado" })
+    .eq("usuario_id", usuarioId)
+    .eq("tipo", "celular")
+    .in("estado", ["aprobado", "pendiente"]);
+}
+
+export async function cancelarCambioTelefono(personalId: string): Promise<void> {
+  const { error } = await clienteAdmin()
+    .from("personal")
+    .update({ cambio_telefono: false })
+    .eq("id", personalId);
+  if (error) throw new Error(error.message);
+}
+
+/** Quien no tiene teléfono marca en secretaría (D-38). */
+export async function cambiarMarcaEnPc(personalId: string, valor: boolean): Promise<void> {
+  const { error } = await clienteAdmin()
+    .from("personal")
+    .update({ marca_en_pc: valor })
+    .eq("id", personalId);
+  if (error) throw new Error(error.message);
 }

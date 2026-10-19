@@ -13,6 +13,7 @@ import { MOTIVOS_PERMISO, terminosBusqueda } from "@/lib/validacion";
 import { fechaCorta, hoyEnZona } from "@/lib/fecha";
 import { diasDelPermiso, vigenciaPermiso } from "@/lib/reglas/permisos";
 import { plural } from "@/lib/formato";
+import PestanasAsistencia from "@/components/asistencia/PestanasAsistencia.astro";
 
 const sb = Astro.locals.supabase;
 const p = Astro.url.searchParams;
@@ -71,9 +72,8 @@ const TIPO_VIGENCIA = { proximo: "info", vigente: "activo", pasado: "inactivo" }
 ---
 
 <PanelLayout
-  titulo="Permisos"
-  subtitulo="Ausencias justificadas: esos días no cuentan como falta."
-  migas={[{ texto: "Panel", href: "/panel" }, { texto: "Permisos" }]}
+  titulo="Asistencia"
+  subtitulo="Permisos: ausencias justificadas que no cuentan como falta."
 >
   <Fragment slot="acciones">
     <Boton href="/permisos/nuevo">
@@ -81,6 +81,8 @@ const TIPO_VIGENCIA = { proximo: "info", vigente: "activo", pasado: "inactivo" }
       Nuevo permiso
     </Boton>
   </Fragment>
+
+  <PestanasAsistencia />
 
   <Tarjeta>
     <BarraFiltros

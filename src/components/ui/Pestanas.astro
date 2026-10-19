@@ -1,0 +1,67 @@
+---
+/**
+ * Pestañas entre páginas hermanas (por ejemplo, Registro del día · Revisión · Permisos).
+ * Cada pestaña es un enlace; la actual se marca con aria-current.
+ */
+interface Props {
+  etiqueta: string;
+  items: { href: string; texto: string; contador?: number | null }[];
+}
+const { etiqueta, items } = Astro.props;
+const ruta = Astro.url.pathname;
+const actual = (href: string) => ruta === href || ruta.startsWith(href + "/");
+---
+
+<nav class="pestanas" aria-label={etiqueta}>
+  {items.map((i) => (
+    <a href={i.href} aria-current={actual(i.href) ? "page" : undefined}>
+      {i.texto}
+      {i.contador ? <span class="contador">{i.contador}</span> : null}
+    </a>
+  ))}
+</nav>
+
+<style>
+  .pestanas {
+    display: flex;
+    gap: var(--esp-1);
+    margin: calc(var(--esp-4) * -1) 0 var(--esp-6);
+    border-bottom: 1px solid var(--color-borde);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+    min-height: 44px;
+    padding: 0 var(--esp-3);
+    margin-bottom: -1px;
+    border-bottom: 2px solid transparent;
+    color: var(--color-texto-suave);
+    font-weight: var(--peso-medio);
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      color var(--duracion-rapida) var(--curva),
+      border-color var(--duracion-rapida) var(--curva);
+  }
+  a:hover {
+    color: var(--color-texto);
+  }
+  a[aria-current="page"] {
+    color: var(--color-acento-texto);
+    border-bottom-color: var(--color-acento);
+  }
+  .contador {
+    min-width: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--color-alerta-suave);
+    color: var(--color-alerta);
+    font-size: var(--texto-xs);
+    font-weight: var(--peso-fuerte);
+    line-height: 20px;
+    text-align: center;
+  }
+</style>

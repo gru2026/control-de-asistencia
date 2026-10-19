@@ -1,0 +1,18 @@
+---
+import Pestanas from "@/components/ui/Pestanas.astro";
+
+const { count } = await Astro.locals.supabase
+  .from("registros_asistencia")
+  .select("id", { count: "exact", head: true })
+  .eq("senalado", true)
+  .is("revisado_por", null);
+---
+
+<Pestanas
+  etiqueta="Secciones de asistencia"
+  items={[
+    { href: "/asistencia/registro", texto: "Registro del día" },
+    { href: "/asistencia/revision", texto: "Por revisar", contador: count },
+    { href: "/permisos", texto: "Permisos" },
+  ]}
+/>

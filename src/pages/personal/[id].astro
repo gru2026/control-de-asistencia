@@ -44,6 +44,9 @@ import { hoyEnZona } from "@/lib/fecha";
 import { vigenciaPermiso } from "@/lib/reglas/permisos";
 import {
   aprobarDispositivo,
+  autorizarCambioTelefono,
+  cambiarMarcaEnPc,
+  cancelarCambioTelefono,
   COLUMNAS_DISPOSITIVO,
   revocarDispositivo,
   type FilaDispositivo,
@@ -79,6 +82,8 @@ interface Ficha {
   fecha_ingreso: string | null;
   estado: "activo" | "inactivo";
   creado_en: string;
+  marca_en_pc: boolean;
+  cambio_telefono: boolean;
   jornadas: FilaJornada | null;
   usuarios: { id: string; email: string; rol: Rol; estado: "activo" | "inactivo" } | null;
   horarios: FilaHorario[];
@@ -88,7 +93,7 @@ async function cargar() {
   const { data } = await sb
     .from("personal")
     .select(
-      "id, nombre, apellido, cedula, categoria_id, vinculo, carga_horaria, telefono, jornada_id, fecha_ingreso, estado, creado_en," +
+      "id, nombre, apellido, cedula, categoria_id, vinculo, carga_horaria, telefono, jornada_id, fecha_ingreso, estado, creado_en, marca_en_pc, cambio_telefono," +
         " jornadas(id, nombre, hora_entrada, hora_salida, tolerancia_min, pausa_min, dias_laborables, activa, nocturna)," +
         " usuarios(id, email, rol, estado)," +
         " horarios(dia_semana, hora_entrada, hora_salida, tolerancia_min, libre)",
@@ -108,7 +113,7 @@ let mensaje: string | null = null;
 let valoresForm: Record<string, string> = {};
 
 // Secretaría también aprueba o revoca teléfonos (R11); el resto es solo de la directiva.
-const ACCIONES_ADMIN = ["disp_aprobar", "disp_revocar"];
+const ACCIONES_ADMIN = ["disp_aprobar", "disp_revocar", "tel_cambio", "tel_cancelar", "marca_pc"];
 
 if (Astro.request.method === "POST") {
   const f = await Astro.request.formData();
@@ -120,6 +125,25 @@ if (Astro.request.method === "POST") {
   let exito: string | null = null;
 
   switch (seccion) {
+    case "tel_cambio": {
+      if (!ficha.usuarios) break;
+      await autorizarCambioTelefono(id, ficha.usuarios.id);
+      exito = "Cambio autorizado: el próximo teléfono con que marque quedará aprobado.";
+      break;
+    }
+    case "tel_cancelar": {
+      await cancelarCambioTelefono(id);
+      exito = "Cambio de teléfono cancelado.";
+      break;
+    }
+    case "marca_pc": {
+      const valor = texto(f, "valor") === "si";
+      await cambiarMarcaEnPc(id, valor);
+      exito = valor
+        ? "Listo: su asistencia se registra en secretaría (Asistencia › Registro del día)."
+        : "Listo: vuelve a marcar con su teléfono.";
+      break;
+    }
     case "disp_aprobar":
     case "disp_revocar": {
       const dispId = texto(f, "dispositivo_id");
@@ -665,50 +689,101 @@ const valorExc = (k: string, porDefecto: string) =>
     <Tarjeta
       titulo="Teléfono de marcación"
       id="dispositivo"
-      descripcion="Solo un teléfono aprobado por persona. El primero se aprueba solo al marcar por primera vez."
+      descripcion="Un solo teléfono aprobado por persona. El primero se aprueba solo al marcar por primera vez."
     >
-      {!ficha.usuarios ? (
-        <p class="nota">Necesita una cuenta de acceso para marcar con el teléfono.</p>
-      ) : dispositivos.length === 0 ? (
-        <p class="nota">Todavía no ha marcado desde ningún teléfono.</p>
+      {ficha.marca_en_pc ? (
+        <div class="tel-modo">
+          <p class="nota">
+            <strong>Marca en secretaría.</strong> No usa teléfono: su entrada y salida se registran
+            en Asistencia › Registro del día.
+          </p>
+          <form method="post">
+            <input type="hidden" name="accion" value="marca_pc" />
+            <input type="hidden" name="valor" value="" />
+            <Boton type="submit" variante="secundario" tamano="pequeno">
+              Volver a marcar con teléfono
+            </Boton>
+          </form>
+        </div>
       ) : (
-        <ul class="dispositivos">
-          {dispositivos.map((d) => (
-            <li>
-              <div class="disp-dato">
-                <strong>{d.descripcion ?? "Teléfono"}</strong>
-                <span class="nota">
-                  Registrado {fechaHora(d.creado_en)}
-                  {d.ultimo_uso && <> · último uso {fechaHora(d.ultimo_uso)}</>}
-                </span>
-              </div>
-              <Badge tipo={TIPO_DISP[d.estado]}>{NOMBRE_DISP[d.estado]}</Badge>
-              <form method="post" class="disp-accion">
-                <input type="hidden" name="dispositivo_id" value={d.id} />
-                {d.estado === "aprobado" ? (
-                  <Boton
-                    type="submit"
-                    name="accion"
-                    value="disp_revocar"
-                    variante="secundario"
-                    tamano="pequeno"
-                  >
-                    Revocar
+        <>
+          {!ficha.usuarios ? (
+            <p class="nota">Necesita una cuenta de acceso para marcar con el teléfono.</p>
+          ) : dispositivos.length === 0 ? (
+            <p class="nota">Todavía no ha marcado desde ningún teléfono.</p>
+          ) : (
+            <ul class="dispositivos">
+              {dispositivos.map((d) => (
+                <li>
+                  <div class="disp-dato">
+                    <strong>{d.descripcion ?? "Teléfono"}</strong>
+                    <span class="nota">
+                      Registrado {fechaHora(d.creado_en)}
+                      {d.ultimo_uso && <> · último uso {fechaHora(d.ultimo_uso)}</>}
+                    </span>
+                  </div>
+                  <Badge tipo={TIPO_DISP[d.estado]}>{NOMBRE_DISP[d.estado]}</Badge>
+                  <form method="post" class="disp-accion">
+                    <input type="hidden" name="dispositivo_id" value={d.id} />
+                    {d.estado === "aprobado" ? (
+                      <Boton
+                        type="submit"
+                        name="accion"
+                        value="disp_revocar"
+                        variante="secundario"
+                        tamano="pequeno"
+                      >
+                        Revocar
+                      </Boton>
+                    ) : (
+                      <Boton type="submit" name="accion" value="disp_aprobar" tamano="pequeno">
+                        Aprobar
+                      </Boton>
+                    )}
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+          {dispositivos.some((d) => d.estado === "pendiente") &&
+            dispositivos.some((d) => d.estado === "aprobado") && (
+              <p class="nota disp-aviso">
+                Al aprobar el teléfono nuevo, el anterior queda revocado.
+              </p>
+            )}
+          {ficha.cambio_telefono && (
+            <p class="nota disp-aviso cambio">
+              Cambio de teléfono autorizado: el próximo teléfono con que marque quedará aprobado.
+            </p>
+          )}
+          <div class="tel-acciones">
+            {ficha.usuarios &&
+              (ficha.cambio_telefono ? (
+                <form method="post">
+                  <input type="hidden" name="accion" value="tel_cancelar" />
+                  <Boton type="submit" variante="secundario" tamano="pequeno">
+                    Cancelar el cambio
                   </Boton>
-                ) : (
-                  <Boton type="submit" name="accion" value="disp_aprobar" tamano="pequeno">
-                    Aprobar
+                </form>
+              ) : (
+                <form method="post">
+                  <input type="hidden" name="accion" value="tel_cambio" />
+                  <Boton type="submit" variante="secundario" tamano="pequeno">
+                    <Icono nombre="telefono" tamano={16} />
+                    Cambiar de teléfono
                   </Boton>
-                )}
-              </form>
-            </li>
-          ))}
-        </ul>
+                </form>
+              ))}
+            <form method="post">
+              <input type="hidden" name="accion" value="marca_pc" />
+              <input type="hidden" name="valor" value="si" />
+              <Boton type="submit" variante="fantasma" tamano="pequeno">
+                No tiene teléfono: marca en secretaría
+              </Boton>
+            </form>
+          </div>
+        </>
       )}
-      {dispositivos.some((d) => d.estado === "pendiente") &&
-        dispositivos.some((d) => d.estado === "aprobado") && (
-          <p class="nota disp-aviso">Al aprobar el teléfono nuevo, el anterior queda revocado.</p>
-        )}
     </Tarjeta>
 
     {esDirectiva && (
@@ -929,6 +1004,23 @@ const valorExc = (k: string, porDefecto: string) =>
   }
   .disp-aviso {
     margin-top: var(--esp-3);
+  }
+  .disp-aviso.cambio {
+    color: var(--color-acento-texto);
+    font-weight: var(--peso-medio);
+  }
+  .tel-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2);
+    margin-top: var(--esp-4);
+    padding-top: var(--esp-4);
+    border-top: 1px solid var(--color-borde);
+  }
+  .tel-modo {
+    display: grid;
+    gap: var(--esp-3);
+    justify-items: start;
   }
   .nota {
     margin: 0 0 var(--esp-3);

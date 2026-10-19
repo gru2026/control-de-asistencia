@@ -21,38 +21,62 @@ const flash = Astro.locals.flash;
 const ruta = Astro.url.pathname;
 
 // Navegación por rol (máximo 5 ítems en la barra inferior del celular).
-type Item = { href: string; texto: string; icono: NombreIcono; activoEn?: string[] };
+type Item = {
+  href: string;
+  texto: string;
+  icono: NombreIcono;
+  activoEn?: string[];
+  /** Solo activo en la ruta exacta (Mi asistencia no se activa en /asistencia/registro). */
+  exacto?: boolean;
+};
+const ASISTENCIA: Item = {
+  href: "/asistencia/registro",
+  texto: "Asistencia",
+  icono: "calendario",
+  activoEn: ["/asistencia/revision", "/permisos"],
+};
+const MI_ASISTENCIA: Item = {
+  href: "/asistencia",
+  texto: "Mi asistencia",
+  icono: "reloj",
+  exacto: true,
+};
 const NAV: Record<typeof perfil.rol, Item[]> = {
   directiva: [
     { href: "/panel", texto: "Panel", icono: "panel" },
+    ASISTENCIA,
     { href: "/personal", texto: "Personal", icono: "usuarios" },
-    { href: "/permisos", texto: "Permisos", icono: "permiso" },
     { href: "/reportes", texto: "Reportes", icono: "documento" },
     { href: "/configuracion", texto: "Ajustes", icono: "ajustes", activoEn: ["/jornadas"] },
   ],
   secretaria: [
     { href: "/panel", texto: "Panel", icono: "panel" },
+    ASISTENCIA,
     { href: "/personal", texto: "Personal", icono: "usuarios" },
-    { href: "/permisos", texto: "Permisos", icono: "permiso" },
     { href: "/reportes", texto: "Reportes", icono: "documento" },
-    { href: "/asistencia", texto: "Mi asistencia", icono: "reloj" },
+    MI_ASISTENCIA,
   ],
-  personal: [{ href: "/asistencia", texto: "Mi asistencia", icono: "reloj" }],
+  personal: [MI_ASISTENCIA, { href: "/historial", texto: "Historial", icono: "calendario" }],
 };
-// La directiva marca su asistencia solo si tiene una ficha de personal.
-if (perfil.rol === "directiva") {
-  const { data: ficha } = await Astro.locals.supabase
-    .from("personal")
-    .select("id")
-    .eq("usuario_id", perfil.id)
-    .eq("estado", "activo")
-    .maybeSingle();
-  if (ficha) NAV.directiva.push({ href: "/asistencia", texto: "Mi asistencia", icono: "reloj" });
-}
+const sb = Astro.locals.supabase;
+const [{ count: sinLeer }, { data: fichaDirectiva }] = await Promise.all([
+  sb.from("notificaciones").select("id", { count: "exact", head: true }).eq("leida", false),
+  // La directiva marca su asistencia solo si tiene una ficha de personal (acceso en la barra superior).
+  perfil.rol === "directiva"
+    ? sb
+        .from("personal")
+        .select("id")
+        .eq("usuario_id", perfil.id)
+        .eq("estado", "activo")
+        .maybeSingle()
+    : Promise.resolve({ data: null }),
+]);
 const visibles = NAV[perfil.rol].filter((i) => puedeVer(i.href, perfil.rol));
 
 const activo = (i: Item) =>
-  [i.href, ...(i.activoEn ?? [])].some((h) => ruta === h || ruta.startsWith(h + "/"));
+  [i.href, ...(i.activoEn ?? [])].some(
+    (h) => ruta === h || (!(i.exacto && h === i.href) && ruta.startsWith(h + "/")),
+  );
 const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
 ---
 
@@ -77,6 +101,25 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
         </span>
         <span class="rol">{NOMBRE_ROL[perfil.rol]}</span>
       </span>
+      {fichaDirectiva && (
+        <a
+          class="icono-barra"
+          href="/asistencia"
+          aria-label="Mi asistencia"
+          aria-current={ruta === "/asistencia" ? "page" : undefined}
+        >
+          <Icono nombre="reloj" tamano={20} />
+        </a>
+      )}
+      <a
+        class="icono-barra"
+        href="/notificaciones"
+        aria-label={sinLeer ? `Avisos: ${sinLeer} sin leer` : "Avisos"}
+        aria-current={ruta === "/notificaciones" ? "page" : undefined}
+      >
+        <Icono nombre="campana" tamano={20} />
+        {sinLeer ? <span class="contador">{sinLeer > 99 ? "99+" : sinLeer}</span> : null}
+      </a>
       <form method="post" action="/api/salir">
         <button type="submit" class="salir" aria-label="Cerrar sesión">
           <Icono nombre="salir" tamano={18} />
@@ -176,6 +219,7 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     border-radius: var(--radio-sm);
   }
   .nombre-app {
+    white-space: nowrap;
     font-weight: var(--peso-titulo);
     font-size: var(--texto-lg);
     letter-spacing: -0.01em;
@@ -187,10 +231,43 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
   .usuario {
     display: flex;
     align-items: center;
-    gap: var(--esp-3);
+    gap: var(--esp-2);
+  }
+  .icono-barra {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radio);
+    color: inherit;
+    transition: background var(--duracion-rapida) var(--curva);
+  }
+  .icono-barra:hover,
+  .icono-barra[aria-current="page"] {
+    background: rgb(255 255 255 / 0.12);
+  }
+  .icono-barra:focus-visible {
+    outline-color: #fff;
+  }
+  .contador {
+    position: absolute;
+    top: 4px;
+    right: 2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: var(--peso-fuerte);
+    line-height: 18px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
   }
   .avatar {
-    display: grid;
+    display: none;
     place-items: center;
     width: 36px;
     height: 36px;
@@ -363,6 +440,9 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
   @media (min-width: 480px) {
     .texto-salir {
       display: inline;
+    }
+    .avatar {
+      display: grid;
     }
   }
 

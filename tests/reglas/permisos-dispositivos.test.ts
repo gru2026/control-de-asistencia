@@ -26,6 +26,12 @@ describe("R11 · dispositivos", () => {
     ).toBe("aprobado");
   });
 
+  it("con un cambio de teléfono autorizado, el nuevo se aprueba solo", () => {
+    expect(
+      estadoParaNuevoCelular([{ dispositivoUid: "a", estado: "revocado", tipo: "celular" }], true),
+    ).toBe("aprobado");
+  });
+
   it("solo un aprobado puede marcar", () => {
     expect(motivoDispositivo("aprobado")).toBeNull();
     expect(motivoDispositivo("pendiente")).toMatch(/pendiente de aprobación/);

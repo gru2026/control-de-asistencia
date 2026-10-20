@@ -3,7 +3,7 @@ titulo: Registro de horas
 proyecto: PWA Control de Asistencia — U.E.E. General Rafael Urdaneta
 tipo: servicio-comunitario
 estado: activo
-fecha: 2026-10-12
+fecha: 2026-10-19
 ---
 
 # 🕒 Registro de horas del servicio comunitario
@@ -273,16 +273,134 @@ Firma: ______________________
 
 Firma: ______________________
 
+## Semana 3 (15/10 – 21/10/2026)
+
+> [!info] Borrador para revisión
+> Se armó con el [[06-Servicio-comunitario/Equipo-y-reparto-de-tareas|reparto de la Semana 3]] y, en el caso del desarrollo, con los commits de GitHub y la prueba del QR en el liceo. Cada integrante revisa **sus** filas, corrige lo que no coincida con lo que hizo, agrega su evidencia y firma.
+> Las filas marcadas *(previsto)* corresponden al martes 20 y miércoles 21: se confirman o se corrigen al terminar el día.
+
+### Schormeiker Lugo · Coordinación y desarrollo
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 15/10 | Reunión con el colegio: demostración de la marcación y pendientes (logo, escudo, fecha de inicio del control) | 3 | Acta |
+|  | Plan de la Semana 3 con el equipo: kiosco descartado, respaldo en el PC de secretaría | 2 | [[03-Diseno/Registro-de-decisiones]] (D-37) |
+| Vie 16/10 | Prueba de la geolocalización en el liceo: QR de prueba, ficha de la directiva y «Mi asistencia» | 3 | Commit `3661f51`, marcación del 16/10 |
+|  | Diseño del registro del día, la revisión y el resumen del período | 2 | Plan de la Semana 3 |
+| Lun 19/10 | Registro del día, marcación asistida y hora manual, revisión de señaladas, cambio de teléfono | 2 | Commit `5992d09` |
+|  | Resumen del período con PDF y Excel; avisos e historial; pruebas y documentación (D-37 a D-41) | 3 | Commits `d1f7fd8`, `73c9772` |
+| Mar 20/10 | Prueba del registro del día en el PC de secretaría junto con Hector *(previsto)* | 3 | Resultados F21–F34 |
+|  | Correcciones de lo encontrado en la prueba *(previsto)* | 2 | Commits |
+| Mié 21/10 | Explicación del registro del día y de los reportes a secretaría *(previsto)* | 3 | Lista de asistencia |
+|  | Coordinación del equipo y revisión de entregables de la semana *(previsto)* | 2 | Acta |
+| | **Total semana 3** | **25** | |
+
+Firma: ______________________
+
+
+### Hector Diaz · Pruebas y calidad
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 15/10 | Reunión con el colegio: demostración de la marcación | 3 | Acta |
+|  | Preparación de los casos F21–F34 (registro del día, revisión y reportes) | 2 | Casos listos |
+| Vie 16/10 | Prueba de la marcación con QR y GPS en el liceo | 3 | Resultados F13–F20 |
+|  | Reporte de fallas de la prueba en el liceo | 2 | Lista de incidencias |
+| Lun 19/10 | Prueba del registro del día: marcar entrada y salida, hora manual | 3 | Resultados |
+|  | Prueba del cambio de teléfono y de «marca en secretaría» | 2 | Resultados |
+| Mar 20/10 | Prueba de la revisión de señaladas y de los avisos *(previsto)* | 3 | Resultados |
+|  | Comparar un resumen del período contra un cálculo manual *(previsto)* | 2 | Hoja de cálculo |
+| Mié 21/10 | Prueba de las descargas PDF y Excel y del historial personal *(previsto)* | 3 | Resultados F21–F34 |
+|  | Informe de resultados de la semana *(previsto)* | 2 | Informe |
+| | **Total semana 3** | **25** | |
+
+Firma: ______________________
+
+
+### Rebeca Nexans · Documentación
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 15/10 | Reunión con el colegio: acta | 3 | Acta |
+|  | Capturas de la marcación con el celular | 2 | Capturas |
+| Vie 16/10 | Manual: marcar entrada y salida con el celular | 3 | Sección del manual |
+|  | Manual: mensajes de error y qué hacer en cada caso | 2 | Sección del manual |
+| Lun 19/10 | Capturas del registro del día, la revisión y los reportes | 2 | Capturas |
+|  | Manual: registro del día en secretaría (marcar, hora manual, cambio de teléfono) | 3 | Sección del manual |
+| Mar 20/10 | Manual: reportes (planilla diaria y resumen del período) *(previsto)* | 3 | Sección del manual |
+|  | Manual: avisos e historial *(previsto)* | 2 | Sección del manual |
+| Mié 21/10 | Guía rápida de 1 página para el personal *(previsto)* | 4 | Guía en PDF |
+|  | Acta de la reunión del equipo *(previsto)* | 1 | Acta |
+| | **Total semana 3** | **25** | |
+
+Firma: ______________________
+
+
+### Antonio Gonzalez · Enlace con el colegio
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 15/10 | Reunión con el colegio: preguntas pendientes y fecha de inicio del control | 3 | Acta firmada por el colegio |
+|  | Solicitud del logo del colegio y del escudo del estado | 2 | Mensajes |
+| Vie 16/10 | Acompañamiento de la prueba de geolocalización en el liceo | 3 | Fotos |
+|  | Verificación de las coordenadas y del radio en la entrada | 2 | Coordenadas + fotos |
+| Lun 19/10 | Verificación de la nómina cargada con secretaría | 3 | Lista revisada |
+|  | Identificar al personal sin teléfono (marca en secretaría) | 2 | Lista |
+| Mar 20/10 | Verificación de las jornadas reales y los horarios especiales *(previsto)* | 3 | Datos entregados |
+|  | Calendario de feriados del lapso *(previsto)* | 2 | Datos entregados |
+| Mié 21/10 | Correcciones de datos en la plataforma con secretaría *(previsto)* | 3 | Datos actualizados |
+|  | Pasar las respuestas a «Preguntas para el colegio» *(previsto)* | 2 | [[00-Inicio/Preguntas-para-el-colegio]] |
+| | **Total semana 3** | **25** | |
+
+Firma: ______________________
+
+
+### Liz Espinoza · Investigación
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 15/10 | Reunión con el colegio: observación del registro manual actual | 3 | Notas |
+|  | Análisis de resultados del diagnóstico | 2 | Resultados |
+| Vie 16/10 | Tabulación del tiempo del registro manual frente a la app | 3 | Tabla comparativa |
+|  | Capítulo de metodología: tipo de investigación y población | 2 | Documento |
+| Lun 19/10 | Capítulo de metodología: técnicas e instrumentos | 3 | Documento |
+|  | Revisión de los antecedentes con la metodología | 2 | Documento |
+| Mar 20/10 | Capítulo de metodología: procedimiento por fases *(previsto)* | 3 | Documento |
+|  | Gráficas de los resultados del diagnóstico *(previsto)* | 2 | Gráficas |
+| Mié 21/10 | Revisión final del capítulo de metodología *(previsto)* | 5 | Documento |
+| | **Total semana 3** | **25** | |
+
+Firma: ______________________
+
+
+### Mariansel Herrera · Capacitación y presentación
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 15/10 | Reunión con el colegio: presentación del avance | 3 | Diapositivas |
+|  | Plan de capacitación: agenda y grupos | 2 | Plan |
+| Vie 16/10 | Material de capacitación para el personal (marcar con el celular) | 3 | Material |
+|  | Material de capacitación para secretaría (registro del día y reportes) | 2 | Material |
+| Lun 19/10 | Guion del video tutorial de marcación | 3 | Guion |
+|  | Grabación de pantallas para el video | 2 | Grabaciones |
+| Mar 20/10 | Edición del video tutorial corto de marcación *(previsto)* | 3 | Video |
+|  | Diapositivas: respaldo en el PC y reportes *(previsto)* | 2 | Borrador de diapositivas |
+| Mié 21/10 | Revisión del plan de capacitación con el equipo *(previsto)* | 3 | Plan final |
+|  | Ensayo de la capacitación *(previsto)* | 2 | Lista de asistencia |
+| | **Total semana 3** | **25** | |
+
+Firma: ______________________
+
 ## Resumen acumulado
 
 | Integrante | Sem. 1 | Sem. 2 | Sem. 3 | Sem. 4 | Total |
 |---|---|---|---|---|---|
-| Schormeiker Lugo | 25 | 25 | | | 50 |
-| Hector Diaz | 25 | 25 | | | 50 |
-| Rebeca Nexans | 25 | 25 | | | 50 |
-| Antonio Gonzalez | 25 | 25 | | | 50 |
-| Liz Espinoza | 25 | 25 | | | 50 |
-| Mariansel Herrera | 25 | 25 | | | 50 |
-| **Equipo** | **150** | **150** | | | **300** |
+| Schormeiker Lugo | 25 | 25 | 25 | | 75 |
+| Hector Diaz | 25 | 25 | 25 | | 75 |
+| Rebeca Nexans | 25 | 25 | 25 | | 75 |
+| Antonio Gonzalez | 25 | 25 | 25 | | 75 |
+| Liz Espinoza | 25 | 25 | 25 | | 75 |
+| Mariansel Herrera | 25 | 25 | 25 | | 75 |
+| **Equipo** | **150** | **150** | **150** | | **450** |
 
-> La Semana 2 incluye horas *(previstas)* del 13 y 14/10: el total se confirma el miércoles 14 al cerrar la semana.
+> Pendiente de confirmar: las horas *(previstas)* del 13 y 14/10 (Semana 2) y del 20 y 21/10 (Semana 3). Cada integrante las confirma o corrige con su evidencia antes de firmar.

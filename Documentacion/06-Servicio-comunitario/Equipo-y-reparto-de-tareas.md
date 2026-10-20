@@ -3,7 +3,7 @@ titulo: Equipo y reparto de tareas
 proyecto: PWA Control de Asistencia — U.E.E. General Rafael Urdaneta
 tipo: servicio-comunitario
 estado: activo
-fecha: 2026-10-12
+fecha: 2026-10-19
 ---
 
 # 👥 Equipo y reparto de tareas
@@ -67,7 +67,7 @@ fecha: 2026-10-12
 
 **Total por integrante: 25 h.** Detalle día por día y firmas en [[06-Servicio-comunitario/Registro-de-horas|Registro de horas]].
 
-## Semana 2 — Marcación QR + GPS (08/10 – 14/10/2026) · en curso
+## Semana 2 — Marcación QR + GPS (08/10 – 14/10/2026) · terminada
 
 > Avance del desarrollo: la marcación con QR + GPS, los permisos y el cierre diario ya están publicados (09/10). Las coordenadas del liceo y la nómina ya están cargadas, por lo que Antonio pasa a **verificarlas** en sitio y con secretaría, y la hoja del QR ya la genera la app (Mariansel la **revisa** en lugar de diseñarla desde cero). Detalle día por día en el [[06-Servicio-comunitario/Registro-de-horas|Registro de horas]].
 
@@ -95,14 +95,16 @@ fecha: 2026-10-12
 | | Encuesta al personal: tipo de teléfono, sistema operativo y datos móviles | 6 | Encuesta + resultados |
 | | Material de difusión: aviso al personal sobre la nueva app | 3 | Aviso |
 
-## Semana 3 — Respaldo en el PC y reportes
+## Semana 3 — Respaldo en el PC y reportes (15/10 – 21/10/2026) · en curso
+
+> Cambio de plan: el kiosco con cédula + PIN se descartó porque el colegio no tiene un equipo para eso (D-37); el respaldo es el registro del día en el PC de secretaría. La nómina ya está cargada, por lo que Antonio la **verifica** con secretaría. Detalle día por día en el [[06-Servicio-comunitario/Registro-de-horas|Registro de horas]].
 
 | Responsable | Actividad | Horas est. |
 |---|---|---|
 | **Schormeiker** | Desarrollo: registro del día, revisión, teléfonos, resumen del período PDF/Excel, avisos e historial | 25 |
 | **Hector** | Probar el registro del día (marcar, hora manual, cambio de teléfono), la revisión y los reportes, y comparar un resumen contra un cálculo manual (F21–F34) | 25 |
 | **Rebeca** | Manual: marcación, registro del día en secretaría, reportes; guía rápida de 1 página para el personal | 25 |
-| **Antonio** | Cargar al personal real y las jornadas en la plataforma; verificar los datos con secretaría | 25 |
+| **Antonio** | Verificar con secretaría la nómina y las jornadas cargadas; identificar a quien no tiene teléfono | 25 |
 | **Liz** | Análisis de resultados del diagnóstico; capítulo de metodología del informe | 25 |
 | **Mariansel** | Plan de capacitación (agenda y material); video tutorial corto de marcación | 25 |
 

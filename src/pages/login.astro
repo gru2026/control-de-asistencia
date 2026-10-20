@@ -6,38 +6,60 @@ import Alerta from "@/components/ui/Alerta.astro";
 import { destinoSeguro } from "@/lib/auth/acceso";
 import { texto } from "@/lib/validacion";
 import type { Perfil } from "@/types";
+import { claveInterna, leerIdentificador } from "@/lib/auth/cedula";
+import { clienteAdmin } from "@/lib/supabase/servidor";
 
 const volver = Astro.url.searchParams.get("volver");
 let error: string | null = null;
-let email = "";
+let usuario = "";
 
 if (Astro.request.method === "POST") {
   const f = await Astro.request.formData();
-  email = texto(f, "email").toLowerCase();
+  usuario = texto(f, "usuario");
   const password = texto(f, "password");
   const sb = Astro.locals.supabase;
+  const id = leerIdentificador(usuario);
 
-  if (!email || !password) {
-    error = "Escriba su correo y su contraseña.";
+  // Con cédula se busca el correo de su cuenta (la persona nunca lo ve).
+  let email: string | null = id?.tipo === "email" ? id.email : null;
+  if (id?.tipo === "cedula") {
+    const { data: p } = await clienteAdmin()
+      .from("personal")
+      .select("usuarios(email)")
+      .eq("cedula", id.cedula)
+      .maybeSingle<{ usuarios: { email: string } | null }>();
+    email = p?.usuarios?.email ?? null;
+  }
+
+  if (!usuario || !password) {
+    error = "Escriba su cédula y su contraseña.";
+  } else if (!id) {
+    error = "Escriba su cédula (por ejemplo, 12345678) o su correo.";
+  } else if (!email) {
+    error = "Cédula o contraseña incorrectas.";
   } else {
-    const { data, error: e } = await sb.auth.signInWithPassword({ email, password });
+    const { data, error: e } = await sb.auth.signInWithPassword({
+      email,
+      password: claveInterna(password, email),
+    });
     if (e || !data.user) {
       error =
         e?.code === "user_banned"
           ? "Su cuenta está desactivada. Contacte a la administración."
           : e?.status === 429
             ? "Demasiados intentos. Espere unos minutos e intente de nuevo."
-            : "Correo o contraseña incorrectos.";
+            : "Cédula o contraseña incorrectas.";
     } else {
       const { data: perfil } = await sb
         .from("usuarios")
-        .select("rol, estado")
+        .select("rol, estado, debe_cambiar_clave")
         .eq("id", data.user.id)
-        .maybeSingle<Pick<Perfil, "rol" | "estado">>();
+        .maybeSingle<Pick<Perfil, "rol" | "estado" | "debe_cambiar_clave">>();
       if (!perfil || perfil.estado !== "activo") {
         await sb.auth.signOut();
         error = "Su cuenta no está activa. Contacte a la administración.";
       } else {
+        if (perfil.debe_cambiar_clave) return Astro.redirect("/cambiar-clave", 303);
         return Astro.redirect(destinoSeguro(volver, perfil.rol), 303);
       }
     }
@@ -55,14 +77,15 @@ if (Astro.request.method === "POST") {
   )}
   <form method="post" class="formulario">
     <Input
-      etiqueta="Correo"
-      nombre="email"
-      type="email"
+      etiqueta="Cédula"
+      nombre="usuario"
       autocomplete="username"
-      inputmode="email"
-      value={email}
+      autocapitalize="off"
+      spellcheck="false"
+      value={usuario}
       required
-      autofocus={!email}
+      autofocus={!usuario}
+      ayuda="Solo los números, por ejemplo 12345678. La administración puede usar su correo."
     />
     <Input
       etiqueta="Contraseña"
@@ -71,13 +94,16 @@ if (Astro.request.method === "POST") {
       autocomplete="current-password"
       accion="mostrar"
       required
-      autofocus={!!email}
+      autofocus={!!usuario}
     />
     <Boton type="submit" bloque tamano="grande">
       Entrar
     </Boton>
   </form>
-  <p class="ayuda">¿Olvidó su contraseña? Solicítela a la administración del colegio.</p>
+  <p class="ayuda">
+    ¿Primera vez? Su contraseña inicial es <strong>0000</strong>; al entrar le pedirá crear una
+    propia. ¿La olvidó? Pida en secretaría que la restablezcan.
+  </p>
 </AuthLayout>
 
 <style>

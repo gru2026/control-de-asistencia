@@ -6,6 +6,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { clienteAdmin } from "@/lib/supabase/servidor";
 import type { Rol } from "@/types";
+import { CLAVE_INICIAL, claveInterna, emailDeCedula } from "@/lib/auth/cedula";
 
 export type ResultadoCuenta = { ok: true; id: string } | { ok: false; mensaje: string };
 
@@ -13,7 +14,7 @@ const BLOQUEO_INDEFINIDO = "876000h"; // ~100 años
 
 function mensajeAuth(error: { code?: string; message: string }): string {
   if (error.code === "email_exists" || /already|registered/i.test(error.message)) {
-    return "Ya existe una cuenta con ese correo.";
+    return "Ya existe una cuenta con ese usuario.";
   }
   if (error.code === "weak_password") return "La contraseña es demasiado débil.";
   if (error.code === "email_address_invalid") return "Correo no válido.";
@@ -23,7 +24,14 @@ function mensajeAuth(error: { code?: string; message: string }): string {
 
 export async function crearCuenta(
   sb: SupabaseClient,
-  datos: { email: string; password: string; rol: Rol; nombre: string; apellido: string },
+  datos: {
+    email: string;
+    password: string;
+    rol: Rol;
+    nombre: string;
+    apellido: string;
+    debeCambiarClave?: boolean;
+  },
 ): Promise<ResultadoCuenta> {
   const admin = clienteAdmin();
   const { data, error } = await admin.auth.admin.createUser({
@@ -40,6 +48,7 @@ export async function crearCuenta(
     nombre: datos.nombre,
     apellido: datos.apellido,
     rol: datos.rol,
+    debe_cambiar_clave: datos.debeCambiarClave ?? false,
   });
   if (e2) {
     await admin.auth.admin.deleteUser(id); // no dejar cuentas huérfanas
@@ -116,4 +125,64 @@ export function generarClaveTemporal(): string {
   const parte = Array.from(bytes.slice(0, 7), (b) => letras[b % letras.length]).join("");
   const nums = Array.from(bytes.slice(7), (b) => numeros[b % numeros.length]).join("");
   return parte + nums;
+}
+
+// ── Cuentas por cédula (D-42) ──────────────────────────────────
+
+/**
+ * Crea la cuenta de una persona con su cédula como usuario y la contraseña
+ * inicial 0000, y la vincula a su ficha. Debe cambiarla en el primer ingreso.
+ */
+export async function crearCuentaCedula(
+  sb: SupabaseClient,
+  persona: { id: string; nombre: string; apellido: string; cedula: string },
+  rol: Rol = "personal",
+): Promise<ResultadoCuenta> {
+  const email = emailDeCedula(persona.cedula);
+  const r = await crearCuenta(sb, {
+    email,
+    password: claveInterna(CLAVE_INICIAL, email),
+    rol,
+    nombre: persona.nombre,
+    apellido: persona.apellido,
+    debeCambiarClave: true,
+  });
+  if (!r.ok) return r;
+  const { error } = await sb.from("personal").update({ usuario_id: r.id }).eq("id", persona.id);
+  if (error) {
+    await clienteAdmin().auth.admin.deleteUser(r.id);
+    console.error("[cuentas] vincular:", error);
+    return { ok: false, mensaje: "No se pudo vincular la cuenta a la ficha." };
+  }
+  return r;
+}
+
+/** Vuelve a la contraseña inicial 0000; la persona deberá crear una nueva al entrar. */
+export async function restablecerClaveInicial(id: string, email: string): Promise<ResultadoCuenta> {
+  const admin = clienteAdmin();
+  const { error } = await admin.auth.admin.updateUserById(id, {
+    password: claveInterna(CLAVE_INICIAL, email),
+  });
+  if (error) return { ok: false, mensaje: mensajeAuth(error) };
+  await admin.from("usuarios").update({ debe_cambiar_clave: true }).eq("id", id);
+  return { ok: true, id };
+}
+
+/** La persona crea su propia contraseña (primer ingreso). */
+export async function establecerClavePropia(
+  id: string,
+  email: string,
+  clave: string,
+): Promise<ResultadoCuenta> {
+  const admin = clienteAdmin();
+  const { error } = await admin.auth.admin.updateUserById(id, {
+    password: claveInterna(clave, email),
+  });
+  if (error) return { ok: false, mensaje: mensajeAuth(error) };
+  const { error: e2 } = await admin
+    .from("usuarios")
+    .update({ debe_cambiar_clave: false })
+    .eq("id", id);
+  if (e2) return { ok: false, mensaje: "No se pudo guardar la contraseña." };
+  return { ok: true, id };
 }

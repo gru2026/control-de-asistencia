@@ -32,7 +32,14 @@ import {
   cambiarEstadoPersonal,
   vincularCuentaNueva,
 } from "@/lib/servicios/personal";
-import { cambiarRol, generarClaveTemporal, restablecerClave } from "@/lib/servicios/cuentas";
+import {
+  cambiarRol,
+  crearCuentaCedula,
+  generarClaveTemporal,
+  restablecerClave,
+  restablecerClaveInicial,
+} from "@/lib/servicios/cuentas";
+import { CLAVE_INICIAL, esCuentaCedula, usuarioVisible } from "@/lib/auth/cedula";
 import { ponerFlash } from "@/lib/flash";
 import { fechaCorta, horaCorta } from "@/lib/fecha";
 import ChipCategoria from "@/components/ui/ChipCategoria.astro";
@@ -85,7 +92,13 @@ interface Ficha {
   marca_en_pc: boolean;
   cambio_telefono: boolean;
   jornadas: FilaJornada | null;
-  usuarios: { id: string; email: string; rol: Rol; estado: "activo" | "inactivo" } | null;
+  usuarios: {
+    id: string;
+    email: string;
+    rol: Rol;
+    estado: "activo" | "inactivo";
+    debe_cambiar_clave: boolean;
+  } | null;
   horarios: FilaHorario[];
 }
 
@@ -95,7 +108,7 @@ async function cargar() {
     .select(
       "id, nombre, apellido, cedula, categoria_id, vinculo, carga_horaria, telefono, jornada_id, fecha_ingreso, estado, creado_en, marca_en_pc, cambio_telefono," +
         " jornadas(id, nombre, hora_entrada, hora_salida, tolerancia_min, pausa_min, dias_laborables, activa, nocturna)," +
-        " usuarios(id, email, rol, estado)," +
+        " usuarios(id, email, rol, estado, debe_cambiar_clave)," +
         " horarios(dia_semana, hora_entrada, hora_salida, tolerancia_min, libre)",
     )
     .eq("id", id)
@@ -113,7 +126,14 @@ let mensaje: string | null = null;
 let valoresForm: Record<string, string> = {};
 
 // Secretaría también aprueba o revoca teléfonos (R11); el resto es solo de la directiva.
-const ACCIONES_ADMIN = ["disp_aprobar", "disp_revocar", "tel_cambio", "tel_cancelar", "marca_pc"];
+const ACCIONES_ADMIN = [
+  "disp_aprobar",
+  "disp_revocar",
+  "tel_cambio",
+  "tel_cancelar",
+  "marca_pc",
+  "clave_inicial",
+];
 
 if (Astro.request.method === "POST") {
   const f = await Astro.request.formData();
@@ -204,6 +224,26 @@ if (Astro.request.method === "POST") {
       const { error } = await borrar;
       if (error) mensaje = "No se pudo guardar el horario.";
       else exito = "Horario semanal actualizado.";
+      break;
+    }
+    case "crear_cuenta_cedula": {
+      if (ficha.usuarios) {
+        mensaje = "Esta persona ya tiene una cuenta.";
+        break;
+      }
+      const rol = (texto(f, "rol") || "personal") as Rol;
+      const res = await crearCuentaCedula(sb, ficha, ROLES.includes(rol) ? rol : "personal");
+      if (res.ok)
+        exito = `Cuenta creada. Usuario: ${ficha.cedula} · contraseña inicial: ${CLAVE_INICIAL}. La cambiará al entrar.`;
+      else mensaje = res.mensaje;
+      break;
+    }
+    case "clave_inicial": {
+      if (!ficha.usuarios) break;
+      const res = await restablecerClaveInicial(ficha.usuarios.id, ficha.usuarios.email);
+      if (res.ok)
+        exito = `Contraseña restablecida a ${CLAVE_INICIAL}. Al entrar deberá crear una nueva.`;
+      else mensaje = res.mensaje;
       break;
     }
     case "crear_cuenta": {
@@ -619,8 +659,8 @@ const valorExc = (k: string, porDefecto: string) =>
         <div class="pila">
           <dl class="datos">
             <div>
-              <dt>Correo</dt>
-              <dd>{ficha.usuarios.email}</dd>
+              <dt>{esCuentaCedula(ficha.usuarios.email) ? "Usuario" : "Correo"}</dt>
+              <dd>{usuarioVisible(ficha.usuarios.email)}</dd>
             </div>
             <div>
               <dt>Rol</dt>
@@ -629,28 +669,56 @@ const valorExc = (k: string, porDefecto: string) =>
             <div>
               <dt>Estado</dt>
               <dd>
-                <Badge tipo={ficha.usuarios.estado}>
-                  {ficha.usuarios.estado === "activo" ? "Activa" : "Desactivada"}
-                </Badge>
+                {ficha.usuarios.estado !== "activo" ? (
+                  <Badge tipo="inactivo">Desactivada</Badge>
+                ) : ficha.usuarios.debe_cambiar_clave ? (
+                  <Badge tipo="pendiente">Sin activar (contraseña {CLAVE_INICIAL})</Badge>
+                ) : (
+                  <Badge tipo="activo">Activa</Badge>
+                )}
               </dd>
             </div>
           </dl>
+          {!esDirectiva && esCuentaCedula(ficha.usuarios.email) && (
+            <form method="post" class="mini">
+              <input type="hidden" name="accion" value="clave_inicial" />
+              <p class="nota">
+                Si olvidó su contraseña, vuelve a ser {CLAVE_INICIAL} y al entrar crea una nueva.
+              </p>
+              <Boton type="submit" variante="secundario">
+                Restablecer a {CLAVE_INICIAL}
+              </Boton>
+            </form>
+          )}
           {esDirectiva && (
             <div class="dos">
-              <form method="post" class="mini" novalidate>
-                <input type="hidden" name="accion" value="clave" />
-                <Input
-                  etiqueta="Nueva contraseña temporal"
-                  nombre="password"
-                  type="text"
-                  autocomplete="off"
-                  value={seccion === "clave" ? valoresForm.password : generarClaveTemporal()}
-                  error={err("clave").password}
-                />
-                <Boton type="submit" variante="secundario">
-                  Restablecer contraseña
-                </Boton>
-              </form>
+              {esCuentaCedula(ficha.usuarios.email) ? (
+                <form method="post" class="mini">
+                  <input type="hidden" name="accion" value="clave_inicial" />
+                  <p class="nota">
+                    Si olvidó su contraseña, vuelve a ser {CLAVE_INICIAL} y al entrar crea una
+                    nueva.
+                  </p>
+                  <Boton type="submit" variante="secundario">
+                    Restablecer a {CLAVE_INICIAL}
+                  </Boton>
+                </form>
+              ) : (
+                <form method="post" class="mini" novalidate>
+                  <input type="hidden" name="accion" value="clave" />
+                  <Input
+                    etiqueta="Nueva contraseña temporal"
+                    nombre="password"
+                    type="text"
+                    autocomplete="off"
+                    value={seccion === "clave" ? valoresForm.password : generarClaveTemporal()}
+                    error={err("clave").password}
+                  />
+                  <Boton type="submit" variante="secundario">
+                    Restablecer contraseña
+                  </Boton>
+                </form>
+              )}
               <form method="post" class="mini">
                 <input type="hidden" name="accion" value="rol" />
                 <Select
@@ -667,20 +735,41 @@ const valorExc = (k: string, porDefecto: string) =>
           )}
         </div>
       ) : esDirectiva ? (
-        <form method="post" novalidate>
-          <input type="hidden" name="accion" value="crear_cuenta" />
-          <p class="nota">
-            Esta persona aún no tiene cuenta. Sin cuenta no puede marcar desde su teléfono.
-          </p>
-          <CamposCuenta
-            valores={seccion === "crear_cuenta" ? valoresForm : {}}
-            errores={err("crear_cuenta")}
-            claveSugerida={generarClaveTemporal()}
-          />
-          <div class="final">
-            <Boton type="submit">Crear cuenta</Boton>
-          </div>
-        </form>
+        <div class="pila">
+          <form method="post" class="cuenta-cedula">
+            <input type="hidden" name="accion" value="crear_cuenta_cedula" />
+            <p class="nota">
+              Esta persona aún no tiene cuenta. Sin cuenta no puede marcar desde su teléfono.
+              Entrará con su cédula <strong>{ficha.cedula}</strong> y la contraseña inicial{" "}
+              <strong>{CLAVE_INICIAL}</strong>, que deberá cambiar en su primer ingreso.
+            </p>
+            <Select
+              etiqueta="Rol"
+              nombre="rol"
+              valor="personal"
+              opciones={ROLES.map((r) => ({ valor: r, texto: NOMBRE_ROL[r] }))}
+            />
+            <div class="final">
+              <Boton type="submit">Crear cuenta</Boton>
+            </div>
+          </form>
+          <details class="con-correo" open={seccion === "crear_cuenta"}>
+            <summary>Crear con correo y contraseña propios</summary>
+            <form method="post" novalidate>
+              <input type="hidden" name="accion" value="crear_cuenta" />
+              <CamposCuenta
+                valores={seccion === "crear_cuenta" ? valoresForm : {}}
+                errores={err("crear_cuenta")}
+                claveSugerida={generarClaveTemporal()}
+              />
+              <div class="final">
+                <Boton type="submit" variante="secundario">
+                  Crear cuenta con correo
+                </Boton>
+              </div>
+            </form>
+          </details>
+        </div>
       ) : (
         <p class="nota">Sin cuenta de acceso.</p>
       )}
@@ -1016,6 +1105,20 @@ const valorExc = (k: string, porDefecto: string) =>
     margin-top: var(--esp-4);
     padding-top: var(--esp-4);
     border-top: 1px solid var(--color-borde);
+  }
+  .cuenta-cedula {
+    display: grid;
+    gap: var(--esp-3);
+    max-width: 28rem;
+  }
+  .con-correo summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    color: var(--color-acento-texto);
+    font-weight: var(--peso-medio);
+    font-size: var(--texto-sm);
+    cursor: pointer;
   }
   .tel-modo {
     display: grid;

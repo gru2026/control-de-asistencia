@@ -69,7 +69,7 @@ export async function iniciar({
   pagina.on("pageerror", (e) => errores.push(e.message));
   const { email, clave } = credenciales(rol);
   await pagina.goto(`${URL_BASE}/login`);
-  await pagina.fill("#campo-email", email);
+  await pagina.fill("#campo-usuario", email);
   await pagina.fill("#campo-password", clave);
   await Promise.all([
     pagina.waitForURL((u) => !u.pathname.startsWith("/login")),

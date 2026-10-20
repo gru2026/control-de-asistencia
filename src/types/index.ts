@@ -63,6 +63,8 @@ export interface Perfil {
   email: string;
   rol: Rol;
   estado: "activo" | "inactivo";
+  /** Cuenta nueva o restablecida: debe crear su contraseña antes de usar la app. */
+  debe_cambiar_clave?: boolean;
 }
 
 export interface Jornada {

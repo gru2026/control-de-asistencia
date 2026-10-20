@@ -37,7 +37,7 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   if (uid) {
     const { data: perfil } = await supabase
       .from("usuarios")
-      .select("id, nombre, apellido, email, rol, estado")
+      .select("id, nombre, apellido, email, rol, estado, debe_cambiar_clave")
       .eq("id", uid)
       .maybeSingle<Perfil>();
     if (perfil?.estado === "activo") {
@@ -46,6 +46,20 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
       // Sesión válida pero cuenta inactiva o sin perfil: se cierra.
       await supabase.auth.signOut();
     }
+  }
+
+  // Cuenta con contraseña inicial: antes de cualquier otra cosa debe crear la suya (D-42).
+  if (ctx.locals.perfil?.debe_cambiar_clave && ruta !== "/cambiar-clave" && ruta !== "/api/salir") {
+    if (ruta.startsWith("/api/")) {
+      return cabecerasSeguridad(
+        new Response(
+          JSON.stringify({ ok: false, codigo: "clave", mensaje: "Primero cree su contraseña." }),
+          { status: 403, headers: { "Content-Type": "application/json; charset=utf-8" } },
+        ),
+        true,
+      );
+    }
+    return ctx.redirect("/cambiar-clave");
   }
 
   // Los endpoints /api validan por su cuenta (algunos usan secretos propios, ej. cron).

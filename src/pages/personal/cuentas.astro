@@ -1,0 +1,346 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Icono from "@/components/ui/Icono.astro";
+import Alerta from "@/components/ui/Alerta.astro";
+import ChipCategoria from "@/components/ui/ChipCategoria.astro";
+import { listarCategorias } from "@/lib/datos/categorias";
+import { esUuid, lista, texto } from "@/lib/validacion";
+import { crearCuentaCedula } from "@/lib/servicios/cuentas";
+import { CLAVE_INICIAL, usuarioVisible } from "@/lib/auth/cedula";
+import { plural } from "@/lib/formato";
+
+const sb = Astro.locals.supabase;
+const SITIO = "control-de-asistencia-vert.vercel.app";
+
+interface Fila {
+  id: string;
+  nombre: string;
+  apellido: string;
+  cedula: string;
+  categoria_id: string;
+  marca_en_pc: boolean;
+  usuarios: { id: string; email: string; debe_cambiar_clave: boolean } | null;
+}
+const cargar = async () => {
+  const { data } = await sb
+    .from("personal")
+    .select(
+      "id, nombre, apellido, cedula, categoria_id, marca_en_pc, usuarios(id, email, debe_cambiar_clave)",
+    )
+    .eq("estado", "activo")
+    .order("apellido")
+    .order("nombre");
+  return (data ?? []) as unknown as Fila[];
+};
+
+let hoja: { nombre: string; usuario: string }[] = [];
+let errores: string[] = [];
+let creadas = 0;
+
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  const accion = texto(f, "accion");
+  const ids = new Set(lista(f, "id").filter(esUuid));
+  const elegidas = (await cargar()).filter((x) => ids.has(x.id));
+  if (accion === "crear") {
+    // Una por una: Supabase Auth no tiene creación en lote.
+    for (const x of elegidas.filter((x) => !x.usuarios)) {
+      const r = await crearCuentaCedula(sb, x);
+      if (r.ok) {
+        creadas++;
+        hoja.push({ nombre: `${x.nombre} ${x.apellido}`, usuario: x.cedula });
+      } else errores.push(`${x.nombre} ${x.apellido}: ${r.mensaje}`);
+    }
+  } else if (accion === "imprimir") {
+    hoja = elegidas
+      .filter((x) => x.usuarios?.debe_cambiar_clave)
+      .map((x) => ({
+        nombre: `${x.nombre} ${x.apellido}`,
+        usuario: usuarioVisible(x.usuarios!.email),
+      }));
+  }
+}
+
+const [personas, categorias] = await Promise.all([cargar(), listarCategorias(sb)]);
+const catPorId = new Map(categorias.map((c) => [c.id, c]));
+const sinCuenta = personas.filter((x) => !x.usuarios);
+const sinActivar = personas.filter((x) => x.usuarios?.debe_cambiar_clave);
+---
+
+<PanelLayout
+  titulo="Cuentas del personal"
+  subtitulo="Crear las cuentas de acceso de varias personas a la vez."
+  migas={[{ texto: "Personal", href: "/personal" }, { texto: "Cuentas" }]}
+>
+  <div class="pila">
+    {hoja.length > 0 ? (
+      <>
+        <Alerta tipo="exito">
+          {creadas ? `${plural(creadas, "cuenta creada", "cuentas creadas")}. ` : ""}
+          Imprima la hoja, recorte las tiras y entregue cada una a su dueño.
+        </Alerta>
+        {errores.length > 0 && (
+          <Alerta tipo="error">No se pudieron crear: {errores.join(" · ")}</Alerta>
+        )}
+        <div class="acciones-hoja">
+          <Boton data-imprimir>
+            <Icono nombre="imprimir" tamano={18} />
+            Imprimir
+          </Boton>
+          <Boton variante="secundario" href="/personal/cuentas">
+            Listo
+          </Boton>
+        </div>
+        <section class="hoja" aria-label="Hoja de claves para imprimir">
+          {hoja.map((h) => (
+            <article class="tira">
+              <p class="quien">{h.nombre}</p>
+              <dl>
+                <div>
+                  <dt>Usuario</dt>
+                  <dd>{h.usuario}</dd>
+                </div>
+                <div>
+                  <dt>Contraseña inicial</dt>
+                  <dd>{CLAVE_INICIAL}</dd>
+                </div>
+              </dl>
+              <ol>
+                <li>
+                  Abra <strong>{SITIO}</strong> en su teléfono e instale la app.
+                </li>
+                <li>Entre con su cédula (solo números) y la contraseña 0000.</li>
+                <li>Cree su propia contraseña. Marque siempre desde este mismo teléfono.</li>
+              </ol>
+            </article>
+          ))}
+        </section>
+      </>
+    ) : (
+      <>
+        {errores.length > 0 && (
+          <Alerta tipo="error">No se pudieron crear: {errores.join(" · ")}</Alerta>
+        )}
+        <Alerta tipo="info">
+          Cada cuenta nueva entra con su <strong>cédula</strong> y la contraseña inicial{" "}
+          <strong>{CLAVE_INICIAL}</strong>. En el primer ingreso la app obliga a crear una
+          contraseña propia. Créelas cerca de la capacitación: mientras alguien no entre, cualquiera
+          que sepa su cédula podría hacerlo por él.
+        </Alerta>
+
+        <Tarjeta
+          titulo="Sin cuenta"
+          descripcion="Personal activo que aún no puede entrar a la app. Quienes marcan en secretaría no la necesitan."
+        >
+          {sinCuenta.length === 0 ? (
+            <p class="nota">Todo el personal activo ya tiene cuenta.</p>
+          ) : (
+            <form method="post" class="lista-form">
+              <input type="hidden" name="accion" value="crear" />
+              <label class="todas">
+                <input type="checkbox" data-marcar-todas checked />
+                Seleccionar todas ({sinCuenta.filter((x) => !x.marca_en_pc).length})
+              </label>
+              <ul class="lista">
+                {sinCuenta.map((x) => {
+                  const c = catPorId.get(x.categoria_id);
+                  return (
+                    <li>
+                      <label>
+                        <input type="checkbox" name="id" value={x.id} checked={!x.marca_en_pc} />
+                        <span class="nombre">
+                          {x.apellido}, {x.nombre}
+                        </span>
+                        <span class="tenue">{x.cedula}</span>
+                        {c && <ChipCategoria nombre={c.nombre} color={c.color} />}
+                        {x.marca_en_pc && <span class="tenue">Marca en secretaría</span>}
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div class="final">
+                <Boton type="submit" data-texto-cargando="Creando cuentas…">
+                  Crear cuentas con contraseña {CLAVE_INICIAL}
+                </Boton>
+              </div>
+            </form>
+          )}
+        </Tarjeta>
+
+        {sinActivar.length > 0 && (
+          <Tarjeta
+            titulo="Sin activar"
+            descripcion="Tienen cuenta pero todavía no han creado su contraseña. Puede volver a imprimir su tira."
+          >
+            <form method="post" class="lista-form">
+              <input type="hidden" name="accion" value="imprimir" />
+              <label class="todas">
+                <input type="checkbox" data-marcar-todas checked />
+                Seleccionar todas ({sinActivar.length})
+              </label>
+              <ul class="lista">
+                {sinActivar.map((x) => (
+                  <li>
+                    <label>
+                      <input type="checkbox" name="id" value={x.id} checked />
+                      <span class="nombre">
+                        {x.apellido}, {x.nombre}
+                      </span>
+                      <span class="tenue">{usuarioVisible(x.usuarios!.email)}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              <div class="final">
+                <Boton type="submit" variante="secundario">
+                  <Icono nombre="imprimir" tamano={18} />
+                  Hoja de claves
+                </Boton>
+              </div>
+            </form>
+          </Tarjeta>
+        )}
+      </>
+    )}
+  </div>
+</PanelLayout>
+
+<script>
+  document.querySelector("[data-imprimir]")?.addEventListener("click", () => window.print());
+  document.addEventListener("change", (ev) => {
+    const t = ev.target as HTMLInputElement;
+    if (!t.matches("[data-marcar-todas]")) return;
+    t.closest("form")
+      ?.querySelectorAll<HTMLInputElement>('input[name="id"]')
+      .forEach((c) => (c.checked = t.checked));
+  });
+</script>
+
+<style>
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+    max-width: 52rem;
+  }
+  .nota,
+  .tenue {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .nota {
+    margin: 0;
+  }
+  .lista-form {
+    display: grid;
+    gap: var(--esp-3);
+  }
+  .todas {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+    min-height: 44px;
+    font-weight: var(--peso-medio);
+  }
+  .lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 28rem;
+    overflow-y: auto;
+    border-block: 1px solid var(--color-borde);
+  }
+  .lista li + li {
+    border-top: 1px solid var(--color-borde);
+  }
+  .lista label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-2) var(--esp-3);
+    min-height: 44px;
+    padding: var(--esp-2) 0;
+    cursor: pointer;
+  }
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+  }
+  .nombre {
+    font-weight: var(--peso-medio);
+  }
+  .final {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .acciones-hoja {
+    display: flex;
+    gap: var(--esp-2);
+  }
+
+  /* Hoja de claves: tiras recortables */
+  .hoja {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+    gap: var(--esp-3);
+  }
+  .tira {
+    padding: var(--esp-4);
+    background: #fff;
+    border: 1px dashed var(--color-borde-fuerte);
+    border-radius: var(--radio-sm);
+    color: #0f172a;
+    break-inside: avoid;
+  }
+  .quien {
+    margin: 0 0 var(--esp-2);
+    font-weight: var(--peso-fuerte);
+  }
+  .tira dl {
+    display: flex;
+    gap: var(--esp-6);
+    margin: 0 0 var(--esp-2);
+  }
+  .tira dt {
+    font-size: var(--texto-xs);
+    color: var(--color-texto-suave);
+  }
+  .tira dd {
+    margin: 0;
+    font-size: var(--texto-lg);
+    font-weight: var(--peso-fuerte);
+    font-variant-numeric: tabular-nums;
+  }
+  .tira ol {
+    margin: 0;
+    padding-left: 1.2em;
+    font-size: var(--texto-sm);
+    line-height: 1.5;
+  }
+  @media print {
+    @page {
+      size: letter;
+      margin: 12mm;
+    }
+    :global(body *) {
+      visibility: hidden;
+    }
+    .hoja,
+    .hoja :global(*) {
+      visibility: visible;
+    }
+    .hoja {
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: 100%;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    .tira {
+      border-radius: 0;
+      font-size: 10pt;
+    }
+  }
+</style>

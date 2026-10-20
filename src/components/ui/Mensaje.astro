@@ -22,7 +22,7 @@ const esError = flash.tipo === "error";
     <Icono nombre={flash.tipo === "exito" ? "exito" : flash.tipo} tamano={20} class="simbolo" />
     <p>{flash.mensaje}</p>
     {flash.deshacer && (
-      <form method="post">
+      <form method="post" action={flash.deshacer.ruta}>
         <input type="hidden" name="accion" value={flash.deshacer.accion} />
         {Object.entries(flash.deshacer.datos ?? {}).map(([k, v]) => (
           <input type="hidden" name={k} value={v} />

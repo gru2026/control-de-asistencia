@@ -5,6 +5,8 @@ import type { AstroCookies } from "astro";
 export interface Deshacer {
   accion: string;
   datos?: Record<string, string>;
+  /** Pantalla que procesa el «Deshacer» (por defecto, la actual). */
+  ruta?: string;
 }
 
 export interface Flash {
@@ -46,6 +48,8 @@ export function tomarFlash(cookies: AstroCookies): Flash | null {
         d && typeof d.accion === "string"
           ? {
               accion: d.accion.slice(0, 40),
+              ruta:
+                typeof d.ruta === "string" && /^\/[a-z0-9/_-]*$/i.test(d.ruta) ? d.ruta : undefined,
               datos: Object.fromEntries(
                 Object.entries(d.datos ?? {})
                   .filter(([, x]) => typeof x === "string")

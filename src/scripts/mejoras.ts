@@ -185,6 +185,33 @@ document.addEventListener("click", (ev) => {
   if (m) cerrarMensaje(m);
 });
 
+// Panel de avisos de la campana: abrir, cerrar (clic afuera, Escape, al navegar)
+function panelAvisos(abrir: boolean) {
+  const raizAvisos = document.querySelector<HTMLElement>("[data-avisos]");
+  if (!raizAvisos) return;
+  const boton = raizAvisos.querySelector<HTMLButtonElement>("[data-alternar-avisos]");
+  const panel = raizAvisos.querySelector<HTMLElement>(".panel");
+  const velo = raizAvisos.querySelector<HTMLElement>(".velo");
+  if (!boton || !panel || !velo) return;
+  const estaba = !panel.hidden;
+  panel.hidden = !abrir;
+  velo.hidden = !abrir;
+  boton.setAttribute("aria-expanded", String(abrir));
+  if (abrir) panel.focus({ preventScroll: true });
+  else if (estaba) boton.focus({ preventScroll: true });
+}
+document.addEventListener("click", (ev) => {
+  const t = ev.target as HTMLElement;
+  if (t.closest("[data-alternar-avisos]")) {
+    const panel = document.getElementById("panel-avisos");
+    panelAvisos(!!panel?.hidden);
+  } else if (t.closest("[data-cerrar-avisos]")) panelAvisos(false);
+});
+document.addEventListener("keydown", (ev) => {
+  if (ev.key === "Escape" && !document.getElementById("panel-avisos")?.hidden) panelAvisos(false);
+});
+document.addEventListener("astro:before-preparation", () => panelAvisos(false));
+
 // Mostrar / ocultar contraseña y copiar al portapapeles
 document.addEventListener("click", async (ev) => {
   const el = (ev.target as HTMLElement).closest<HTMLElement>("[data-mostrar-clave], [data-copiar]");

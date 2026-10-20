@@ -1,0 +1,261 @@
+---
+/**
+ * Campana de la barra superior con el panel de avisos sin leer (D-48). Se abre
+ * encima de la pantalla actual; al cerrarlo, la persona sigue donde estaba.
+ * En el celular sube desde abajo.
+ */
+import Icono from "@/components/ui/Icono.astro";
+import { cuandoAviso, ICONO_AVISO, type Aviso } from "@/lib/avisos";
+
+interface Props {
+  avisos: Aviso[];
+  sinLeer: number;
+}
+const { avisos, sinLeer } = Astro.props;
+const volver = Astro.url.pathname + Astro.url.search;
+---
+
+<div class="avisos" data-avisos>
+  <button
+    type="button"
+    class="campana"
+    aria-expanded="false"
+    aria-controls="panel-avisos"
+    aria-label={sinLeer ? `Avisos: ${sinLeer} sin leer` : "Avisos"}
+    data-alternar-avisos
+  >
+    <Icono nombre="campana" tamano={20} />
+    {sinLeer ? <span class="contador">{sinLeer > 99 ? "99+" : sinLeer}</span> : null}
+  </button>
+  <div class="velo" hidden data-cerrar-avisos></div>
+  <section id="panel-avisos" class="panel" hidden aria-labelledby="titulo-avisos" tabindex="-1">
+    <header>
+      <h2 id="titulo-avisos">Avisos</h2>
+      {sinLeer > 0 && (
+        <form method="post" action="/notificaciones">
+          <input type="hidden" name="accion" value="leer_todas" />
+          <input type="hidden" name="volver" value={volver} />
+          <button type="submit" class="texto">
+            Marcar todos como leídos
+          </button>
+        </form>
+      )}
+      <button type="button" class="cerrar" aria-label="Cerrar avisos" data-cerrar-avisos>
+        <Icono nombre="error" tamano={20} />
+      </button>
+    </header>
+    {avisos.length === 0 ? (
+      <p class="vacio">No tiene avisos sin leer.</p>
+    ) : (
+      <ul>
+        {avisos.map((a) => (
+          <li>
+            <form method="post" action="/notificaciones">
+              <input type="hidden" name="accion" value="abrir" />
+              <input type="hidden" name="id" value={a.id} />
+              <input type="hidden" name="volver" value={volver} />
+              <button type="submit" class="aviso">
+                <span class="icono-aviso" aria-hidden="true">
+                  <Icono nombre={ICONO_AVISO[a.tipo] ?? "info"} tamano={18} />
+                </span>
+                <span class="texto-aviso">
+                  <span class="mensaje">{a.mensaje}</span>
+                  <span class="cuando">{cuandoAviso(a.fecha)}</span>
+                </span>
+              </button>
+            </form>
+          </li>
+        ))}
+      </ul>
+    )}
+    <a href="/notificaciones?ver=todas" class="ver-todos">
+      {sinLeer > avisos.length ? `Ver los ${sinLeer} avisos` : "Ver todos los avisos"}
+    </a>
+  </section>
+</div>
+
+<style>
+  .avisos {
+    position: relative;
+  }
+  .campana {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: var(--radio);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: background var(--duracion-rapida) var(--curva);
+  }
+  .campana:hover,
+  .campana[aria-expanded="true"] {
+    background: rgb(255 255 255 / 0.12);
+  }
+  .campana:focus-visible {
+    outline-color: #fff;
+  }
+  .contador {
+    position: absolute;
+    top: 4px;
+    right: 2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: var(--peso-fuerte);
+    line-height: 18px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Panel: en el celular sube desde abajo; en la PC cuelga de la campana */
+  .velo {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgb(15 23 42 / 0.45);
+  }
+  .panel {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 41;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    max-height: min(80dvh, 36rem);
+    padding-bottom: var(--seguro-abajo);
+    border-radius: var(--radio-lg) var(--radio-lg) 0 0;
+    background: var(--color-superficie);
+    color: var(--color-texto);
+    box-shadow: var(--sombra-lg);
+    animation: subir var(--duracion) var(--curva);
+  }
+  .panel[hidden],
+  .velo[hidden] {
+    display: none;
+  }
+  .panel header {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-2);
+    padding: var(--esp-3) var(--esp-3) var(--esp-3) var(--esp-5);
+    border-bottom: 1px solid var(--color-borde);
+  }
+  h2 {
+    flex: 1;
+    font-size: var(--texto-lg);
+  }
+  .texto {
+    min-height: 40px;
+    padding: 0 var(--esp-2);
+    border: 0;
+    background: none;
+    color: var(--color-acento-texto);
+    font: inherit;
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+    cursor: pointer;
+  }
+  .cerrar {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: var(--radio-sm);
+    background: none;
+    color: var(--color-texto-suave);
+    cursor: pointer;
+  }
+  .cerrar:hover {
+    background: var(--color-superficie-hover);
+  }
+  ul {
+    margin: 0;
+    padding: var(--esp-1) 0;
+    list-style: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .aviso {
+    display: flex;
+    gap: var(--esp-3);
+    width: 100%;
+    padding: var(--esp-3) var(--esp-5);
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .aviso:hover,
+  .aviso:focus-visible {
+    background: var(--color-superficie-hover);
+  }
+  .icono-aviso {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--color-acento-suave);
+    color: var(--color-acento-texto);
+  }
+  .texto-aviso {
+    display: grid;
+    gap: 2px;
+  }
+  .mensaje {
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+  }
+  .cuando {
+    font-size: var(--texto-xs);
+    color: var(--color-texto-tenue);
+  }
+  .vacio {
+    margin: 0;
+    padding: var(--esp-6) var(--esp-5);
+    color: var(--color-texto-suave);
+  }
+  .ver-todos {
+    display: block;
+    padding: var(--esp-3) var(--esp-5);
+    border-top: 1px solid var(--color-borde);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+    text-align: center;
+  }
+  @keyframes subir {
+    from {
+      transform: translateY(16px);
+      opacity: 0;
+    }
+  }
+  @media (min-width: 640px) {
+    .velo {
+      background: transparent;
+    }
+    .panel {
+      position: absolute;
+      inset: calc(100% + 8px) 0 auto auto;
+      width: 24rem;
+      max-height: 32rem;
+      padding-bottom: 0;
+      border-radius: var(--radio-lg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .panel {
+      animation: none;
+    }
+  }
+</style>

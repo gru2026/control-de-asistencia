@@ -2,12 +2,11 @@
 import PanelLayout from "@/layouts/PanelLayout.astro";
 import Tarjeta from "@/components/ui/Tarjeta.astro";
 import Boton from "@/components/ui/Boton.astro";
-import Icono, { type NombreIcono } from "@/components/ui/Icono.astro";
+import Icono from "@/components/ui/Icono.astro";
+import { cuandoAviso, ICONO_AVISO, type Aviso } from "@/lib/avisos";
 import Paginacion from "@/components/ui/Paginacion.astro";
 import Pestanas from "@/components/ui/Pestanas.astro";
 import { esUuid, texto } from "@/lib/validacion";
-import { fechaCorta, hoyEnZona } from "@/lib/fecha";
-import { horaEnZona } from "@/lib/reglas/tiempo";
 import { plural } from "@/lib/formato";
 import { ponerFlash } from "@/lib/flash";
 
@@ -20,6 +19,12 @@ if (Astro.request.method === "POST") {
   const f = await Astro.request.formData();
   const accion = texto(f, "accion");
   const id = texto(f, "id");
+  // Desde el panel de la campana se vuelve a la pantalla donde se estaba.
+  const volverTexto = texto(f, "volver");
+  const volver =
+    volverTexto.startsWith("/") && !volverTexto.startsWith("//")
+      ? volverTexto
+      : Astro.url.pathname + Astro.url.search;
   if (accion === "abrir" && esUuid(id)) {
     const { data } = await sb
       .from("notificaciones")
@@ -29,7 +34,7 @@ if (Astro.request.method === "POST") {
       .maybeSingle();
     const enlace = data?.enlace as string | null | undefined;
     const seguro = enlace && enlace.startsWith("/") && !enlace.startsWith("//");
-    return Astro.redirect(seguro ? enlace : Astro.url.pathname + Astro.url.search, 303);
+    return Astro.redirect(seguro ? enlace : volver, 303);
   }
   if (accion === "no_leer") {
     const ids = texto(f, "ids").split(",").filter(esUuid).slice(0, 200);
@@ -38,7 +43,8 @@ if (Astro.request.method === "POST") {
     await sb.from("notificaciones").update({ leida: true }).eq("id", id);
     ponerFlash(Astro.cookies, "exito", "Aviso marcado como leído.", {
       accion: "no_leer",
-      datos: { ids: id },
+      datos: { ids: id, volver },
+      ruta: "/notificaciones",
     });
   } else if (accion === "leer_todas") {
     const { data } = await sb
@@ -54,11 +60,15 @@ if (Astro.request.method === "POST") {
         ? `${plural(data.length, "aviso marcado", "avisos marcados")} como leído${data.length === 1 ? "" : "s"}.`
         : "No había avisos sin leer.",
       data?.length
-        ? { accion: "no_leer", datos: { ids: data.map((x) => x.id as string).join(",") } }
+        ? {
+            accion: "no_leer",
+            datos: { ids: data.map((x) => x.id as string).join(","), volver },
+            ruta: "/notificaciones",
+          }
         : undefined,
     );
   }
-  return Astro.redirect(Astro.url.pathname + Astro.url.search, 303);
+  return Astro.redirect(volver, 303);
 }
 
 const vista = p.get("ver") === "todas" ? "todas" : "sin_leer";
@@ -71,35 +81,12 @@ let consulta = sb
   .range((pagina - 1) * porPagina, pagina * porPagina - 1);
 if (vista === "sin_leer") consulta = consulta.eq("leida", false);
 
-interface Aviso {
-  id: string;
-  tipo: string;
-  mensaje: string;
-  enlace: string | null;
-  leida: boolean;
-  fecha: string;
-}
 const [{ data, count }, { count: sinLeer }] = await Promise.all([
   consulta,
   sb.from("notificaciones").select("id", { count: "exact", head: true }).eq("leida", false),
 ]);
 const avisos = (data ?? []) as Aviso[];
 const total = count ?? 0;
-const hoy = hoyEnZona();
-const ICONO: Record<string, NombreIcono> = {
-  falta: "alerta",
-  tarde: "reloj",
-  senalado: "alerta",
-  dispositivo: "telefono",
-  salida: "reloj",
-  qr: "qr",
-  permiso: "permiso",
-  sistema: "info",
-};
-const cuando = (iso: string) => {
-  const dia = hoyEnZona(undefined, new Date(iso));
-  return `${dia === hoy ? "Hoy" : fechaCorta(dia)} · ${horaEnZona(iso)}`;
-};
 ---
 
 <PanelLayout
@@ -137,7 +124,7 @@ const cuando = (iso: string) => {
           {avisos.map((a) => (
             <li class:list={[!a.leida && "nuevo"]}>
               <span class="icono-aviso" aria-hidden="true">
-                <Icono nombre={ICONO[a.tipo] ?? "info"} tamano={18} />
+                <Icono nombre={ICONO_AVISO[a.tipo] ?? "info"} tamano={18} />
               </span>
               <div class="texto">
                 {a.enlace ? (
@@ -153,7 +140,7 @@ const cuando = (iso: string) => {
                 )}
                 <span class="cuando">
                   {!a.leida && <span class="visualmente-oculto">Sin leer. </span>}
-                  {cuando(a.fecha)}
+                  {cuandoAviso(a.fecha)}
                 </span>
               </div>
               {!a.leida && (

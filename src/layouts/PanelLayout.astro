@@ -2,6 +2,8 @@
 import BaseLayout from "./BaseLayout.astro";
 import { fade } from "astro:transitions";
 import Mensaje from "@/components/ui/Mensaje.astro";
+import PanelAvisos from "@/components/avisos/PanelAvisos.astro";
+import { COLUMNAS_AVISO, type Aviso } from "@/lib/avisos";
 import Icono, { type NombreIcono } from "@/components/ui/Icono.astro";
 import { puedeVer } from "@/lib/auth/acceso";
 import { NOMBRE_ROL } from "@/types";
@@ -60,10 +62,13 @@ const NAV: Record<typeof perfil.rol, Item[]> = {
   personal: [MI_ASISTENCIA, { href: "/historial", texto: "Historial", icono: "calendario" }],
 };
 const sb = Astro.locals.supabase;
-const { count: sinLeer } = await sb
+// Avisos sin leer (los más recientes para el panel de la campana y el total), en una consulta.
+const { data: avisosData, count: sinLeer } = await sb
   .from("notificaciones")
-  .select("id", { count: "exact", head: true })
-  .eq("leida", false);
+  .select(COLUMNAS_AVISO, { count: "exact" })
+  .eq("leida", false)
+  .order("fecha", { ascending: false })
+  .limit(6);
 // La directiva marca su asistencia solo si tiene ficha (acceso en la barra superior).
 const fichaDirectiva = perfil.rol === "directiva" && perfil.tiene_ficha;
 const visibles = NAV[perfil.rol].filter((i) => puedeVer(i.href, perfil.rol));
@@ -111,15 +116,7 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
           <Icono nombre="reloj" tamano={20} />
         </a>
       )}
-      <a
-        class="icono-barra"
-        href="/notificaciones"
-        aria-label={sinLeer ? `Avisos: ${sinLeer} sin leer` : "Avisos"}
-        aria-current={ruta === "/notificaciones" ? "page" : undefined}
-      >
-        <Icono nombre="campana" tamano={20} />
-        {sinLeer ? <span class="contador">{sinLeer > 99 ? "99+" : sinLeer}</span> : null}
-      </a>
+      <PanelAvisos avisos={(avisosData ?? []) as Aviso[]} sinLeer={sinLeer ?? 0} />
       <form method="post" action="/api/salir">
         <button type="submit" class="salir" aria-label="Cerrar sesión">
           <Icono nombre="salir" tamano={18} />
@@ -211,6 +208,10 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     background: var(--color-primario);
     color: var(--color-primario-contraste);
   }
+  /* Con el panel de avisos abierto, la barra queda sobre el menú inferior del celular */
+  .barra:has(#panel-avisos:not([hidden])) {
+    z-index: 45;
+  }
   .marca {
     display: flex;
     align-items: center;
@@ -253,22 +254,6 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
   }
   .icono-barra:focus-visible {
     outline-color: #fff;
-  }
-  .contador {
-    position: absolute;
-    top: 4px;
-    right: 2px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    border-radius: 999px;
-    background: #ef4444;
-    color: #fff;
-    font-size: 0.6875rem;
-    font-weight: var(--peso-fuerte);
-    line-height: 18px;
-    text-align: center;
-    font-variant-numeric: tabular-nums;
   }
   .avatar {
     color: inherit;

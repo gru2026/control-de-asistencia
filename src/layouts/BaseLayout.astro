@@ -55,6 +55,9 @@ const { titulo, colorTema = "#0f172a" } = Astro.props;
       // Cada publicación registra /sw.js?v=<versión>. Si hay una versión nueva esperando,
       // se ofrece actualizar; al aceptar, el service worker nuevo toma el control y se recarga.
       if ("serviceWorker" in navigator) {
+        // Solo se recarga si la persona pidió actualizar: la primera instalación también
+        // cambia de controlador y no debe recargar la página mientras se escribe.
+        let actualizar = false;
         const avisar = (sw) => {
           if (document.querySelector(".aviso-version")) return;
           const aviso = document.createElement("div");
@@ -63,6 +66,7 @@ const { titulo, colorTema = "#0f172a" } = Astro.props;
           aviso.innerHTML =
             '<span>Hay una versión nueva de GRU-system.</span><button type="button">Actualizar</button>';
           aviso.querySelector("button").addEventListener("click", () => {
+            actualizar = true;
             sw.postMessage("activar");
           });
           document.body.append(aviso);
@@ -84,10 +88,9 @@ const { titulo, colorTema = "#0f172a" } = Astro.props;
             if (!document.hidden) reg.update().catch(() => {});
           });
         });
-        let recargando = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
-          if (recargando) return;
-          recargando = true;
+          if (!actualizar) return;
+          actualizar = false;
           location.reload();
         });
       }

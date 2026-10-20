@@ -10,3 +10,6 @@ declare namespace App {
     flash: import("@/lib/flash").Flash | null;
   }
 }
+
+/** Versión de la publicación (commit en Vercel). */
+declare const __VERSION_APP__: string;

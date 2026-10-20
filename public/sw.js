@@ -3,7 +3,8 @@
  * - Las páginas siempre se piden a la red: nunca se guardan datos privados.
  * - Sin conexión, las navegaciones muestran /offline.html.
  */
-const VERSION = "gru-v1";
+// La versión llega en la URL de registro (/sw.js?v=abc1234): cada publicación usa otra caché.
+const VERSION = `gru-${new URL(self.location.href).searchParams.get("v") ?? "dev"}`;
 const PRECACHE = [
   "/offline.html",
   "/manifest.webmanifest",
@@ -14,14 +15,27 @@ const PRECACHE = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(VERSION).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
+  // Sin skipWaiting: la versión nueva espera a que la persona toque «Actualizar».
+  // Si no había ninguna instalada, toma el control de inmediato.
+  event.waitUntil(
+    caches
+      .open(VERSION)
+      .then((c) => c.addAll(PRECACHE))
+      .then(() => (self.registration.active ? undefined : self.skipWaiting())),
+  );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data === "activar") self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((claves) => Promise.all(claves.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+      .then((claves) =>
+        Promise.all(claves.filter((k) => k !== VERSION).map((k) => caches.delete(k))),
+      )
       .then(() => self.clients.claim()),
   );
 });
@@ -39,7 +53,11 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Recursos estáticos versionados e íconos: caché primero.
-  if (url.pathname.startsWith("/_astro/") || url.pathname.startsWith("/icons/") || PRECACHE.includes(url.pathname)) {
+  if (
+    url.pathname.startsWith("/_astro/") ||
+    url.pathname.startsWith("/icons/") ||
+    PRECACHE.includes(url.pathname)
+  ) {
     event.respondWith(
       caches.match(req).then(
         (enCache) =>

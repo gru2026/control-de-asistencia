@@ -9,6 +9,14 @@ export default defineConfig({
   site: "https://control-de-asistencia-vert.vercel.app",
   server: { port: 4321 },
   security: { checkOrigin: true },
+  // Versión de la publicación: cambia la URL del service worker y activa el aviso de actualización.
+  vite: {
+    define: {
+      __VERSION_APP__: JSON.stringify(
+        process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? Date.now().toString(36),
+      ),
+    },
+  },
   env: {
     // "secret" se lee en tiempo de ejecución: nunca queda escrita en el build.
     schema: {

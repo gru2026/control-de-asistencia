@@ -51,9 +51,45 @@ const { titulo, colorTema = "#0f172a" } = Astro.props;
     <script>
       import "@/scripts/mejoras";
     </script>
-    {import.meta.env.PROD && <script is:inline>
+    {import.meta.env.PROD && <script is:inline define:vars={{ version: __VERSION_APP__ }}>
+      // Cada publicación registra /sw.js?v=<versión>. Si hay una versión nueva esperando,
+      // se ofrece actualizar; al aceptar, el service worker nuevo toma el control y se recarga.
       if ("serviceWorker" in navigator) {
-        addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+        const avisar = (sw) => {
+          if (document.querySelector(".aviso-version")) return;
+          const aviso = document.createElement("div");
+          aviso.className = "aviso-version";
+          aviso.setAttribute("role", "status");
+          aviso.innerHTML =
+            '<span>Hay una versión nueva de GRU-system.</span><button type="button">Actualizar</button>';
+          aviso.querySelector("button").addEventListener("click", () => {
+            sw.postMessage("activar");
+          });
+          document.body.append(aviso);
+        };
+        addEventListener("load", async () => {
+          const reg = await navigator.serviceWorker
+            .register(`/sw.js?v=${version}`)
+            .catch(() => null);
+          if (!reg) return;
+          if (reg.waiting && navigator.serviceWorker.controller) avisar(reg.waiting);
+          reg.addEventListener("updatefound", () => {
+            const nuevo = reg.installing;
+            nuevo?.addEventListener("statechange", () => {
+              if (nuevo.state === "installed" && navigator.serviceWorker.controller) avisar(nuevo);
+            });
+          });
+          // Al volver a la app (instalada), buscar si hay otra publicación.
+          document.addEventListener("visibilitychange", () => {
+            if (!document.hidden) reg.update().catch(() => {});
+          });
+        });
+        let recargando = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (recargando) return;
+          recargando = true;
+          location.reload();
+        });
       }
     </script>}
   </body>

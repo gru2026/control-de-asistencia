@@ -258,3 +258,39 @@ html.cargando [data-datos="linea"]::after {
 html.cargando [aria-busy="true"] {
   cursor: progress;
 }
+
+/* Aviso de versión nueva (lo crea el registro del service worker en BaseLayout) */
+.aviso-version {
+  position: fixed;
+  left: 50%;
+  bottom: calc(80px + var(--seguro-abajo));
+  z-index: 30;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  padding: var(--esp-2) var(--esp-2) var(--esp-2) var(--esp-4);
+  border-radius: var(--radio);
+  background: var(--color-primario);
+  color: #fff;
+  font-size: var(--texto-sm);
+  box-shadow: var(--sombra-lg);
+}
+.aviso-version button {
+  min-height: 40px;
+  padding: 0 var(--esp-4);
+  border: 0;
+  border-radius: var(--radio-sm);
+  background: #fff;
+  color: var(--color-primario);
+  font: inherit;
+  font-weight: var(--peso-fuerte);
+  cursor: pointer;
+}
+@media (min-width: 900px) {
+  .aviso-version {
+    bottom: var(--esp-6);
+  }
+}

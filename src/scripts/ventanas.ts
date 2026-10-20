@@ -166,6 +166,7 @@ async function enviarApi(form: HTMLFormElement, submitter: HTMLElement | null) {
     };
     if (r.ok) {
       cerrarVentana();
+      form.closest("dialog")?.close();
       // El mensaje de resultado llega en la cookie flash de esta pantalla
       await navigate(location.href, { history: "replace" });
       return;
@@ -328,3 +329,13 @@ document.addEventListener("click", (ev) => {
     ?.querySelector<HTMLInputElement>("input[type=search]");
   if (input) elegir(input, li);
 });
+
+// Al corregir un campo, su error desaparece
+function quitarError(ev: Event) {
+  const campo = (ev.target as HTMLElement).closest?.(".v-campo");
+  if (!campo) return;
+  campo.querySelectorAll(".v-error").forEach((e) => e.remove());
+  campo.querySelectorAll("[aria-invalid]").forEach((e) => e.removeAttribute("aria-invalid"));
+}
+document.addEventListener("input", quitarError);
+document.addEventListener("change", quitarError);

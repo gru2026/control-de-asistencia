@@ -43,7 +43,10 @@ if (Astro.request.method === "POST") {
   const tipo = texto(f, "tipo");
   const deshacer = texto(f, "accion") === "deshacer";
   const hora = texto(f, "hora");
-  const observacion = texto(f, "observacion").slice(0, 300) || null;
+  // Sin JavaScript también llega el motivo elegido con los botones
+  const motivo = texto(f, "motivo_manual");
+  const observacion =
+    (motivo && motivo !== "Otro" ? motivo : texto(f, "observacion")).slice(0, 300) || null;
   if (!esUuid(personalId) || (tipo !== "entrada" && tipo !== "salida")) {
     mensaje = "Solicitud no válida.";
   } else if (hora && !/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) {
@@ -259,6 +262,13 @@ const navegar = (f: string) => {
 };
 const hayFiltros = Boolean(q || categoria || vista !== "todos");
 const volver = encodeURIComponent("/asistencia/registro");
+const MOTIVOS_MANUAL = [
+  "Falla de conexión",
+  "Olvidó marcar",
+  "Teléfono dañado o sin batería",
+  "No tiene teléfono",
+  "Otro",
+];
 ---
 
 <PanelLayout titulo="Asistencia" subtitulo={fechaLarga(fecha)}>
@@ -457,51 +467,54 @@ const volver = encodeURIComponent("/asistencia/registro");
   </div>
 
   <Modal id="modal-marcar" titulo="Marcar asistencia">
-    <form method="post" id="form-marcar" class="form-marcar" novalidate>
+    <form method="post" action="/api/acciones" data-api id="form-marcar" class="v-form" novalidate>
+      <input type="hidden" name="accion" value="marcar" />
+      <input type="hidden" name="fecha" value={fecha} />
       <input type="hidden" name="personal_id" data-campo="persona" />
       <input type="hidden" name="tipo" data-campo="tipo" />
       <p class="quien" data-campo="texto"></p>
-      {esHoy ? (
-        <details class="otra-hora" data-otra-hora>
-          <summary>Escribir otra hora (contingencia)</summary>
-          <div class="campos-hora">
-            <label for="m-hora">Hora</label>
-            <input id="m-hora" name="hora" type="time" />
-            <label for="m-obs">Motivo</label>
-            <input
-              id="m-obs"
-              name="observacion"
-              maxlength="300"
-              list="motivos-manual"
-              placeholder="Falla de conexión"
-            />
+      {esHoy && (
+        <div class="v-campo">
+          <span class="v-leyenda" id="m-momento">
+            ¿A qué hora?
+          </span>
+          <div class="v-chips" role="radiogroup" aria-labelledby="m-momento">
+            <label>
+              <input type="radio" name="momento" value="ahora" checked />
+              Ahora
+            </label>
+            <label>
+              <input type="radio" name="momento" value="otra" />
+              Otra hora
+            </label>
           </div>
-        </details>
-      ) : (
-        <div class="campos-hora">
-          <label for="m-hora">Hora</label>
-          <input id="m-hora" name="hora" type="time" required />
-          <label for="m-obs">Motivo</label>
-          <input
-            id="m-obs"
-            name="observacion"
-            maxlength="300"
-            required
-            list="motivos-manual"
-            placeholder="Falla de conexión"
-          />
         </div>
       )}
-      <datalist id="motivos-manual">
-        <option value="Falla de conexión"></option>
-        <option value="Olvidó marcar"></option>
-        <option value="Teléfono dañado o sin batería"></option>
-        <option value="No tiene teléfono"></option>
-      </datalist>
+      <div class="v-campo" data-si-otra-hora hidden={esHoy}>
+        <label for="m-hora">Hora</label>
+        <input id="m-hora" name="hora" type="time" />
+      </div>
+      <div class="v-campo" data-si-otra-hora hidden={esHoy}>
+        <span class="v-leyenda" id="m-motivo">
+          ¿Por qué se escribe a mano?
+        </span>
+        <div class="v-chips" role="radiogroup" aria-labelledby="m-motivo">
+          {MOTIVOS_MANUAL.map((m) => (
+            <label>
+              <input type="radio" name="motivo_manual" value={m} />
+              {m}
+            </label>
+          ))}
+        </div>
+      </div>
+      <div class="v-campo" data-si-otro hidden>
+        <label for="m-obs">Escriba el motivo</label>
+        <input id="m-obs" name="observacion" maxlength="300" />
+      </div>
       <p class="nota">
         {esHoy
-          ? "Sin otra hora, se usa la hora actual del servidor. Una hora escrita a mano queda señalada para revisión."
-          : "Para un día anterior, escriba la hora y el motivo. Queda señalada para revisión."}
+          ? "«Ahora» usa la hora oficial del servidor. Una hora escrita a mano queda señalada para revisión."
+          : "Es un día anterior: escriba la hora y el motivo. Queda señalada para revisión."}
       </p>
     </form>
     <Boton slot="acciones" type="submit" form="form-marcar" data-texto-cargando="Registrando…">
@@ -515,7 +528,7 @@ const volver = encodeURIComponent("/asistencia/registro");
   document.addEventListener("click", (ev) => {
     const b = (ev.target as HTMLElement).closest<HTMLElement>("[data-marcar-persona]");
     if (!b) return;
-    const form = document.getElementById("form-marcar");
+    const form = document.getElementById("form-marcar") as HTMLFormElement | null;
     if (!form) return;
     const campo = (n: string) => form.querySelector<HTMLInputElement>(`[data-campo="${n}"]`);
     const tipo = b.dataset.marcarTipo ?? "entrada";
@@ -526,22 +539,37 @@ const volver = encodeURIComponent("/asistencia/registro");
       p.textContent = `${tipo === "entrada" ? "Entrada" : "Salida"} de ${b.dataset.marcarNombre}`;
     const titulo = document.getElementById("modal-marcar-titulo");
     if (titulo) titulo.textContent = tipo === "entrada" ? "Marcar entrada" : "Marcar salida";
-    form.querySelector<HTMLDetailsElement>("[data-otra-hora]")?.removeAttribute("open");
+    // Volver a empezar: «Ahora», sin hora ni motivo
+    const hoy = !!form.querySelector('input[name="momento"]');
     form
       .querySelectorAll<HTMLInputElement>('input[name="hora"], input[name="observacion"]')
-      .forEach((i) => {
-        i.value = "";
-      });
-    // Hoy la hora manual es opcional; para días anteriores, hora y motivo son obligatorios.
-    const obs = form.querySelector<HTMLInputElement>('input[name="observacion"]');
-    if (obs) obs.required = !form.querySelector("[data-otra-hora]");
+      .forEach((i) => (i.value = ""));
+    form
+      .querySelectorAll<HTMLInputElement>('input[name="motivo_manual"]')
+      .forEach((i) => (i.checked = false));
+    const ahora = form.querySelector<HTMLInputElement>('input[name="momento"][value="ahora"]');
+    if (ahora) ahora.checked = true;
+    form.querySelectorAll<HTMLElement>("[data-si-otra-hora]").forEach((e) => (e.hidden = hoy));
+    form.querySelectorAll<HTMLElement>("[data-si-otro]").forEach((e) => (e.hidden = true));
+    form.querySelectorAll(".v-error").forEach((e) => e.remove());
+    const general = form.querySelector(".v-mensaje-error");
+    if (general) general.textContent = "";
   });
-  // Con hora escrita a mano, el motivo es obligatorio.
-  document.addEventListener("input", (ev) => {
-    const hora = ev.target as HTMLInputElement;
-    if (hora.id !== "m-hora") return;
-    const obs = document.getElementById("m-obs") as HTMLInputElement | null;
-    if (obs) obs.required = !!hora.value;
+  // «Otra hora» muestra la hora y el motivo; «Otro» pide escribirlo.
+  document.addEventListener("change", (ev) => {
+    const t = ev.target as HTMLInputElement;
+    const form = t.form;
+    if (form?.id !== "form-marcar") return;
+    if (t.name === "momento") {
+      form
+        .querySelectorAll<HTMLElement>("[data-si-otra-hora]")
+        .forEach((e) => (e.hidden = t.value !== "otra"));
+      if (t.value === "otra") form.querySelector<HTMLInputElement>("#m-hora")?.focus();
+    } else if (t.name === "motivo_manual") {
+      const otro = form.querySelector<HTMLElement>("[data-si-otro]");
+      if (otro) otro.hidden = t.value !== "Otro";
+      if (t.value === "Otro") form.querySelector<HTMLInputElement>("#m-obs")?.focus();
+    }
   });
 </script>
 
@@ -651,37 +679,10 @@ const volver = encodeURIComponent("/asistencia/registro");
       display: none;
     }
   }
-  .form-marcar {
-    display: grid;
-    gap: var(--esp-3);
-  }
   .quien {
     margin: 0;
     font-size: var(--texto-lg);
     font-weight: var(--peso-fuerte);
-  }
-  .otra-hora summary {
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    color: var(--color-acento-texto);
-    font-weight: var(--peso-medio);
-    cursor: pointer;
-  }
-  .campos-hora {
-    display: grid;
-    gap: var(--esp-1);
-  }
-  .campos-hora label {
-    font-size: var(--texto-sm);
-    font-weight: var(--peso-medio);
-    margin-top: var(--esp-2);
-  }
-  .campos-hora input {
-    min-height: 44px;
-    padding: 0 var(--esp-3);
-    border: 1px solid var(--color-borde-fuerte);
-    border-radius: var(--radio-sm);
   }
   .nota {
     margin: 0;

@@ -294,3 +294,8 @@ html.cargando [aria-busy="true"] {
     bottom: var(--esp-6);
   }
 }
+
+/* «hidden» siempre oculta, aunque una clase defina display */
+[hidden]:not([hidden="until-found"]) {
+  display: none !important;
+}

@@ -122,12 +122,26 @@ export const POST: APIRoute = async ({ request, locals, cookies }) => {
         const tipo = texto(f, "tipo");
         if (tipo !== "entrada" && tipo !== "salida")
           return fallo("Solicitud no válida.", undefined, 400);
+        const hoy = hoyEnZona();
+        const fechaTexto = texto(f, "fecha");
+        const fecha =
+          /^\d{4}-\d{2}-\d{2}$/.test(fechaTexto) && fechaTexto <= hoy ? fechaTexto : hoy;
+        // «Ahora» (hoy) o una hora escrita a mano con su motivo (contingencia)
+        const aMano = texto(f, "momento") === "otra" || fecha !== hoy;
+        const hora = aMano ? texto(f, "hora") : "";
+        const motivo = texto(f, "motivo_manual");
+        const observacion = (motivo === "Otro" ? texto(f, "observacion") : motivo).slice(0, 300);
+        const errores: Record<string, string> = {};
+        if (aMano && !/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) errores.hora = "Escriba la hora.";
+        if (aMano && !motivo) errores.motivo_manual = "Elija el motivo.";
+        else if (aMano && !observacion) errores.observacion = "Escriba el motivo.";
+        if (Object.keys(errores).length) return fallo("Revise los campos marcados.", errores);
         const r = await marcarAsistido({
           personalId: ficha!.id,
-          fecha: hoyEnZona(),
+          fecha,
           tipo,
-          horaManual: null,
-          observacion: null,
+          horaManual: aMano ? hora : null,
+          observacion: aMano ? observacion : null,
           usuarioId: perfil.id,
         });
         if (!r.ok) return fallo(r.mensaje);
@@ -137,7 +151,7 @@ export const POST: APIRoute = async ({ request, locals, cookies }) => {
             ? {
                 accion: "deshacer",
                 datos: { personal_id: ficha!.id, tipo, volver },
-                ruta: "/asistencia/registro",
+                ruta: `/asistencia/registro?fecha=${fecha}`,
               }
             : undefined,
         );

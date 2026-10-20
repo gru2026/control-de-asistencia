@@ -49,7 +49,9 @@ export function tomarFlash(cookies: AstroCookies): Flash | null {
           ? {
               accion: d.accion.slice(0, 40),
               ruta:
-                typeof d.ruta === "string" && /^\/[a-z0-9/_-]*$/i.test(d.ruta) ? d.ruta : undefined,
+                typeof d.ruta === "string" && /^\/[a-z0-9/_-]*(\?[a-z0-9=&_-]*)?$/i.test(d.ruta)
+                  ? d.ruta
+                  : undefined,
               datos: Object.fromEntries(
                 Object.entries(d.datos ?? {})
                   .filter(([, x]) => typeof x === "string")

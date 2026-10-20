@@ -452,8 +452,3 @@
   font-size: var(--texto-sm);
   color: var(--color-texto-suave);
 }
-
-/* «hidden» siempre oculta, aunque la clase defina display */
-.ventana [hidden] {
-  display: none !important;
-}

@@ -13,6 +13,7 @@ import ChipCategoria from "@/components/ui/ChipCategoria.astro";
 import Select from "@/components/ui/Select.astro";
 import { esUuid, texto, validarFeriado, validarJornada, type Errores } from "@/lib/validacion";
 import { ponerFlash } from "@/lib/flash";
+import { olvidar } from "@/lib/datos/cache";
 import { fechaCorta, horaCorta, hoyEnZona } from "@/lib/fecha";
 import { NOMBRE_DIA, type Categoria, type DiaSemana } from "@/types";
 
@@ -127,6 +128,7 @@ if (Astro.request.method === "POST") {
   }
 
   if (exito) {
+    olvidar("categorias"); // la lista en caché se vuelve a leer
     ponerFlash(Astro.cookies, "exito", exito);
     const destino = accion.startsWith("feriado")
       ? "/jornadas#feriados"

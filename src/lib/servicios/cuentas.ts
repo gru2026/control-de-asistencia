@@ -7,6 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { clienteAdmin } from "@/lib/supabase/servidor";
 import type { Rol } from "@/types";
 import { CLAVE_INICIAL, claveInterna, emailDeCedula } from "@/lib/auth/cedula";
+import { olvidar } from "@/lib/datos/cache";
 
 export type ResultadoCuenta = { ok: true; id: string } | { ok: false; mensaje: string };
 
@@ -85,6 +86,7 @@ export async function cambiarEstadoCuenta(
     .update({ estado: activo ? "activo" : "inactivo" })
     .eq("id", id);
   if (error) return { ok: false, mensaje: "No se pudo actualizar la cuenta." };
+  olvidar(`perfil:${id}`);
 
   // Bloquea/desbloquea también el inicio de sesión en Auth (y cierra sesiones al refrescar).
   const { error: e2 } = await clienteAdmin().auth.admin.updateUserById(id, {
@@ -114,6 +116,7 @@ export async function cambiarRol(
   }
   const { error } = await sb.from("usuarios").update({ rol }).eq("id", id);
   if (error) return { ok: false, mensaje: "No se pudo cambiar el rol." };
+  olvidar(`perfil:${id}`);
   return { ok: true, id };
 }
 
@@ -165,6 +168,7 @@ export async function restablecerClaveInicial(id: string, email: string): Promis
   });
   if (error) return { ok: false, mensaje: mensajeAuth(error) };
   await admin.from("usuarios").update({ debe_cambiar_clave: true }).eq("id", id);
+  olvidar(`perfil:${id}`);
   return { ok: true, id };
 }
 

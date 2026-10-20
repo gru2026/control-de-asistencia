@@ -2,12 +2,26 @@
  * Mejoras progresivas de interfaz. Todo funciona sin JavaScript;
  * esto solo agrega comodidad. Se activa por atributos data-*.
  */
-import { activarNavegacionParcial } from "./navegacion-parcial";
+import { navigate } from "astro:transitions/client";
+import { prefetch } from "astro:prefetch";
+import { activarTransiciones } from "./transiciones";
 
 document.documentElement.classList.add("js");
 
-// Primero: así sus preventDefault() se respetan en los demás listeners de clic/envío.
-activarNavegacionParcial((raiz) => inicializar(raiz));
+// Este módulo se carga antes que el ClientRouter: sus preventDefault() se respetan.
+activarTransiciones((raiz) => inicializar(raiz));
+
+// En el celular no hay «pasar el mouse»: la pantalla se pide apenas el dedo toca el enlace.
+document.addEventListener(
+  "touchstart",
+  (ev) => {
+    const a = (ev.target as HTMLElement).closest<HTMLAnchorElement>("a[href]");
+    if (!a || a.target || a.hasAttribute("download") || a.dataset.astroReload !== undefined) return;
+    const url = new URL(a.href, location.href);
+    if (url.origin === location.origin && !url.pathname.startsWith("/api/")) prefetch(url.href);
+  },
+  { passive: true },
+);
 
 const MENSAJES = {
   requerido: "Este campo es obligatorio.",
@@ -91,10 +105,19 @@ document.addEventListener("input", (ev) => {
   if (form?.hasAttribute("data-avisar-cambios")) form.dataset.sucio = "1";
 });
 
+// Confirmación simple antes de enviar (data-confirmar="¿Eliminar…?")
+document.addEventListener("submit", (ev) => {
+  const pregunta = (ev.target as HTMLFormElement).dataset.confirmar;
+  if (pregunta && !confirm(pregunta)) {
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+  }
+});
+
 // Envío: validar, evitar doble envío y mostrar "Guardando…"
 document.addEventListener("submit", (ev) => {
   const form = ev.target as HTMLFormElement;
-  if (form.method.toLowerCase() !== "post") return;
+  if (ev.defaultPrevented || form.method.toLowerCase() !== "post") return;
   const campos = [
     ...form.querySelectorAll<HTMLInputElement>("input:not([type=hidden]), select, textarea"),
   ].filter((c) => !c.disabled && !c.closest("[hidden]"));
@@ -129,34 +152,6 @@ document.addEventListener("submit", (ev) => {
       form.append(h);
     }
   }
-});
-
-// ── Estados de carga para navegaciones completas (otra página, guardar) ──
-// Los cambios dentro de la misma página (filtros) los maneja navegacion-parcial.ts.
-function iniciarCarga() {
-  document.documentElement.classList.add("navegando");
-}
-
-document.addEventListener("submit", (ev) => {
-  if (!ev.defaultPrevented) iniciarCarga();
-});
-
-document.addEventListener("click", (ev) => {
-  if (
-    ev.defaultPrevented ||
-    ev.button !== 0 ||
-    ev.metaKey ||
-    ev.ctrlKey ||
-    ev.shiftKey ||
-    ev.altKey
-  )
-    return;
-  const a = (ev.target as HTMLElement).closest<HTMLAnchorElement>("a[href]");
-  if (!a || a.target || a.hasAttribute("download")) return;
-  const destino = new URL(a.href, location.href);
-  if (destino.origin !== location.origin || destino.pathname.startsWith("/api/")) return;
-  if (destino.pathname === location.pathname && destino.search === location.search) return; // solo ancla
-  iniciarCarga();
 });
 
 // Restaurar botones si se vuelve con "atrás" (caché del navegador)
@@ -204,11 +199,36 @@ document.addEventListener("click", async (ev) => {
 });
 
 // Filtros (delegado: sigue funcionando tras reemplazar el contenido)
-// Los select se aplican al cambiar; la búsqueda, con una pausa al escribir.
+// Los select y fechas se aplican al cambiar; la búsqueda, con una pausa al escribir.
 document.addEventListener("change", (ev) => {
   const t = ev.target;
-  if (t instanceof HTMLSelectElement && t.form?.hasAttribute("data-autoenviar"))
+  if (
+    (t instanceof HTMLSelectElement || (t instanceof HTMLInputElement && t.type === "date")) &&
+    t.form?.hasAttribute("data-autoenviar")
+  )
     t.form.requestSubmit();
+});
+
+// Formularios GET (filtros): URL sin parámetros vacíos y navegación sin recargar.
+document.addEventListener("submit", (ev) => {
+  const form = ev.target as HTMLFormElement;
+  if (ev.defaultPrevented || form.method.toLowerCase() !== "get") return;
+  if (form.dataset.astroReload !== undefined) return;
+  const url = new URL(form.getAttribute("action") || location.href, location.href);
+  if (url.origin !== location.origin || url.pathname.startsWith("/api/")) return;
+  url.search = new URLSearchParams(
+    [...new FormData(form).entries()].filter(
+      (e): e is [string, string] => typeof e[1] === "string" && e[1] !== "",
+    ),
+  ).toString();
+  ev.preventDefault();
+  if (url.pathname === location.pathname && url.search === location.search) return;
+  void navigate(url.href);
+});
+
+// Imprimir (hoja del QR, hoja de claves…)
+document.addEventListener("click", (ev) => {
+  if ((ev.target as HTMLElement).closest("[data-imprimir]")) window.print();
 });
 let esperaBusqueda: number | undefined;
 document.addEventListener("input", (ev) => {
@@ -269,6 +289,11 @@ function abrirSeccionDelAncla() {
 }
 addEventListener("hashchange", abrirSeccionDelAncla);
 
+// Volver a la pantalla actual después de una acción (sin recargar la app).
+export function recargarPantalla() {
+  return navigate(location.href, { history: "replace" });
+}
+
 /** Inicializaciones que dependen de elementos concretos (se repiten tras cada reemplazo). */
 function inicializar(raiz: ParentNode) {
   const estado = leerSecciones();
@@ -302,4 +327,4 @@ function inicializar(raiz: ParentNode) {
   });
 }
 
-inicializar(document);
+// La primera carga y cada navegación disparan «astro:page-load» (ver transiciones.ts).

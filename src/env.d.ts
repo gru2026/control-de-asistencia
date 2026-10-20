@@ -13,3 +13,8 @@ declare namespace App {
 
 /** Versión de la publicación (commit en Vercel). */
 declare const __VERSION_APP__: string;
+
+interface Window {
+  /** El service worker ya se registró en esta sesión (el router repite los scripts en línea). */
+  __gruServiceWorker?: boolean;
+}

@@ -3,6 +3,7 @@
  * El escáner usa BarcodeDetector cuando existe (Chrome en Android) y, si no,
  * jsQR (iPhone y otros), que se descarga solo cuando hace falta.
  */
+import { navigate } from "astro:transitions/client";
 import { obtenerUidDispositivo } from "./dispositivo";
 
 type Posicion = { lat: number; lng: number; precision: number } | null;
@@ -29,9 +30,9 @@ const svg = (ruta: string) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ruta}</svg>`;
 
 /** Reloj con la hora del servidor (no depende de que el teléfono esté en hora). */
-function iniciarReloj() {
+function iniciarReloj(): () => void {
   const reloj = document.querySelector<HTMLElement>("[data-reloj]");
-  if (!reloj) return;
+  if (!reloj) return () => {};
   const desfase = Number(reloj.dataset.servidor) - Date.now();
   const formato = new Intl.DateTimeFormat("es-VE", {
     timeZone: "America/Caracas",
@@ -41,18 +42,19 @@ function iniciarReloj() {
   });
   const pintar = () => (reloj.textContent = formato.format(new Date(Date.now() + desfase)));
   pintar();
-  setInterval(pintar, 1000);
+  const intervalo = setInterval(pintar, 1000);
+  return () => clearInterval(intervalo);
 }
 
-function iniciarAvisoConexion() {
+function iniciarAvisoConexion(signal: AbortSignal) {
   const aviso = document.querySelector<HTMLElement>("[data-sin-conexion]");
   const boton = document.querySelector<HTMLButtonElement>("[data-marcar]");
   const actualizar = () => {
     if (aviso) aviso.hidden = navigator.onLine;
     if (boton) boton.disabled = !navigator.onLine;
   };
-  addEventListener("online", actualizar);
-  addEventListener("offline", actualizar);
+  addEventListener("online", actualizar, { signal });
+  addEventListener("offline", actualizar, { signal });
   actualizar();
 }
 
@@ -106,15 +108,28 @@ async function crearLector(): Promise<Lector> {
   };
 }
 
-export function iniciarMarcacion() {
-  iniciarReloj();
-  iniciarAvisoConexion();
+/**
+ * Inicializa la pantalla «Mi asistencia». Devuelve la función que libera el
+ * reloj, la cámara y los oyentes al salir de la pantalla (navegación sin recarga).
+ */
+export function iniciarMarcacion(): (() => void) | undefined {
+  if (!document.querySelector("[data-reloj]")) return undefined;
+  const control = new AbortController();
+  const { signal } = control;
+  const pararReloj = iniciarReloj();
+  iniciarAvisoConexion(signal);
   // Escribe la cookie del teléfono para que el servidor muestre su estado.
   obtenerUidDispositivo();
+  let liberarCamara = () => {};
+  const limpiar = () => {
+    pararReloj();
+    liberarCamara();
+    control.abort();
+  };
 
   const boton = document.querySelector<HTMLButtonElement>("[data-marcar]");
   const dialogo = document.querySelector<HTMLDialogElement>("[data-escaner]");
-  if (!boton || !dialogo) return;
+  if (!boton || !dialogo) return limpiar;
 
   const $ = <T extends HTMLElement>(sel: string) => dialogo.querySelector<T>(sel)!;
   const video = $<HTMLVideoElement>("[data-video]");
@@ -268,25 +283,45 @@ export function iniciarMarcacion() {
     }
   };
 
+  liberarCamara = detenerCamara;
+  // Tras marcar, se vuelve a pedir la pantalla para mostrar el estado del día.
+  const actualizarPantalla = () => {
+    if (!exito) return;
+    exito = false;
+    void navigate(location.href, { history: "replace" });
+  };
   const cerrar = () => {
     detenerCamara();
     if (dialogo.open) dialogo.close();
-    if (exito) location.reload();
+    actualizarPantalla();
   };
 
-  boton.addEventListener("click", () => {
-    if (!navigator.onLine) return;
-    void iniciar();
-  });
-  $("[data-cerrar]").addEventListener("click", cerrar);
-  $("[data-aceptar]").addEventListener("click", cerrar);
-  $("[data-reintentar]").addEventListener("click", () => void iniciar());
-  dialogo.addEventListener("close", () => {
-    detenerCamara();
-    if (exito) location.reload();
-  });
+  boton.addEventListener(
+    "click",
+    () => {
+      if (!navigator.onLine) return;
+      void iniciar();
+    },
+    { signal },
+  );
+  $("[data-cerrar]").addEventListener("click", cerrar, { signal });
+  $("[data-aceptar]").addEventListener("click", cerrar, { signal });
+  $("[data-reintentar]").addEventListener("click", () => void iniciar(), { signal });
+  dialogo.addEventListener(
+    "close",
+    () => {
+      detenerCamara();
+      actualizarPantalla();
+    },
+    { signal },
+  );
   // Si la app pasa a segundo plano, se libera la cámara.
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden && activo) cerrar();
-  });
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+      if (document.hidden && activo) cerrar();
+    },
+    { signal },
+  );
+  return limpiar;
 }

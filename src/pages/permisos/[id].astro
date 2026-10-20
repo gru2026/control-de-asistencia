@@ -254,10 +254,11 @@ const opcionesMotivo = [
 </PanelLayout>
 
 <script>
-  // «Hasta» nunca antes de «Desde».
-  const desde = document.querySelector<HTMLInputElement>('input[name="fecha_desde"]');
-  const hasta = document.querySelector<HTMLInputElement>('input[name="fecha_hasta"]');
-  desde?.addEventListener("change", () => {
+  // «Hasta» nunca antes de «Desde» (delegado: sobrevive a la navegación).
+  document.addEventListener("change", (ev) => {
+    const desde = ev.target as HTMLInputElement;
+    if (desde.name !== "fecha_desde") return;
+    const hasta = desde.form?.querySelector<HTMLInputElement>('input[name="fecha_hasta"]');
     if (!hasta) return;
     hasta.min = desde.value;
     if (!hasta.value || hasta.value < desde.value) hasta.value = desde.value;

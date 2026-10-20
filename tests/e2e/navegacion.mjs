@@ -160,9 +160,13 @@ try {
   );
 
   r.seccion("Otras pantallas");
+  await marcarPagina(pag);
   await pag.click('nav.nav a:has-text("Reportes")');
   await pag.waitForURL("**/reportes");
-  r.ok("ir a otra sección es una carga completa", !(await sinRecarga(pag)));
+  r.ok(
+    "ir a otra sección no recarga la app (navegación de una sola página)",
+    await sinRecarga(pag),
+  );
   await marcarPagina(pag);
   await pag.click('a[aria-label="Día anterior"]');
   await pag.waitForFunction(() => location.search.includes("fecha="));

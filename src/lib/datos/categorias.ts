@@ -1,4 +1,5 @@
 /** Lectura de categorías de personal. */
+import { conCache } from "./cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Categoria } from "@/types";
 
@@ -8,10 +9,13 @@ export async function listarCategorias(
   sb: SupabaseClient,
   soloActivas = false,
 ): Promise<Categoria[]> {
-  let q = sb.from("categorias").select(COLUMNAS_CATEGORIA).order("orden").order("nombre");
-  if (soloActivas) q = q.eq("activa", true);
-  const { data } = await q;
-  return (data ?? []) as Categoria[];
+  // Iguales para todas las cuentas (RLS: lectura para cualquier sesión): se reutilizan 60 s.
+  return conCache(`categorias:${soloActivas}`, 60_000, async () => {
+    let q = sb.from("categorias").select(COLUMNAS_CATEGORIA).order("orden").order("nombre");
+    if (soloActivas) q = q.eq("activa", true);
+    const { data } = await q;
+    return (data ?? []) as Categoria[];
+  });
 }
 
 /** Lee todas las filas de una consulta paginando de 1000 en 1000 (límite de PostgREST). */

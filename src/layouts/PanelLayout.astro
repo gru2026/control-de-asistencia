@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "./BaseLayout.astro";
+import { fade } from "astro:transitions";
 import Alerta from "@/components/ui/Alerta.astro";
 import Icono, { type NombreIcono } from "@/components/ui/Icono.astro";
 import { puedeVer } from "@/lib/auth/acceso";
@@ -59,18 +60,12 @@ const NAV: Record<typeof perfil.rol, Item[]> = {
   personal: [MI_ASISTENCIA, { href: "/historial", texto: "Historial", icono: "calendario" }],
 };
 const sb = Astro.locals.supabase;
-const [{ count: sinLeer }, { data: fichaDirectiva }] = await Promise.all([
-  sb.from("notificaciones").select("id", { count: "exact", head: true }).eq("leida", false),
-  // La directiva marca su asistencia solo si tiene una ficha de personal (acceso en la barra superior).
-  perfil.rol === "directiva"
-    ? sb
-        .from("personal")
-        .select("id")
-        .eq("usuario_id", perfil.id)
-        .eq("estado", "activo")
-        .maybeSingle()
-    : Promise.resolve({ data: null }),
-]);
+const { count: sinLeer } = await sb
+  .from("notificaciones")
+  .select("id", { count: "exact", head: true })
+  .eq("leida", false);
+// La directiva marca su asistencia solo si tiene ficha (acceso en la barra superior).
+const fichaDirectiva = perfil.rol === "directiva" && perfil.tiene_ficha;
 const visibles = NAV[perfil.rol].filter((i) => puedeVer(i.href, perfil.rol));
 
 const activo = (i: Item) =>
@@ -84,7 +79,7 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
   <a class="saltar" href="#contenido">
     Saltar al contenido
   </a>
-  <header class="barra">
+  <header class="barra" transition:animate="none">
     <a class="marca" href="/" aria-label="GRU-system, ir al inicio">
       <img src="/icons/icon-192.png" alt="" width="32" height="32" />
       <span class="nombre-app">
@@ -135,7 +130,11 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
   </header>
 
   <div class="marco">
-    <nav class:list={["nav", visibles.length < 2 && "solo-escritorio"]} aria-label="Principal">
+    <nav
+      class:list={["nav", visibles.length < 2 && "solo-escritorio"]}
+      aria-label="Principal"
+      transition:animate="none"
+    >
       <ul style={`--columnas: ${visibles.length}`}>
         {visibles.map((i) => (
           <li>
@@ -148,7 +147,11 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
       </ul>
     </nav>
 
-    <main id="contenido" class:list={[visibles.length < 2 && "sin-barra", amplio && "amplio"]}>
+    <main
+      id="contenido"
+      class:list={[visibles.length < 2 && "sin-barra", amplio && "amplio"]}
+      transition:animate={fade({ duration: "0.12s" })}
+    >
       {migas && migas.length > 1 && (
         <nav class="migas" aria-label="Ruta">
           <ol>

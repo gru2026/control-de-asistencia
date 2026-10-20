@@ -242,7 +242,8 @@ const horas = (n: number | null) =>
 
 <script>
   import { iniciarMarcacion } from "@/scripts/marcar";
-  iniciarMarcacion();
+  import { enCadaPantalla } from "@/scripts/pantalla";
+  enCadaPantalla(iniciarMarcacion);
 </script>
 
 <style>

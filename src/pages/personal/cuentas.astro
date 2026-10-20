@@ -209,10 +209,9 @@ const sinActivar = personas.filter((x) => x.usuarios?.debe_cambiar_clave);
 </PanelLayout>
 
 <script>
-  document.querySelector("[data-imprimir]")?.addEventListener("click", () => window.print());
   document.addEventListener("change", (ev) => {
     const t = ev.target as HTMLInputElement;
-    if (!t.matches("[data-marcar-todas]")) return;
+    if (!t.matches?.("[data-marcar-todas]")) return;
     t.closest("form")
       ?.querySelectorAll<HTMLInputElement>('input[name="id"]')
       .forEach((c) => (c.checked = t.checked));

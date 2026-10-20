@@ -65,6 +65,8 @@ export interface Perfil {
   estado: "activo" | "inactivo";
   /** Cuenta nueva o restablecida: debe crear su contraseña antes de usar la app. */
   debe_cambiar_clave?: boolean;
+  /** Tiene una ficha de personal activa (marca su propia asistencia). */
+  tiene_ficha?: boolean;
 }
 
 export interface Jornada {

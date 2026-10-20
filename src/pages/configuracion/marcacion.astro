@@ -503,12 +503,6 @@ const activasPrueba = ubicaciones.filter((u) => u.activa && u.es_prueba).length;
       { enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 },
     );
   });
-
-  document.addEventListener("submit", (ev) => {
-    const form = ev.target as HTMLFormElement;
-    const pregunta = form.dataset.confirmar;
-    if (pregunta && !confirm(pregunta)) ev.preventDefault();
-  });
 </script>
 
 <style>

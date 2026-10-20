@@ -1,5 +1,6 @@
 ---
 import "@/styles/global.css";
+import { ClientRouter } from "astro:transitions";
 
 interface Props {
   titulo: string;
@@ -47,18 +48,24 @@ const { titulo, colorTema = "#0f172a" } = Astro.props;
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 
     <title>{titulo} · GRU-system</title>
+
+    <!-- Antes del router: sus validaciones y filtros deben poder cancelar la navegación -->
+    <script>
+      import "@/scripts/mejoras";
+    </script>
+    <!-- Navegación sin recargar la página (D-46) -->
+    <ClientRouter />
   </head>
   <body>
     <div class="progreso" aria-hidden="true"></div>
     <div id="anuncio" class="visualmente-oculto" aria-live="polite" aria-atomic="true"></div>
     <slot />
-    <script>
-      import "@/scripts/mejoras";
-    </script>
     {import.meta.env.PROD && <script is:inline define:vars={{ version: __VERSION_APP__ }}>
       // Cada publicación registra /sw.js?v=<versión>. Si hay una versión nueva esperando,
       // se ofrece actualizar; al aceptar, el service worker nuevo toma el control y se recarga.
-      if ("serviceWorker" in navigator) {
+      // El router vuelve a ejecutar los scripts en línea en cada pantalla: se registra una sola vez.
+      if ("serviceWorker" in navigator && !window.__gruServiceWorker) {
+        window.__gruServiceWorker = true;
         // Solo se recarga si la persona pidió actualizar: la primera instalación también
         // cambia de controlador y no debe recargar la página mientras se escribe.
         let actualizar = false;

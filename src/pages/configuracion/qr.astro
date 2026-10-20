@@ -271,13 +271,13 @@ const vence = valores.vence === "si";
 </PanelLayout>
 
 <script>
-  document.querySelector("[data-imprimir]")?.addEventListener("click", () => window.print());
-  document.querySelectorAll<HTMLInputElement>('input[name="vence"]').forEach((r) =>
-    r.addEventListener("change", () => {
-      const caja = document.querySelector<HTMLElement>("[data-fecha-vence]");
-      if (caja) caja.hidden = r.value !== "si" || !r.checked;
-    }),
-  );
+  // Vencimiento: la fecha solo se pide si se elige «Vence en una fecha».
+  document.addEventListener("change", (ev) => {
+    const r = ev.target as HTMLInputElement;
+    if (r.name !== "vence") return;
+    const caja = document.querySelector<HTMLElement>("[data-fecha-vence]");
+    if (caja) caja.hidden = r.value !== "si" || !r.checked;
+  });
 </script>
 
 <style>

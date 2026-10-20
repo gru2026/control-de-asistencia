@@ -107,9 +107,12 @@ if (Astro.request.method === "POST") {
 </PanelLayout>
 
 <script>
-  document.querySelectorAll<HTMLInputElement>("[data-alternar]").forEach((c) => {
+  // Mostrar u ocultar los campos de la cuenta (delegado: sobrevive a la navegación).
+  document.addEventListener("change", (ev) => {
+    const c = ev.target as HTMLInputElement;
+    if (!c.matches?.("[data-alternar]")) return;
     const destino = document.getElementById(c.dataset.alternar ?? "");
-    c.addEventListener("change", () => destino && (destino.hidden = !c.checked));
+    if (destino) destino.hidden = !c.checked;
   });
 </script>
 

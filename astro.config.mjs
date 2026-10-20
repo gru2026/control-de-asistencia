@@ -9,6 +9,8 @@ export default defineConfig({
   site: "https://control-de-asistencia-vert.vercel.app",
   server: { port: 4321 },
   security: { checkOrigin: true },
+  // Precarga: la pantalla se pide al pasar el mouse sobre el enlace (en el celular, al tocarlo).
+  prefetch: { prefetchAll: true, defaultStrategy: "hover" },
   // Versión de la publicación: cambia la URL del service worker y activa el aviso de actualización.
   vite: {
     define: {

@@ -98,12 +98,17 @@ La campana de arriba muestra sus **avisos**.
 
 En el PC se entra con el **correo** de la cuenta (o con la cédula, si la cuenta se creó así). Menú: **Panel · Asistencia · Personal · Reportes**, y **Ajustes** para la directiva.
 
+> [!tip] Todo sin salir de la pantalla
+> - **Toque el nombre de una persona** (en Personal, Registro del día, Reportes o el Panel) y se abre a la derecha su resumen: hoy, el mes, permisos, teléfono y cuenta, con botones para marcar, cargar un permiso, aprobar o cambiar el teléfono, crear la cuenta o restablecer la contraseña. «Abrir ficha completa» lleva a todos los datos.
+> - Después de cada acción aparece un mensaje abajo. Si se equivocó, toque **Deshacer**.
+> - La **campana** abre los avisos encima de la pantalla; tóquelos para ir a lo que indican.
+
 ## 7. Registro del día (Asistencia)
 
 Lista de todo el personal que trabaja ese día, con su estado: **por llegar, presente, tarde, falta, permiso o sin salida**, y cómo marcó (teléfono, secretaría o a mano).
 
-- **Marcar entrada / Marcar salida:** registra a la persona con la hora actual del servidor.
-- **Escribir otra hora (contingencia):** si se cayó el internet o alguien olvidó marcar, escriba la hora y el **motivo** (obligatorio). Queda señalada para revisión.
+- **Marcar entrada / Marcar salida:** se abre una ventana con **Ahora** ya elegido; toque **Registrar**.
+- **Otra hora (contingencia):** si se cayó el internet o alguien olvidó marcar, toque **Otra hora**, escriba la hora y elija el motivo con los botones. Queda señalada para revisión.
 - **Días anteriores:** con las flechas o la fecha. Para un día pasado siempre se escribe la hora y el motivo.
 - **Permiso:** desde la fila, carga un permiso para esa persona.
 - Una **falta** puesta por el cierre diario se corrige marcando la entrada.
@@ -115,7 +120,7 @@ Marcaciones con advertencia: GPS impreciso, hora escrita a mano o ubicación de 
 
 ## 9. Permisos
 
-**Asistencia › Permisos** → **Nuevo permiso**: persona, fechas, motivo y observación. Las faltas de esas fechas pasan a permiso; si lo elimina, vuelven a falta. No se permiten dos permisos que se crucen. También están en la ficha de cada persona.
+**Asistencia › Permisos** → **Nuevo permiso** (o «Cargar permiso» desde el panel de la persona): escriba el nombre o la cédula y elija a la persona; toque **Hoy**, **Mañana** u **Otras fechas**; elija el motivo con los botones y **Guardar permiso**. Las faltas de esas fechas pasan a permiso; si lo elimina, vuelven a falta. No se permiten dos permisos que se crucen. También están en la ficha de cada persona.
 
 ## 10. Teléfonos y cuentas (ficha de la persona)
 
@@ -153,4 +158,4 @@ Todos los días a las 18:00 el sistema cierra las jornadas terminadas: quien no 
 
 ---
 
-*Manual v2 · 19/10/2026 · sin kiosco ni PIN (D-37); cuentas por cédula (D-42).*
+*Manual v2.1 · 20/10/2026 · ventanas y panel lateral (D-49) · sin kiosco ni PIN (D-37); cuentas por cédula (D-42).*

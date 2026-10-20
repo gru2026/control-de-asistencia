@@ -301,6 +301,43 @@ try {
   );
   await anonimo.close();
 
+  r.seccion("Semana 4: sensación de app (ventanas, avisos, pestañas)");
+  await pag.goto(`${B}/personal`);
+  await marcarPagina(pag);
+  await pag.locator("a[data-persona]").first().click();
+  await pag.waitForSelector("#ventana[open] .v-titulo", { timeout: 15000 });
+  r.ok("tocar un nombre abre el panel de la persona sin salir", await sinRecarga(pag));
+  r.ok(
+    "el panel ofrece abrir la ficha completa",
+    (await pag.locator("#ventana a:has-text('Abrir ficha completa')").count()) === 1,
+  );
+  await pag.keyboard.press("Escape");
+  r.ok("Escape cierra el panel", (await pag.locator("#ventana[open]").count()) === 0);
+  await pag.click("[data-alternar-avisos]");
+  r.ok(
+    "la campana abre los avisos encima de la pantalla",
+    await pag.locator("#panel-avisos").isVisible(),
+  );
+  await pag.keyboard.press("Escape");
+  r.ok("los avisos se cierran con Escape", !(await pag.locator("#panel-avisos").isVisible()));
+  await pag.goto(`${B}/permisos`);
+  await pag.click("a:has-text('Nuevo permiso')");
+  await pag.waitForSelector("#ventana[open] #permiso-persona", { timeout: 15000 });
+  await pag.click("#ventana button:has-text('Guardar permiso')");
+  await pag.waitForSelector("#ventana .v-error", { timeout: 15000 });
+  r.ok(
+    "permiso en ventana: los errores aparecen junto al campo",
+    (await pag.locator("#ventana .v-error").count()) >= 2,
+  );
+  await pag.keyboard.press("Escape");
+  await pag.goto(`${B}/personal`);
+  const ficha = await pag.locator("a[data-persona]").first().getAttribute("href");
+  await pag.goto(`${B}${ficha}#dispositivo`);
+  r.ok(
+    "la ficha abre la pestaña del ancla (#dispositivo → Teléfono y cuenta)",
+    (await pag.locator("[data-panel='acceso'].activo").count()) === 1,
+  );
+
   r.seccion("Errores");
   await pag.goto(`${B}/personal`);
   await pag.context().clearCookies();

@@ -66,6 +66,12 @@ Ritmo: dentro de un grupo 6–12 px; entre controles 16 px; entre bloques 32 px 
 - Hoja de claves: tiras recortables con borde punteado (nombre, usuario = cédula, contraseña 0000 y 3 pasos), dos por fila al imprimir.
 - Aviso de versión nueva: barra flotante azul noche con botón blanco «Actualizar», sobre la barra inferior en el celular.
 - Puesta en marcha: lista numerada con ícono verde (listo) o ámbar (pendiente) y enlace a la pantalla de cada paso.
+- Navegación de una sola página: barra y menú fijos; el contenido cambia con un fundido de 120 ms. Nada recarga la app.
+- Ventanas (`ventanas.css`, clases `v-`): panel lateral a la derecha en la PC (28 rem) y desde abajo en el celular; ventana centrada para formularios cortos y confirmaciones. Cabecera con título y X, contenido con bloques separados por líneas, pie con la acción principal.
+- Opciones como botones redondeados grandes (`.v-chips`): la elegida en azul noche. Se prefieren a listas desplegables para elegir entre pocas opciones.
+- Mensajes de resultado: barra azul noche abajo (roja si es error), con «Deshacer» blanco cuando aplica.
+- Panel de avisos: desde la campana; en el celular sube desde abajo sobre la barra inferior.
+- Ficha por capas: pestañas (Resumen · Datos · Horario · Teléfono y cuenta · Estado); la elegida en azul noche.
 - Avisos dentro de una tarjeta: línea con ícono y texto (ámbar si es advertencia), nunca un recuadro, para no anidar superficies.
 - Hoja del QR para imprimir: A4, nombre del plantel, título, QR de 120 mm con corrección alta y 3 pasos numerados.
 

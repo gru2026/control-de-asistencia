@@ -97,6 +97,9 @@ fecha: 2026-10-06
 - [ ] Capacitación + entrega de la cuenta `directiva`
 - [ ] Logo del colegio y escudo para el encabezado (pendiente del colegio)
 
+- [x] Sensación de app (D-46 a D-50): navegación de una sola página, precarga, avisos en panel, panel lateral de la persona, acciones en ventanas con «Deshacer», formularios con botones, ficha por capas
+- [ ] Prueba de usabilidad con personas del colegio → [[05-Entregables/Prueba-de-usabilidad]]
+
 **🏁 Hito:** desarrollo listo (2026-10-19); falta la prueba en teléfonos reales, la puesta en marcha y la capacitación.
 
 ---

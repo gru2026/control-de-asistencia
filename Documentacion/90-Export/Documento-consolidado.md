@@ -538,6 +538,11 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-50 | 2026-10-20 | Formularios sin estrés: «Ahora» por defecto, fechas y motivos con botones, buscador de persona, errores junto al campo | ✅ Vigente |
+| D-49 | 2026-10-20 | **Ventanas**: panel lateral de la persona con acciones rápidas, formularios en ventana (`/api/acciones`) y confirmaciones propias | ✅ Vigente |
+| D-48 | 2026-10-20 | Avisos en un **panel desplegable** desde la campana; mensajes de resultado abajo con **«Deshacer»** | ✅ Vigente |
+| D-47 | 2026-10-20 | Caché en memoria por instancia (perfil y categorías, 60 s) y cabecera Server-Timing | ✅ Vigente |
+| D-46 | 2026-10-20 | **Navegación de una sola página** (ClientRouter de Astro) con precarga; reemplaza la navegación parcial | ✅ Vigente |
 | D-45 | 2026-10-19 | Aviso «Hay una versión nueva»: service worker con versión por publicación; recarga solo si la persona acepta | ✅ Vigente |
 | D-44 | 2026-10-19 | **Puesta en marcha** como lista de verificación en Ajustes (no ejecuta nada) + `npm run db:respaldo`; la fecha la decide la coordinación | ✅ Vigente |
 | D-43 | 2026-10-19 | Auditoría: CSP y HSTS, 5 intentos fallidos de inicio de sesión → 15 min, registro público de cuentas desactivado | ✅ Vigente |
@@ -586,6 +591,14 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 - Vigilancia trabaja de noche: la jornada nocturna termina al día siguiente; una marca de madrugada pertenece a la jornada que empezó la noche anterior.
 - La planilla oficial no lleva firmas por persona (el sistema registra la hora). Solo se imprime y firma si la dirección lo desea.
 - La nómina real (51 personas) se cargó desde un CSV **privado** (no está en el repositorio). La asistencia de demostración es simulada; el panel lo indica con un aviso.
+
+### D-46 a D-50 · Que se sienta como una app
+Motivo: cada acción cargaba una pantalla nueva (1 a 2,6 s desde el colegio) y sacaba a la persona de lo que estaba haciendo. El personal no está acostumbrado a interfaces modernas: menos saltos, menos campos y datos por capas.
+- **D-46 · Navegación de una sola página.** `<ClientRouter />` de Astro: la barra y el menú quedan fijos y solo el contenido cambia con un fundido de 120 ms. Precarga al pasar el mouse y, en el celular, al tocar el enlace. `transiciones.ts` reemplaza a `navegacion-parcial.ts`: en la misma pantalla muestra esqueletos y conserva búsqueda (con su foco), filtros abiertos, secciones y desplazamiento; avisa de cambios sin guardar. Los scripts de página son delegados o usan `enCadaPantalla` (con limpieza: Mi asistencia libera reloj y cámara).
+- **D-47 · Servidor.** Cada consulta a Supabase cuesta ~70 ms aunque estén en la misma región. El perfil (con si tiene ficha) y las categorías se guardan 60 s en memoria por instancia; otra instancia puede tardar hasta 60 s en ver un cambio de rol o de categoría. Las cuentas que deben cambiar la contraseña nunca se guardan. Cabecera `Server-Timing` (sesión, perfil, página) para medir.
+- **D-48 · Avisos y mensajes.** La campana abre un panel (en el celular, desde abajo) con los avisos sin leer, en la misma consulta que el contador. Los resultados de las acciones aparecen abajo y se cierran solos; los reversibles ofrecen **Deshacer** (marcación asistida de los últimos 15 min, revisión, aviso leído). Las acciones graves siguen pidiendo confirmación.
+- **D-49 · Ventanas.** Tocar un nombre abre el **panel lateral** de la persona (hoy, mes, permisos, teléfono, cuenta) con acciones: marcar, cargar permiso, aprobar o cambiar teléfono, «no tiene teléfono», crear cuenta, restablecer a 0000. Los formularios en ventana van a `/api/acciones` (JSON); si sale bien se cierra y se actualiza la pantalla; si no, los errores quedan junto al campo. Confirmaciones con una ventana propia. El contenido llega como fragmento y usa `ventanas.css` (clases `v-`). La ficha completa queda a un toque, por capas (pestañas).
+- **D-50 · Formularios sin estrés.** Marcar empieza en «Ahora»; «Otra hora» pide hora y motivo con botones. Permiso: buscador de persona (escribir nombre o cédula), fecha con botones (Hoy · Mañana · Otras fechas) y motivo con botones. En el celular, las tablas muestran solo lo esencial. Guía de prueba con personas reales: Prueba-de-usabilidad.
 
 ### D-42 a D-45 · Semana 4: cuentas, auditoría y puesta en marcha
 - **D-42 · Cuentas por cédula.** El personal escribe su cédula (solo números; se acepta con letra y puntos) y su contraseña. Internamente la cuenta de Supabase usa un correo técnico `v12345678@cedula.gru-system.local` que la persona nunca ve; la administración puede seguir entrando con su correo. Toda cuenta nueva o restablecida tiene la contraseña **0000** y `usuarios.debe_cambiar_clave`: el middleware lleva a `/cambiar-clave` antes de cualquier otra pantalla. La contraseña propia exige al menos 6 caracteres, no trivial y distinta de la cédula. Como Supabase pide un mínimo de 6 caracteres (no se puede bajar), a las cuentas por cédula se les agrega un sufijo fijo internamente. Creación en lote en **Personal › Cuentas** con hoja de claves recortable; secretaría puede **restablecer a 0000**. Riesgo aceptado: hasta el primer ingreso, quien conozca la cédula puede entrar; se mitiga creando las cuentas el día de la capacitación.
@@ -1838,6 +1851,9 @@ test: casos de tardanza con tolerancia 15 min
 - [ ] Capacitación + entrega de la cuenta `directiva`
 - [ ] Logo del colegio y escudo para el encabezado (pendiente del colegio)
 
+- [x] Sensación de app (D-46 a D-50): navegación de una sola página, precarga, avisos en panel, panel lateral de la persona, acciones en ventanas con «Deshacer», formularios con botones, ficha por capas
+- [ ] Prueba de usabilidad con personas del colegio → Prueba-de-usabilidad
+
 **🏁 Hito:** desarrollo listo (2026-10-19); falta la prueba en teléfonos reales, la puesta en marcha y la capacitación.
 
 ---
@@ -2046,12 +2062,17 @@ La campana de arriba muestra sus **avisos**.
 
 En el PC se entra con el **correo** de la cuenta (o con la cédula, si la cuenta se creó así). Menú: **Panel · Asistencia · Personal · Reportes**, y **Ajustes** para la directiva.
 
+> **Todo sin salir de la pantalla**
+> - **Toque el nombre de una persona** (en Personal, Registro del día, Reportes o el Panel) y se abre a la derecha su resumen: hoy, el mes, permisos, teléfono y cuenta, con botones para marcar, cargar un permiso, aprobar o cambiar el teléfono, crear la cuenta o restablecer la contraseña. «Abrir ficha completa» lleva a todos los datos.
+> - Después de cada acción aparece un mensaje abajo. Si se equivocó, toque **Deshacer**.
+> - La **campana** abre los avisos encima de la pantalla; tóquelos para ir a lo que indican.
+
 ## 7. Registro del día (Asistencia)
 
 Lista de todo el personal que trabaja ese día, con su estado: **por llegar, presente, tarde, falta, permiso o sin salida**, y cómo marcó (teléfono, secretaría o a mano).
 
-- **Marcar entrada / Marcar salida:** registra a la persona con la hora actual del servidor.
-- **Escribir otra hora (contingencia):** si se cayó el internet o alguien olvidó marcar, escriba la hora y el **motivo** (obligatorio). Queda señalada para revisión.
+- **Marcar entrada / Marcar salida:** se abre una ventana con **Ahora** ya elegido; toque **Registrar**.
+- **Otra hora (contingencia):** si se cayó el internet o alguien olvidó marcar, toque **Otra hora**, escriba la hora y elija el motivo con los botones. Queda señalada para revisión.
 - **Días anteriores:** con las flechas o la fecha. Para un día pasado siempre se escribe la hora y el motivo.
 - **Permiso:** desde la fila, carga un permiso para esa persona.
 - Una **falta** puesta por el cierre diario se corrige marcando la entrada.
@@ -2063,7 +2084,7 @@ Marcaciones con advertencia: GPS impreciso, hora escrita a mano o ubicación de 
 
 ## 9. Permisos
 
-**Asistencia › Permisos** → **Nuevo permiso**: persona, fechas, motivo y observación. Las faltas de esas fechas pasan a permiso; si lo elimina, vuelven a falta. No se permiten dos permisos que se crucen. También están en la ficha de cada persona.
+**Asistencia › Permisos** → **Nuevo permiso** (o «Cargar permiso» desde el panel de la persona): escriba el nombre o la cédula y elija a la persona; toque **Hoy**, **Mañana** u **Otras fechas**; elija el motivo con los botones y **Guardar permiso**. Las faltas de esas fechas pasan a permiso; si lo elimina, vuelven a falta. No se permiten dos permisos que se crucen. También están en la ficha de cada persona.
 
 ## 10. Teléfonos y cuentas (ficha de la persona)
 
@@ -2101,7 +2122,7 @@ Todos los días a las 18:00 el sistema cierra las jornadas terminadas: quien no 
 
 ---
 
-*Manual v2 · 19/10/2026 · sin kiosco ni PIN (D-37); cuentas por cédula (D-42).*
+*Manual v2.1 · 20/10/2026 · ventanas y panel lateral (D-49) · sin kiosco ni PIN (D-37); cuentas por cédula (D-42).*
 
 ---
 

@@ -337,7 +337,22 @@ const cuenta = ficha.usuarios;
             <span class="v-etiqueta activo">Activa</span>
           )}
         </div>
-        <p class="v-nota">{NOMBRE_ROL[cuenta.rol]}</p>
+        <p class="v-nota">
+          {NOMBRE_ROL[cuenta.rol]}
+          {esDirectiva && (
+            <>
+              {" · "}
+              <button
+                type="button"
+                class="v-boton-texto"
+                data-ventana={`/ventanas/cuenta/${cuenta.id}`}
+                data-ventana-modo="centro"
+              >
+                Gestionar cuenta
+              </button>
+            </>
+          )}
+        </p>
         <form
           method="post"
           action="/api/acciones"

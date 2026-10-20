@@ -80,7 +80,11 @@ const horas = (n: number | null) =>
   n === null ? "" : `${Number(n).toFixed(1).replace(".", ",")} h`;
 ---
 
-<PanelLayout titulo={`Hola, ${perfil.nombre}`} subtitulo={ctx ? fechaLarga(ctx.fecha) : undefined}>
+<PanelLayout
+  ancho="angosto"
+  titulo={`Hola, ${perfil.nombre}`}
+  subtitulo={ctx ? fechaLarga(ctx.fecha) : undefined}
+>
   <div class="pila">
     {!ficha || !ctx ? (
       <Alerta tipo="info">
@@ -250,7 +254,6 @@ const horas = (n: number | null) =>
   .pila {
     display: grid;
     gap: var(--esp-4);
-    max-width: 32rem;
   }
   .sr-only {
     position: absolute;

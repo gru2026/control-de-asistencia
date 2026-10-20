@@ -1,0 +1,92 @@
+---
+/** Alta rápida de personal en una ventana (D-51). Lo demás se completa en la ficha. */
+import Icono from "@/components/ui/Icono.astro";
+import { listarCategorias } from "@/lib/datos/categorias";
+import { CLAVE_INICIAL } from "@/lib/auth/cedula";
+import { NOMBRE_VINCULO, VINCULOS } from "@/types";
+
+export const partial = true;
+if (Astro.locals.perfil?.rol !== "directiva") return new Response("Prohibido", { status: 403 });
+const categorias = (await listarCategorias(Astro.locals.supabase)).filter((c) => c.activa);
+---
+
+<header class="v-cabecera" tabindex="-1">
+  <div>
+    <h2 class="v-titulo" id="ventana-titulo-personal" data-ventana-titulo>
+      Nuevo personal
+    </h2>
+    <p class="v-sub">Lo esencial; el resto se completa luego en su ficha.</p>
+  </div>
+  <button type="button" class="v-cerrar" aria-label="Cerrar" data-cerrar-ventana>
+    <Icono nombre="error" tamano={22} />
+  </button>
+</header>
+
+<form method="post" action="/api/acciones" data-api class="v-form v-contenido" novalidate>
+  <input type="hidden" name="accion" value="personal_nuevo" />
+  <div class="v-dos">
+    <div class="v-campo">
+      <label for="np-nombre">Nombre(s)</label>
+      <input id="np-nombre" name="nombre" autocomplete="off" autofocus />
+    </div>
+    <div class="v-campo">
+      <label for="np-apellido">Apellido(s)</label>
+      <input id="np-apellido" name="apellido" autocomplete="off" />
+    </div>
+  </div>
+  <div class="v-campo">
+    <label for="np-cedula">Cédula</label>
+    <input
+      id="np-cedula"
+      name="cedula"
+      inputmode="numeric"
+      autocomplete="off"
+      placeholder="12345678"
+    />
+    <span class="v-ayuda">Solo los números. Con ella entrará a la app.</span>
+  </div>
+  <div class="v-campo">
+    <span class="v-leyenda" id="np-cat">
+      Categoría
+    </span>
+    <div class="v-chips" role="radiogroup" aria-labelledby="np-cat">
+      {categorias.map((c) => (
+        <label>
+          <input type="radio" name="categoria_id" value={c.id} />
+          {c.nombre}
+        </label>
+      ))}
+    </div>
+    <span class="v-ayuda">La jornada habitual de la categoría se asigna sola.</span>
+  </div>
+  <div class="v-campo">
+    <span class="v-leyenda" id="np-vinculo">
+      Vínculo
+    </span>
+    <div class="v-chips" role="radiogroup" aria-labelledby="np-vinculo">
+      {VINCULOS.map((v) => (
+        <label>
+          <input type="radio" name="vinculo" value={v} checked={v === "fijo"} />
+          {NOMBRE_VINCULO[v]}
+        </label>
+      ))}
+    </div>
+  </div>
+  <label class="v-casilla">
+    <input type="checkbox" name="con_cuenta" value="si" checked />
+    <strong>Crear su cuenta ahora</strong>
+    <small class="v-ayuda">Entrará con su cédula y la contraseña {CLAVE_INICIAL}.</small>
+  </label>
+  <div class="v-acciones">
+    <button
+      type="submit"
+      class="v-boton v-primario v-bloque-ancho"
+      data-texto-cargando="Guardando…"
+    >
+      Registrar
+    </button>
+  </div>
+  <a href="/personal/nuevo" class="v-enlace-secundario">
+    Usar el formulario completo
+  </a>
+</form>

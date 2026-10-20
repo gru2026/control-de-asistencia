@@ -37,6 +37,7 @@ const RUTAS = [
   "/personal/cuentas",
   "/configuracion/puesta-en-marcha",
   "/cambiar-clave",
+  "/personal/nuevo",
   "/personal/2a96c01d-530c-4151-b084-e56db9283398",
   "/asistencia",
 ];

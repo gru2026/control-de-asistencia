@@ -102,6 +102,8 @@ En el PC se entra con el **correo** de la cuenta (o con la cédula, si la cuenta
 > - **Toque el nombre de una persona** (en Personal, Registro del día, Reportes o el Panel) y se abre a la derecha su resumen: hoy, el mes, permisos, teléfono y cuenta, con botones para marcar, cargar un permiso, aprobar o cambiar el teléfono, crear la cuenta o restablecer la contraseña. «Abrir ficha completa» lleva a todos los datos.
 > - Después de cada acción aparece un mensaje abajo. Si se equivocó, toque **Deshacer**.
 > - La **campana** abre los avisos encima de la pantalla; tóquelos para ir a lo que indican.
+> - El botón **Acciones** (arriba) reúne lo más frecuente: buscar a una persona, registrar personal nuevo, cargar un permiso, crear cuentas y descargar la planilla de hoy o el resumen del mes.
+> - En **Ajustes › Usuarios**, «Gestionar» abre una ventana para cambiar el tipo de cuenta, la contraseña o desactivarla.
 
 ## 7. Registro del día (Asistencia)
 

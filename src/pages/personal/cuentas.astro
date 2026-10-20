@@ -70,6 +70,7 @@ const sinActivar = personas.filter((x) => x.usuarios?.debe_cambiar_clave);
 ---
 
 <PanelLayout
+  ancho="medio"
   titulo="Cuentas del personal"
   subtitulo="Crear las cuentas de acceso de varias personas a la vez."
   migas={[{ texto: "Personal", href: "/personal" }, { texto: "Cuentas" }]}
@@ -222,7 +223,6 @@ const sinActivar = personas.filter((x) => x.usuarios?.debe_cambiar_clave);
   .pila {
     display: grid;
     gap: var(--esp-4);
-    max-width: 52rem;
   }
   /* Aviso legible: líneas de menos de 80 caracteres */
   .pila > :global(.aviso) {

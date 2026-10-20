@@ -72,6 +72,8 @@ Ritmo: dentro de un grupo 6–12 px; entre controles 16 px; entre bloques 32 px 
 - Mensajes de resultado: barra azul noche abajo (roja si es error), con «Deshacer» blanco cuando aplica.
 - Panel de avisos: desde la campana; en el celular sube desde abajo sobre la barra inferior.
 - Ficha por capas: pestañas (Resumen · Datos · Horario · Teléfono y cuenta · Estado); la elegida en azul noche.
+- Botón «Acciones» en la barra superior (fondo translúcido, con texto en la PC): abre un mosaico de accesos con buscador de persona.
+- Pantallas de una columna centradas en el espacio junto al menú (56 rem o 40 rem).
 - Avisos dentro de una tarjeta: línea con ícono y texto (ámbar si es advertencia), nunca un recuadro, para no anidar superficies.
 - Hoja del QR para imprimir: A4, nombre del plantel, título, QR de 120 mm con corrección alta y 3 pasos numerados.
 

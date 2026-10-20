@@ -52,6 +52,7 @@ if (Astro.request.method === "POST") {
 ---
 
 <PanelLayout
+  ancho="medio"
   titulo="Nuevo personal"
   migas={[
     { texto: "Panel", href: "/panel" },
@@ -120,7 +121,6 @@ if (Astro.request.method === "POST") {
   .pila {
     display: grid;
     gap: var(--esp-4);
-    max-width: 52rem;
   }
   .interruptor {
     display: flex;

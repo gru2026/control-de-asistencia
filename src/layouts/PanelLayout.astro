@@ -17,9 +17,11 @@ interface Props {
   migas?: { texto: string; href?: string }[];
   /** Contenido más ancho (panel con columna lateral). */
   amplio?: boolean;
+  /** Pantallas de una sola columna (formularios, ajustes): se centran con un ancho cómodo. */
+  ancho?: "angosto" | "medio";
 }
 
-const { titulo, subtitulo, migas, amplio = false } = Astro.props;
+const { titulo, subtitulo, migas, amplio = false, ancho } = Astro.props;
 const perfil = Astro.locals.perfil!;
 const flash = Astro.locals.flash;
 const ruta = Astro.url.pathname;
@@ -107,6 +109,19 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
         </span>
         <span class="rol">{NOMBRE_ROL[perfil.rol]}</span>
       </span>
+      {perfil.rol !== "personal" && (
+        <button
+          type="button"
+          class="icono-barra acciones-rapidas"
+          data-ventana="/ventanas/acciones"
+          data-ventana-modo="centro"
+          aria-label="Acciones rápidas"
+          title="Acciones rápidas"
+        >
+          <Icono nombre="mas" tamano={20} />
+          <span class="texto-acciones">Acciones</span>
+        </button>
+      )}
       {fichaDirectiva && (
         <a
           class="icono-barra"
@@ -147,7 +162,7 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
 
     <main
       id="contenido"
-      class:list={[visibles.length < 2 && "sin-barra", amplio && "amplio"]}
+      class:list={[visibles.length < 2 && "sin-barra", amplio && "amplio", ancho]}
       transition:animate={fade({ duration: "0.12s" })}
     >
       {migas && migas.length > 1 && (
@@ -266,6 +281,32 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     color: inherit;
     transition: background var(--duracion-rapida) var(--curva);
   }
+  button.icono-barra {
+    border: 0;
+    background: none;
+    cursor: pointer;
+    font: inherit;
+  }
+  /* Acciones rápidas: botón destacado (en la PC con texto) */
+  .acciones-rapidas {
+    background: rgb(255 255 255 / 0.12) !important;
+  }
+  .texto-acciones {
+    display: none;
+  }
+  @media (min-width: 900px) {
+    .acciones-rapidas {
+      display: inline-flex !important;
+      gap: var(--esp-2);
+      width: auto !important;
+      padding: 0 var(--esp-4) 0 var(--esp-3);
+      font-size: var(--texto-sm);
+      font-weight: var(--peso-fuerte);
+    }
+    .texto-acciones {
+      display: inline;
+    }
+  }
   .icono-barra:hover,
   .icono-barra[aria-current="page"] {
     background: rgb(255 255 255 / 0.12);
@@ -332,6 +373,12 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
   }
   main.amplio {
     max-width: 96rem;
+  }
+  main.medio {
+    max-width: 56rem;
+  }
+  main.angosto {
+    max-width: 40rem;
   }
   .encabezado {
     display: flex;
@@ -505,6 +552,11 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     main {
       padding: var(--esp-10) var(--esp-10) var(--esp-12);
       margin: 0;
+    }
+    /* Pantallas de una columna: centradas en el espacio junto al menú */
+    main.medio,
+    main.angosto {
+      margin-inline: auto;
     }
     h1 {
       font-size: var(--texto-2xl);

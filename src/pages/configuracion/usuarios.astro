@@ -10,6 +10,7 @@ import Select from "@/components/ui/Select.astro";
 import CamposCuenta from "@/components/personal/CamposCuenta.astro";
 import BarraFiltros from "@/components/ui/BarraFiltros.astro";
 import Paginacion from "@/components/ui/Paginacion.astro";
+import Icono from "@/components/ui/Icono.astro";
 import { terminosBusqueda } from "@/lib/validacion";
 import { esUuid, texto, validarClave, validarCuenta, type Errores } from "@/lib/validacion";
 import {
@@ -125,6 +126,12 @@ const seleccionado = usuarios.find((u) => u.id === gestionar);
   subtitulo="Cuentas de acceso y roles."
   migas={[{ texto: "Ajustes", href: "/configuracion" }, { texto: "Usuarios" }]}
 >
+  <Fragment slot="acciones">
+    <Boton href="#nueva-cuenta" data-ventana="/ventanas/cuenta-nueva" data-ventana-modo="centro">
+      <Icono nombre="mas" tamano={18} />
+      Nueva cuenta
+    </Boton>
+  </Fragment>
   <div class="pila">
     {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
 
@@ -201,24 +208,13 @@ const seleccionado = usuarios.find((u) => u.id === gestionar);
               <td class="acciones">
                 <Boton
                   href={`/configuracion/usuarios?gestionar=${u.id}#gestionar`}
-                  variante="fantasma"
+                  data-ventana={`/ventanas/cuenta/${u.id}`}
+                  data-ventana-modo="centro"
+                  variante="secundario"
                   tamano="pequeno"
                 >
                   Gestionar
                 </Boton>
-                {u.id !== perfil.id && (
-                  <form method="post">
-                    <input type="hidden" name="id" value={u.id} />
-                    <input
-                      type="hidden"
-                      name="accion"
-                      value={u.estado === "activo" ? "desactivar" : "activar"}
-                    />
-                    <Boton type="submit" variante="fantasma" tamano="pequeno">
-                      {u.estado === "activo" ? "Desactivar" : "Activar"}
-                    </Boton>
-                  </form>
-                )}
               </td>
             </tr>
           ))}
@@ -266,6 +262,7 @@ const seleccionado = usuarios.find((u) => u.id === gestionar);
     )}
 
     <Tarjeta
+      id="nueva-cuenta"
       titulo="Nueva cuenta sin ficha de personal"
       descripcion="Para directivos o secretaría que no registran asistencia. Al personal que marca, créele la cuenta desde su ficha en «Personal»."
     >

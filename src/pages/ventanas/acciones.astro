@@ -1,0 +1,130 @@
+---
+/** Acciones rápidas (D-51): lo más frecuente de directiva y secretaría, a un toque. */
+import Icono, { type NombreIcono } from "@/components/ui/Icono.astro";
+import { hoyEnZona } from "@/lib/fecha";
+
+export const partial = true;
+const sb = Astro.locals.supabase;
+const esDirectiva = Astro.locals.perfil?.rol === "directiva";
+const hoy = hoyEnZona();
+const { data: gente } = await sb
+  .from("personal")
+  .select("id, nombre, apellido, cedula")
+  .eq("estado", "activo")
+  .order("apellido")
+  .order("nombre");
+const opciones = JSON.stringify(
+  (gente ?? []).map((x) => ({ v: x.id, t: `${x.apellido}, ${x.nombre}`, c: x.cedula })),
+);
+type Accion = {
+  texto: string;
+  ayuda: string;
+  icono: NombreIcono;
+  ventana?: string;
+  href?: string;
+  descarga?: boolean;
+};
+const acciones: Accion[] = [
+  {
+    texto: "Registro del día",
+    ayuda: "Marcar entradas y salidas",
+    icono: "reloj",
+    href: "/asistencia/registro",
+  },
+  {
+    texto: "Cargar permiso",
+    ayuda: "Reposo, cita, diligencia…",
+    icono: "permiso",
+    ventana: "/ventanas/permiso",
+  },
+  ...(esDirectiva
+    ? [
+        {
+          texto: "Nuevo personal",
+          ayuda: "Con su cuenta en un paso",
+          icono: "mas" as const,
+          ventana: "/ventanas/personal-nuevo",
+        },
+        {
+          texto: "Crear cuentas",
+          ayuda: "Varias a la vez, con hoja de claves",
+          icono: "usuarios" as const,
+          href: "/personal/cuentas",
+        },
+      ]
+    : []),
+  {
+    texto: "Planilla de hoy",
+    ayuda: "PDF con el formato oficial",
+    icono: "descargar",
+    href: `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=pdf&ver=1`,
+  },
+  {
+    texto: "Resumen del mes",
+    ayuda: "Excel por persona",
+    icono: "documento",
+    href: "/api/reportes/resumen?formato=xlsx",
+    descarga: true,
+  },
+];
+---
+
+<header class="v-cabecera" tabindex="-1">
+  <div>
+    <h2 class="v-titulo" id="ventana-titulo-acciones" data-ventana-titulo>
+      Acciones rápidas
+    </h2>
+  </div>
+  <button type="button" class="v-cerrar" aria-label="Cerrar" data-cerrar-ventana>
+    <Icono nombre="error" tamano={22} />
+  </button>
+</header>
+
+<div class="v-contenido">
+  <div class="v-campo v-buscador" data-buscador data-abrir-persona data-opciones={opciones}>
+    <label for="acc-persona">Buscar a una persona</label>
+    <input
+      id="acc-persona"
+      type="search"
+      placeholder="Nombre o cédula: marcar, permiso, teléfono, cuenta…"
+      autocomplete="off"
+      role="combobox"
+      aria-expanded="false"
+      aria-controls="acc-persona-lista"
+      aria-autocomplete="list"
+      autofocus
+    />
+    <input type="hidden" />
+    <ul id="acc-persona-lista" role="listbox" hidden></ul>
+  </div>
+
+  <ul class="v-mosaico">
+    {acciones.map((a) => (
+      <li>
+        {a.ventana ? (
+          <button type="button" data-ventana={a.ventana} data-ventana-modo="centro">
+            <Icono nombre={a.icono} tamano={22} />
+            <span>
+              <strong>{a.texto}</strong>
+              <small>{a.ayuda}</small>
+            </span>
+          </button>
+        ) : (
+          <a
+            href={a.href}
+            target={a.href?.startsWith("/api/") && !a.descarga ? "_blank" : undefined}
+            rel={a.href?.startsWith("/api/") ? "noopener" : undefined}
+            download={a.descarga ? true : undefined}
+            data-astro-reload={a.href?.startsWith("/api/") ? true : undefined}
+          >
+            <Icono nombre={a.icono} tamano={22} />
+            <span>
+              <strong>{a.texto}</strong>
+              <small>{a.ayuda}</small>
+            </span>
+          </a>
+        )}
+      </li>
+    ))}
+  </ul>
+</div>

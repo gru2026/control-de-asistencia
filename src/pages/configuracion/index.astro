@@ -89,7 +89,11 @@ const v = (k: string) =>
 const e = (a: string) => (accion === a ? errores : {});
 ---
 
-<PanelLayout titulo="Ajustes" subtitulo="Configuración de la institución y mantenimiento de datos.">
+<PanelLayout
+  ancho="medio"
+  titulo="Ajustes"
+  subtitulo="Configuración de la institución y mantenimiento de datos."
+>
   <div class="pila">
     {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
 

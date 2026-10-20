@@ -270,6 +270,10 @@ function elegir(input: HTMLInputElement, li: HTMLElement) {
   input.value = li.dataset.t ?? "";
   cerrarLista(input, p.lista);
   p.caja.querySelector(".v-error")?.remove();
+  // Buscador de «Acciones rápidas»: elegir a alguien abre su panel
+  if (p.caja.hasAttribute("data-abrir-persona") && li.dataset.v) {
+    void abrirVentana(`/ventanas/persona/${li.dataset.v}`, "cajon");
+  }
 }
 document.addEventListener("input", (ev) => {
   const input = ev.target as HTMLInputElement;

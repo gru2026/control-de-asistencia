@@ -18,7 +18,18 @@ import {
 } from "@/lib/servicios/dispositivos";
 import { marcarAsistido } from "@/lib/servicios/asistido";
 import { guardarPermiso } from "@/lib/servicios/permisos";
-import { ROLES, type Rol } from "@/types";
+import { NOMBRE_ROL, ROLES, type Rol } from "@/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { validarClave, validarCuenta, validarPersonal } from "@/lib/validacion";
+import {
+  cambiarEstadoCuenta,
+  cambiarRol,
+  crearCuenta,
+  restablecerClave,
+} from "@/lib/servicios/cuentas";
+import { crearPersonal } from "@/lib/servicios/personal";
+import { esCuentaCedula } from "@/lib/auth/cedula";
+import { listarCategorias } from "@/lib/datos/categorias";
 
 export const prerender = false;
 
@@ -48,6 +59,12 @@ export const POST: APIRoute = async ({ request, locals, cookies }) => {
   };
 
   try {
+    // Acciones sobre una cuenta (por su id de usuario) o que crean algo nuevo
+    if (accion.startsWith("cuenta_") || accion === "personal_nuevo") {
+      if (!esDirectiva)
+        return fallo("Solo la directiva gestiona cuentas y personal.", undefined, 403);
+      return await accionDirectiva(accion, f, sb, perfil.id, exito);
+    }
     // Acciones sobre una persona: se lee su ficha y su cuenta
     const necesitaPersona = accion !== "permiso";
     type Ficha = {
@@ -179,3 +196,94 @@ export const POST: APIRoute = async ({ request, locals, cookies }) => {
     return fallo("Ocurrió un error. Intente de nuevo.", undefined, 500);
   }
 };
+
+/** Cuentas (rol, estado, contraseña, alta sin ficha) y alta rápida de personal. Solo directiva. */
+async function accionDirectiva(
+  accion: string,
+  f: FormData,
+  sb: SupabaseClient,
+  actorId: string,
+  exito: (mensaje: string) => Response,
+): Promise<Response> {
+  if (accion === "personal_nuevo") {
+    // Lo mínimo: nombre, apellido, cédula y categoría; la jornada sale de la categoría.
+    const categorias = await listarCategorias(sb);
+    const cat = categorias.find((c) => c.id === texto(f, "categoria_id"));
+    if (!f.get("jornada_id") && cat?.jornada_sugerida_id)
+      f.set("jornada_id", cat.jornada_sugerida_id);
+    const v = validarPersonal(f);
+    if (!v.ok) return fallo("Revise los campos marcados.", v.errores);
+    const r = await crearPersonal(sb, v.datos, null);
+    if (!r.ok) return fallo(r.mensaje, r.errores);
+    const persona = `${v.datos.nombre} ${v.datos.apellido}`;
+    if (texto(f, "con_cuenta") !== "si") return exito(`${persona} registrado.`);
+    const c = await crearCuentaCedula(sb, { id: r.id, ...v.datos });
+    if (!c.ok) return exito(`${persona} registrado, pero no se creó la cuenta: ${c.mensaje}`);
+    return exito(
+      `${persona} registrado. Entra con su cédula ${v.datos.cedula} y la contraseña ${CLAVE_INICIAL}.`,
+    );
+  }
+
+  if (accion === "cuenta_crear") {
+    const rc = validarCuenta(f);
+    const nombre = texto(f, "nombre");
+    const apellido = texto(f, "apellido");
+    const errores: Record<string, string> = rc.ok ? {} : { ...rc.errores };
+    if (!nombre) errores.nombre = "Escriba el nombre.";
+    if (!apellido) errores.apellido = "Escriba el apellido.";
+    if (!rc.ok || Object.keys(errores).length) return fallo("Revise los campos marcados.", errores);
+    const r = await crearCuenta(sb, { ...rc.datos, nombre, apellido });
+    if (!r.ok) return fallo(r.mensaje, { email: r.mensaje });
+    return exito(`Cuenta de ${nombre} ${apellido} creada (${NOMBRE_ROL[rc.datos.rol]}).`);
+  }
+
+  const id = texto(f, "usuario_id");
+  if (!esUuid(id)) return fallo("Solicitud no válida.", undefined, 400);
+  const { data: u } = await sb
+    .from("usuarios")
+    .select("id, nombre, apellido, email, rol, estado")
+    .eq("id", id)
+    .maybeSingle<{
+      id: string;
+      nombre: string;
+      apellido: string;
+      email: string;
+      rol: Rol;
+      estado: string;
+    }>();
+  if (!u) return fallo("La cuenta no existe.", undefined, 404);
+  const quien = `${u.nombre} ${u.apellido}`;
+
+  switch (accion) {
+    case "cuenta_rol": {
+      const rol = texto(f, "rol") as Rol;
+      if (!ROLES.includes(rol))
+        return fallo("Elija el tipo de cuenta.", { rol: "Elija el tipo de cuenta." });
+      if (rol === u.rol) return exito(`${quien} ya es ${NOMBRE_ROL[rol]}.`);
+      const r = await cambiarRol(sb, id, rol, actorId);
+      if (!r.ok) return fallo(r.mensaje);
+      return exito(`${quien} ahora es ${NOMBRE_ROL[rol]}.`);
+    }
+    case "cuenta_estado": {
+      const activar = texto(f, "valor") === "activar";
+      const r = await cambiarEstadoCuenta(sb, id, activar, actorId);
+      if (!r.ok) return fallo(r.mensaje);
+      return exito(activar ? `Cuenta de ${quien} activada.` : `Cuenta de ${quien} desactivada.`);
+    }
+    case "cuenta_clave": {
+      if (esCuentaCedula(u.email)) {
+        const r = await restablecerClaveInicial(id, u.email);
+        if (!r.ok) return fallo(r.mensaje);
+        return exito(`Contraseña de ${quien} restablecida a ${CLAVE_INICIAL}.`);
+      }
+      const clave = texto(f, "password");
+      const err = validarClave(clave);
+      if (err) return fallo("Revise los campos marcados.", { password: err });
+      const r = await restablecerClave(id, clave);
+      if (!r.ok) return fallo(r.mensaje);
+      return exito(`Contraseña de ${quien} cambiada. Entréguele la nueva.`);
+    }
+    default:
+      return fallo("Acción no reconocida.", undefined, 400);
+  }
+}

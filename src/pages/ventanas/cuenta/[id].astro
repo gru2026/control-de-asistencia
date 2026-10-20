@@ -1,0 +1,153 @@
+---
+/** Gestión rápida de una cuenta (D-51): tipo, contraseña y activar/desactivar. */
+import Icono from "@/components/ui/Icono.astro";
+import { esUuid } from "@/lib/validacion";
+import { CLAVE_INICIAL, esCuentaCedula, usuarioVisible } from "@/lib/auth/cedula";
+import { generarClaveTemporal } from "@/lib/servicios/cuentas";
+import { NOMBRE_ROL, ROLES, type Rol } from "@/types";
+
+export const partial = true;
+const perfil = Astro.locals.perfil!;
+if (perfil.rol !== "directiva") return new Response("Prohibido", { status: 403 });
+const { id = "" } = Astro.params;
+if (!esUuid(id)) return new Response("No encontrado", { status: 404 });
+const { data: u } = await Astro.locals.supabase
+  .from("usuarios")
+  .select("id, nombre, apellido, email, rol, estado, debe_cambiar_clave, personal(id)")
+  .eq("id", id)
+  .maybeSingle<{
+    id: string;
+    nombre: string;
+    apellido: string;
+    email: string;
+    rol: Rol;
+    estado: string;
+    debe_cambiar_clave: boolean;
+    personal: { id: string } | { id: string }[] | null;
+  }>();
+if (!u) return new Response("No encontrado", { status: 404 });
+const ficha = Array.isArray(u.personal) ? u.personal[0]?.id : u.personal?.id;
+const propia = u.id === perfil.id;
+const porCedula = esCuentaCedula(u.email);
+const activa = u.estado === "activo";
+---
+
+<header class="v-cabecera" tabindex="-1">
+  <div>
+    <h2 class="v-titulo" id="ventana-titulo-cuenta" data-ventana-titulo>
+      {u.nombre} {u.apellido}
+    </h2>
+    <p class="v-sub">
+      {usuarioVisible(u.email)}
+      {!activa ? " · Desactivada" : u.debe_cambiar_clave ? " · Sin activar" : ""}
+    </p>
+  </div>
+  <button type="button" class="v-cerrar" aria-label="Cerrar" data-cerrar-ventana>
+    <Icono nombre="error" tamano={22} />
+  </button>
+</header>
+
+<div class="v-contenido">
+  <section class="v-bloque">
+    <h3>Tipo de cuenta</h3>
+    <form method="post" action="/api/acciones" data-api class="v-form">
+      <input type="hidden" name="accion" value="cuenta_rol" />
+      <input type="hidden" name="usuario_id" value={u.id} />
+      <div class="v-campo">
+        <div class="v-chips" role="radiogroup" aria-label="Tipo de cuenta">
+          {ROLES.map((r) => (
+            <label>
+              <input type="radio" name="rol" value={r} checked={r === u.rol} disabled={propia} />
+              {NOMBRE_ROL[r]}
+            </label>
+          ))}
+        </div>
+        {propia && <span class="v-ayuda">No puede cambiar su propio tipo de cuenta.</span>}
+      </div>
+      {!propia && (
+        <div>
+          <button type="submit" class="v-boton v-secundario">
+            Guardar tipo
+          </button>
+        </div>
+      )}
+    </form>
+  </section>
+
+  <section class="v-bloque">
+    <h3>Contraseña</h3>
+    {porCedula ? (
+      <form
+        method="post"
+        action="/api/acciones"
+        data-api
+        data-confirmar={`¿Restablecer la contraseña de ${u.nombre} a ${CLAVE_INICIAL}? Al entrar deberá crear una nueva.`}
+        data-confirmar-si="Sí, restablecer"
+      >
+        <input type="hidden" name="accion" value="cuenta_clave" />
+        <input type="hidden" name="usuario_id" value={u.id} />
+        <p class="v-texto">Entra con su cédula. Si la olvidó, vuelve a ser {CLAVE_INICIAL}.</p>
+        <div class="v-acciones">
+          <button type="submit" class="v-boton v-secundario">
+            Restablecer a {CLAVE_INICIAL}
+          </button>
+        </div>
+      </form>
+    ) : (
+      <form method="post" action="/api/acciones" data-api class="v-form" novalidate>
+        <input type="hidden" name="accion" value="cuenta_clave" />
+        <input type="hidden" name="usuario_id" value={u.id} />
+        <div class="v-campo">
+          <label for="cuenta-clave">Nueva contraseña</label>
+          <input
+            id="cuenta-clave"
+            name="password"
+            value={generarClaveTemporal()}
+            autocomplete="off"
+          />
+          <span class="v-ayuda">Ya viene una sugerida. Entréguesela a la persona.</span>
+        </div>
+        <div>
+          <button type="submit" class="v-boton v-secundario">
+            Cambiar contraseña
+          </button>
+        </div>
+      </form>
+    )}
+  </section>
+
+  {!propia && (
+    <section class="v-bloque">
+      <h3>Acceso</h3>
+      <form
+        method="post"
+        action="/api/acciones"
+        data-api
+        data-confirmar={
+          activa
+            ? `¿Desactivar la cuenta de ${u.nombre}? No podrá entrar hasta que la active de nuevo.`
+            : undefined
+        }
+        data-confirmar-si="Sí, desactivar"
+      >
+        <input type="hidden" name="accion" value="cuenta_estado" />
+        <input type="hidden" name="usuario_id" value={u.id} />
+        <input type="hidden" name="valor" value={activa ? "desactivar" : "activar"} />
+        <p class="v-texto">{activa ? "Puede entrar a la app." : "No puede entrar a la app."}</p>
+        <div class="v-acciones">
+          <button type="submit" class:list={["v-boton", activa ? "v-peligro" : "v-primario"]}>
+            {activa ? "Desactivar cuenta" : "Activar cuenta"}
+          </button>
+        </div>
+      </form>
+    </section>
+  )}
+</div>
+
+{ficha && (
+  <footer class="v-pie">
+    <a href={`/personal/${ficha}`} class="v-boton v-secundario v-bloque-ancho">
+      Abrir ficha de personal
+    </a>
+  </footer>
+)}

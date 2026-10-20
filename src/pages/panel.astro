@@ -357,7 +357,11 @@ const hoySegmentos = [
       Planilla de hoy
     </Boton>
     {perfil.rol === "directiva" && (
-      <Boton href="/personal/nuevo">
+      <Boton
+        href="/personal/nuevo"
+        data-ventana="/ventanas/personal-nuevo"
+        data-ventana-modo="centro"
+      >
         <Icono nombre="mas" tamano={18} />
         Nuevo personal
       </Boton>

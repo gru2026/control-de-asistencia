@@ -137,7 +137,7 @@ const horas = (n: number | string | null) =>
 const LEYENDA: EstadoAsistencia[] = ["presente", "tarde", "falta", "permiso"];
 ---
 
-<PanelLayout titulo="Mi historial" subtitulo="Su asistencia mes a mes.">
+<PanelLayout ancho="angosto" titulo="Mi historial" subtitulo="Su asistencia mes a mes.">
   {!ficha ? (
     <Alerta tipo="info">
       Su cuenta no tiene una ficha de personal asociada, por lo que no registra asistencia.
@@ -283,7 +283,6 @@ const LEYENDA: EstadoAsistencia[] = ["presente", "tarde", "falta", "permiso"];
   .pila {
     display: grid;
     gap: var(--esp-4);
-    max-width: 36rem;
   }
   .mes {
     display: flex;

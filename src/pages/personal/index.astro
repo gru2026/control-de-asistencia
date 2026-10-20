@@ -97,7 +97,11 @@ const hayFiltros = Boolean(q || categoria || vinculo || jornada || cuenta || est
         <Boton href="/personal/cuentas" variante="secundario">
           Cuentas
         </Boton>
-        <Boton href="/personal/nuevo">
+        <Boton
+          href="/personal/nuevo"
+          data-ventana="/ventanas/personal-nuevo"
+          data-ventana-modo="centro"
+        >
           <Icono nombre="mas" tamano={18} />
           Nuevo personal
         </Boton>

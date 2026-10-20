@@ -338,6 +338,35 @@ try {
     (await pag.locator("[data-panel='acceso'].activo").count()) === 1,
   );
 
+  r.seccion("Acciones rápidas y formularios en ventanas");
+  await pag.goto(`${B}/panel`);
+  await pag.click(".acciones-rapidas");
+  await pag.waitForSelector("#ventana[open] .v-mosaico", { timeout: 15000 });
+  r.ok(
+    "el botón Acciones abre el menú de acciones rápidas",
+    (await pag.locator(".v-mosaico li").count()) >= 5,
+  );
+  await pag.click("#ventana button:has-text('Nuevo personal')");
+  await pag.waitForSelector("#np-nombre", { timeout: 15000 });
+  await pag.click("#ventana button:has-text('Registrar')");
+  await pag.waitForSelector("#ventana .v-error", { timeout: 15000 });
+  r.ok(
+    "nuevo personal en ventana valida junto al campo",
+    (await pag.locator("#ventana .v-error").count()) >= 3,
+  );
+  await pag.keyboard.press("Escape");
+  await pag.goto(`${B}/configuracion/usuarios`);
+  await pag.locator("td.acciones a:has-text('Gestionar')").first().click();
+  await pag.waitForSelector("#ventana[open] #ventana-titulo-cuenta", { timeout: 15000 });
+  r.ok("gestionar una cuenta abre una ventana", true);
+  await pag.keyboard.press("Escape");
+  await pag.goto(`${B}/personal/nuevo`);
+  const caja = await pag.$eval("main", (m) => {
+    const b = m.getBoundingClientRect();
+    return Math.abs(b.left - 240 - (innerWidth - b.right));
+  });
+  r.ok("los formularios de una columna quedan centrados", caja < 4, `${caja}px`);
+
   r.seccion("Errores");
   await pag.goto(`${B}/personal`);
   await pag.context().clearCookies();

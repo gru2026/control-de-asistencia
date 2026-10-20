@@ -1,0 +1,65 @@
+---
+/** Cuenta sin ficha de personal (directivos o secretaría que no marcan). D-51. */
+import Icono from "@/components/ui/Icono.astro";
+import { generarClaveTemporal } from "@/lib/servicios/cuentas";
+import { NOMBRE_ROL, ROLES } from "@/types";
+
+export const partial = true;
+if (Astro.locals.perfil?.rol !== "directiva") return new Response("Prohibido", { status: 403 });
+---
+
+<header class="v-cabecera" tabindex="-1">
+  <div>
+    <h2 class="v-titulo" id="ventana-titulo-cuenta-nueva" data-ventana-titulo>
+      Nueva cuenta
+    </h2>
+    <p class="v-sub">
+      Para quien administra y no marca asistencia. Al personal, créele la cuenta desde su ficha.
+    </p>
+  </div>
+  <button type="button" class="v-cerrar" aria-label="Cerrar" data-cerrar-ventana>
+    <Icono nombre="error" tamano={22} />
+  </button>
+</header>
+
+<form method="post" action="/api/acciones" data-api class="v-form v-contenido" novalidate>
+  <input type="hidden" name="accion" value="cuenta_crear" />
+  <div class="v-dos">
+    <div class="v-campo">
+      <label for="cn-nombre">Nombre</label>
+      <input id="cn-nombre" name="nombre" autocomplete="off" autofocus />
+    </div>
+    <div class="v-campo">
+      <label for="cn-apellido">Apellido</label>
+      <input id="cn-apellido" name="apellido" autocomplete="off" />
+    </div>
+  </div>
+  <div class="v-campo">
+    <label for="cn-email">Correo</label>
+    <input id="cn-email" name="email" type="email" inputmode="email" autocomplete="off" />
+    <span class="v-ayuda">Con este correo entrará.</span>
+  </div>
+  <div class="v-campo">
+    <label for="cn-clave">Contraseña</label>
+    <input id="cn-clave" name="password" value={generarClaveTemporal()} autocomplete="off" />
+    <span class="v-ayuda">Ya viene una sugerida. Entréguesela a la persona.</span>
+  </div>
+  <div class="v-campo">
+    <span class="v-leyenda" id="cn-rol">
+      Tipo de cuenta
+    </span>
+    <div class="v-chips" role="radiogroup" aria-labelledby="cn-rol">
+      {ROLES.map((r) => (
+        <label>
+          <input type="radio" name="rol" value={r} checked={r === "secretaria"} />
+          {NOMBRE_ROL[r]}
+        </label>
+      ))}
+    </div>
+  </div>
+  <div class="v-acciones">
+    <button type="submit" class="v-boton v-primario v-bloque-ancho" data-texto-cargando="Creando…">
+      Crear cuenta
+    </button>
+  </div>
+</form>

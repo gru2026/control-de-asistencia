@@ -154,6 +154,7 @@ const opcionesMotivo = [
 ---
 
 <PanelLayout
+  ancho="medio"
   titulo={esNuevo ? "Nuevo permiso" : "Editar permiso"}
   migas={[{ texto: "Permisos", href: "/permisos" }, { texto: esNuevo ? "Nuevo" : "Editar" }]}
 >
@@ -269,7 +270,6 @@ const opcionesMotivo = [
   .pila {
     display: grid;
     gap: var(--esp-4);
-    max-width: 44rem;
   }
   .rejilla {
     display: grid;

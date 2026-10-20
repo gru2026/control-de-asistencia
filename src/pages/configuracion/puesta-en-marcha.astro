@@ -158,6 +158,7 @@ const listos = pasos.filter((p) => p.listo).length;
 ---
 
 <PanelLayout
+  ancho="medio"
   titulo="Puesta en marcha"
   subtitulo="Lo que falta para pasar de las pruebas al uso real. Esta página solo revisa; cada paso se hace en su pantalla."
   migas={[{ texto: "Ajustes", href: "/configuracion" }, { texto: "Puesta en marcha" }]}
@@ -201,7 +202,6 @@ const listos = pasos.filter((p) => p.listo).length;
   .pila {
     display: grid;
     gap: var(--esp-4);
-    max-width: 52rem;
   }
   .progreso-texto,
   .nota {

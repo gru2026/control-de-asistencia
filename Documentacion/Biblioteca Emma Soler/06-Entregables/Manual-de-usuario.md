@@ -14,6 +14,7 @@ tags: [emma-soler, entregable]
 2. **Crear una cuenta:** ve a «Crear cuenta», escribe tu nombre, tu correo y una contraseña de al menos 8 caracteres. Es gratis.
 3. **Leer:** en la ficha del libro, pulsa «Leer ahora».
    - Pasa de página con las flechas, con el teclado (← →) o deslizando el dedo.
+   - En la computadora, el botón 📖 muestra dos páginas a la vez, como un libro abierto.
    - Usa 🔍 para ampliar, ☀ para el modo sepia y ⛶ para la pantalla completa.
    - Pulsa 🔖 para guardar un marcador con una nota. La lista de marcadores está en ☰.
    - El sitio recuerda la página donde quedaste.

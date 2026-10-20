@@ -374,6 +374,7 @@ const MOTIVOS_MANUAL = [
         <thead>
           <tr>
             <th scope="col">Persona</th>
+            <th scope="col">Categoría</th>
             <th scope="col" class="col-jornada">
               Jornada
             </th>
@@ -398,15 +399,15 @@ const MOTIVOS_MANUAL = [
                   <a href={`/personal/${f.persona.id}`} class="nombre" data-persona={f.persona.id}>
                     {f.persona.apellido}, {f.persona.nombre}
                   </a>
-                  <span class="etiquetas">
-                    {c && <ChipCategoria nombre={c.nombre} color={c.color} />}
-                    {f.persona.marca_en_pc && <span class="sin-tel">Marca en secretaría</span>}
-                  </span>
+                  {f.persona.marca_en_pc && <span class="sin-tel">Marca en secretaría</span>}
                 </td>
-                <td data-etiqueta="Jornada" class="solo-pc col-jornada num">
+                <td data-etiqueta="Categoría">
+                  {c ? <ChipCategoria nombre={c.nombre} color={c.color} /> : "—"}
+                </td>
+                <td data-etiqueta="Jornada" class="solo-pc col-jornada hora">
                   {f.regla ? `${f.regla.horaEntrada}–${f.regla.horaSalida}` : "—"}
                 </td>
-                <td data-etiqueta="Entrada" class="num">
+                <td data-etiqueta="Entrada" class="hora">
                   {ent ? (
                     <span>
                       {ent.h} <span class="suave">{ent.m}</span>
@@ -415,7 +416,7 @@ const MOTIVOS_MANUAL = [
                     <span class="suave">—</span>
                   )}
                 </td>
-                <td data-etiqueta="Salida" class="num">
+                <td data-etiqueta="Salida" class="hora">
                   {sal ? (
                     <span>
                       {sal.h} <span class="suave">{sal.m}</span>
@@ -643,13 +644,11 @@ const MOTIVOS_MANUAL = [
     font-weight: var(--peso-fuerte);
     margin-right: var(--esp-2);
   }
-  .etiquetas {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: var(--esp-1) var(--esp-2);
-    align-items: center;
+  .hora {
+    font-variant-numeric: tabular-nums;
   }
   .sin-tel {
+    display: block;
     font-size: var(--texto-xs);
     color: var(--color-texto-suave);
   }

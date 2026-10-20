@@ -25,6 +25,10 @@ tags: [emma-soler, diseno]
 | D-12 | Algoritmos C++: enderezar, Levenshtein, TF-IDF y SHA-256 | Son reales, aportan algo al sitio y se pueden explicar. |
 | D-13 | nlohmann/json para leer JSON en C++ | El código propio se dedica a los algoritmos y no a escribir un lector de JSON. |
 | D-14 | Documentación en Obsidian, carpeta «Biblioteca Emma Soler» | Mantenerla ordenada y separada de otros proyectos del vault. |
+| D-16 | Libros completos del Proyecto Gutenberg y escaneos originales de Internet Archive | Contenido real y legal; los escaneos demuestran el flujo de digitalización con libros físicos de verdad |
+| D-17 | El OCR lee siempre una copia en escala de grises, aunque el PDF quede en color | Con papel antiguo la confianza pasó del 54 % al 82-87 % |
+| D-18 | El PDF se entrega por partes (cabecera `Range`) | Los libros escaneados pesan decenas de MB; así abren en segundos |
+| D-19 | Lector con ajuste a la página y doble página | Se lee como un libro, sin tener que desplazarse dentro de la página |
 | D-15 | Auditoría con un disparador genérico en la base de datos, no en Node | Registra los cambios vengan de donde vengan; el historial es de solo agregar |
 
 > [!note] Python

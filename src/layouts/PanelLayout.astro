@@ -366,7 +366,8 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
   /* ── Contenido ──────────────────────────────────────── */
   main {
     width: 100%;
-    max-width: 72rem;
+    /* Mismo ancho en todas las secciones (el del panel) */
+    max-width: 96rem;
     margin: 0 auto;
     padding: var(--esp-5) calc(var(--esp-4) + var(--seguro-der)) calc(88px + var(--seguro-abajo))
       calc(var(--esp-4) + var(--seguro-izq));
@@ -551,7 +552,6 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     }
     main {
       padding: var(--esp-10) var(--esp-10) var(--esp-12);
-      margin: 0;
     }
     /* Pantallas de una columna: centradas en el espacio junto al menú */
     main.medio,

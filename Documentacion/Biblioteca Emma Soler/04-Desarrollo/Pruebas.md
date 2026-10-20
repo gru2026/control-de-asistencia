@@ -16,6 +16,7 @@ tags: [emma-soler, desarrollo]
 | `npm run test:cpp` | 14 pruebas de los programas C++: vectores oficiales de SHA-256, igualdad con `sha256sum`, sugerencias, similares y JSON inválido | 14/14 ✅ |
 | `npm run prueba:enderezar` | Páginas giradas 0°, 3°, −4°, 1,5° y −2,25° → detecta la corrección exacta | 5/5 ✅ |
 | `npm run prueba:integridad` | 16 PDF íntegros → se cambia 1 bit → «dañado» → se restaura → «íntegro» | ✅ |
+| Libros reales | 27 PDF íntegros; búsqueda dentro de escaneos («perro nevado» → *Tradiciones y leyendas*, p. 10; «carabobo» → *Venezuela heroica*, p. 275); lector revisado con capturas con sesión (doble página, móvil) | ✅ (20/10) |
 | `npm run prueba:historial` | Cambio de la bibliotecaria y cambio de rol registrados con nombre y JSON; nadie puede insertar, editar ni borrar entradas; un lector no puede leerlas | 7/7 ✅ (20/10) |
 | `npm run prueba:digitalizar` | Imágenes → enderezar → OCR → PDF → publicar → buscar una palabra del OCR → eliminar | ✅ OCR al 89 % |
 | `npm run prueba:pdf` | Subir un PDF existente → extraer su texto → buscar → eliminar | ✅ |

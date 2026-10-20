@@ -3,7 +3,7 @@ titulo: Flujo de digitalización
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: desarrollo
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, desarrollo]
 ---
 
@@ -39,8 +39,16 @@ Al final:
 ## Subir un PDF ya digital
 En `/admin/libros/nuevo`, pdfjs extrae el texto de cada página y se calcula su SHA-256.
 
+## Rendimiento y calidad (ajustados con libros reales, 20/10)
+- **OCR en paralelo:** 4 trabajadores de Tesseract procesan las páginas de a 4. Unos 2 s por página, antes 15 s.
+- **Copia en grises para el OCR:** el PDF puede conservar el color del papel, pero el OCR siempre lee una copia en escala de grises, sin estirar el contraste. En un libro de 1911 la confianza subió del 54 % al 82 %, y en la prueba sintética, del 89 % al 95 %.
+- **Imágenes de 1400 px**, en JPG de calidad 68 (color) o 75 (grises).
+- **Confianza mínima del 40 %:** por debajo, la página queda solo como imagen y su texto no se indexa.
+
+Ver [[Biblioteca Emma Soler/04-Desarrollo/Coleccion-de-libros-reales|Colección de libros reales]].
+
 ## Números de las pruebas
 | Prueba | Resultado |
 |---|---|
-| 3 páginas (una girada 90° y otra torcida 3°) | Confianza media del OCR: 89 %. La página 2 se enderezó −3°. |
+| 3 páginas (una girada 90° y otra torcida 3°) | Confianza media del OCR: 95 % (antes 89 %). La página 2 se enderezó −3°. |
 | Página torcida 6° | Confianza del OCR: 88 % sin enderezar y 95 % enderezada. |

@@ -138,6 +138,7 @@ const TIPO_VIGENCIA = { proximo: "info", vigente: "activo", pasado: "inactivo" }
       <thead>
         <tr>
           <th scope="col">Persona</th>
+          <th scope="col">Categoría</th>
           <th scope="col">Fechas</th>
           <th scope="col">Motivo</th>
           <th scope="col" class="col-obs">
@@ -157,9 +158,11 @@ const TIPO_VIGENCIA = { proximo: "info", vigente: "activo", pasado: "inactivo" }
                 <a href={`/permisos/${f.id}`} class="nombre">
                   {f.personal.apellido}, {f.personal.nombre}
                 </a>
-                {c && <ChipCategoria nombre={c.nombre} color={c.color} />}
               </td>
-              <td data-etiqueta="Fechas" class="num">
+              <td data-etiqueta="Categoría">
+                {c ? <ChipCategoria nombre={c.nombre} color={c.color} /> : "—"}
+              </td>
+              <td data-etiqueta="Fechas" class="hora">
                 <span>
                   {f.fecha_desde === f.fecha_hasta
                     ? fechaCorta(f.fecha_desde)
@@ -189,6 +192,9 @@ const TIPO_VIGENCIA = { proximo: "info", vigente: "activo", pasado: "inactivo" }
 </PanelLayout>
 
 <style>
+  .hora {
+    font-variant-numeric: tabular-nums;
+  }
   .suave {
     color: var(--color-texto-suave);
   }

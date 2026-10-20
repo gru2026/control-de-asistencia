@@ -5,8 +5,10 @@ interface Props {
   /** Orden actual. */
   orden: string;
   dir: "asc" | "desc";
+  /** Columna de números: encabezado alineado a la derecha, como sus celdas. */
+  num?: boolean;
 }
-const { campo, orden, dir } = Astro.props;
+const { campo, orden, dir, num = false } = Astro.props;
 const activo = orden === campo;
 const siguiente = activo && dir === "asc" ? "desc" : "asc";
 const u = new URL(Astro.url);
@@ -15,7 +17,11 @@ u.searchParams.set("dir", siguiente);
 u.searchParams.delete("pagina");
 ---
 
-<th scope="col" aria-sort={activo ? (dir === "asc" ? "ascending" : "descending") : "none"}>
+<th
+  scope="col"
+  class:list={[num && "num"]}
+  aria-sort={activo ? (dir === "asc" ? "ascending" : "descending") : "none"}
+>
   <a href={u.pathname + u.search} class:list={["orden", activo && "activo"]}>
     <slot />
     <svg

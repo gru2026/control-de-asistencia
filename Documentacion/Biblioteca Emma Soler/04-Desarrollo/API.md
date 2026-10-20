@@ -21,7 +21,7 @@ Todos los endpoints responden JSON. En caso de error devuelven `{ "error": "mens
 ## Con sesión
 | Método | Ruta | Cuerpo | Respuesta |
 |---|---|---|---|
-| GET | `/api/libros/:id/pdf` | — | El PDF (registra una lectura) |
+| GET | `/api/libros/:id/pdf` | Cabecera `Range` opcional | El PDF completo (200) o un trozo (206). Registra una lectura |
 | GET / PUT | `/api/lecturas/:libro` | `{ pagina_actual, total_paginas, marcadores? }` | Progreso y marcadores |
 | POST / DELETE | `/api/favoritos/:libro` | — | `{ favorito }` |
 | POST | `/api/resenas` | `{ libro_id, puntuacion, comentario }` | `{ mensaje }` |

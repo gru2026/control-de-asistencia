@@ -20,7 +20,7 @@ tags: [emma-soler, resumen]
 | Elemento | Cantidad |
 |---|---|
 | Secciones del sitio institucional | 9 |
-| Libros de ejemplo (dominio público, de Wikisource) | 16 |
+| Libros de dominio público | 27: 12 completos de Gutenberg, 3 **escaneos originales** digitalizados con el sistema, 12 selecciones. Ver [[Biblioteca Emma Soler/04-Desarrollo/Coleccion-de-libros-reales|Colección]] |
 | Fotos de Cúa (Wikimedia Commons, con créditos) | 14 |
 | Eventos y noticias | 7 y 4 |
 | Tablas en la base de datos | 18 |

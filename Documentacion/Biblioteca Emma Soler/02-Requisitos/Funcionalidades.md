@@ -28,7 +28,7 @@ Todas las páginas usan el marco de la referencia `app.webp`: barra lateral cora
 - **Catálogo:** búsqueda de texto completo, filtros por categoría y autor, distintos órdenes y paginación. Junto a cada resultado muestra el fragmento de la página donde aparece la palabra. Ver [[Biblioteca Emma Soler/04-Desarrollo/Busqueda|Búsqueda]].
 - **«¿Quisiste decir…?»:** sugerencias cuando no hay resultados (C++). Ver [[Biblioteca Emma Soler/05-Algoritmos-C++/3-Quisiste-decir-Levenshtein|Levenshtein]].
 - **Ficha del libro:** metadatos, signatura física, reseñas con estrellas, favoritos y «También te puede gustar» (C++, TF-IDF). Ver [[Biblioteca Emma Soler/05-Algoritmos-C++/4-Libros-similares-TF-IDF|TF-IDF]].
-- **Lector PDF (PDF.js):** zoom, modo sepia, pantalla completa, teclado y gestos táctiles, marcadores con nota y guardado automático del progreso.
+- **Lector PDF (PDF.js):** la página se ajusta completa a la pantalla, **doble página como libro abierto** en pantallas anchas, **carga por partes** (solo las páginas visibles), zoom, modo sepia, pantalla completa, teclado y gestos táctiles, marcadores con nota y guardado automático del progreso.
 - **Mi cuenta:** lecturas en curso, favoritos, marcadores, reseñas y nombre.
 
 ## Panel del personal (`/admin`)

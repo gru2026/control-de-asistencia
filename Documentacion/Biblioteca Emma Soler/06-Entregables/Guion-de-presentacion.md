@@ -27,6 +27,7 @@ La biblioteca de Cúa tiene libros que solo se pueden consultar en sala. Este si
 2. Buscar `bolibar`: aparece **«¿Quisiste decir bolívar?»** (C++, Levenshtein). Explicar la tabla de programación dinámica.
 3. Abrir «Carta de Jamaica» → «También te puede gustar»: otros textos de Bolívar con su similitud (C++, TF-IDF + coseno).
 4. Leer: pasar páginas, poner un marcador, salir y volver. El lector recuerda la página.
+5. Abrir **«Tradiciones y leyendas» (Mérida, 1911)**, un libro original escaneado y procesado con el sistema. Mostrar la doble página y buscar `perro nevado`: lo encuentra dentro del OCR (página 10).
 
 ## 4. Digitalizar como bibliotecaria (4 min)
 1. **Panel → Digitalizar:** completar los datos y agregar un metadato (mostrar el JSON en vivo).

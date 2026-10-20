@@ -3,7 +3,7 @@ titulo: 1. Enderezar páginas
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: algoritmos
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, algoritmos, cpp]
 ---
 
@@ -51,12 +51,19 @@ std::vector<int> perfilProyeccion(const std::vector<Punto>& puntos, double grado
 }
 ```
 
+## Protección contra falsos positivos (agregada el 20/10)
+Con libros reales escaneados, las páginas casi en blanco (portadillas o páginas con una sola línea) se «enderezaban» 3° o 5° por error. Ahora:
+- si hay **menos de 2000 píxeles de tinta**, no se corrige;
+- se calcula `mejora = varianza(ángulo elegido) / varianza(0°)`; si es **menor a 1,15** (menos del 15 % de mejora), la inclinación se considera ruido y se devuelve 0.
+
+En las 154 páginas reales de prueba no hubo ningún giro falso, y las pruebas sintéticas siguen detectando el ángulo exacto.
+
 ## Entrada y salida
 ```json
 // entrada
 {"imagen": "/tmp/pagina.pgm", "minimo": -8, "maximo": 8, "paso": 0.25}
 // salida
-{"angulo": -3.0, "ancho": 1000, "alto": 1414, "umbral": 140, "pixelesTinta": 51234}
+{"angulo": -3.0, "mejora": 3.4, "ancho": 1000, "alto": 1414, "umbral": 140, "pixelesTinta": 51234}
 ```
 `angulo` es lo que hay que girar la imagen; el valor positivo es en el sentido de las agujas del reloj. Después, sharp la gira con `rotate(angulo)`.
 

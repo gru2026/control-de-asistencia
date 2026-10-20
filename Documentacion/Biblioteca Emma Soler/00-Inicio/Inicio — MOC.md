@@ -48,6 +48,7 @@ Documentación del proyecto **Biblioteca Pública Emma Soler**: sitio institucio
 - [[Biblioteca Emma Soler/04-Desarrollo/Flujo-de-digitalizacion|Flujo de digitalización]]: de las fotos al PDF con OCR
 - [[Biblioteca Emma Soler/04-Desarrollo/Busqueda|Búsqueda]]: texto completo, tildes, errores de escritura
 - [[Biblioteca Emma Soler/04-Desarrollo/Historial-de-cambios|Historial de cambios]]: auditoría de quién cambió qué
+- [[Biblioteca Emma Soler/04-Desarrollo/Coleccion-de-libros-reales|Colección de libros reales]]: Gutenberg, escaneos originales y mejoras al lector
 - [[Biblioteca Emma Soler/04-Desarrollo/Pruebas|Pruebas]]: qué se probó y cómo repetirlo
 
 ## 05 · Algoritmos en C++

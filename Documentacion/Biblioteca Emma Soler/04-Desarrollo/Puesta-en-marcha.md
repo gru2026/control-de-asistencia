@@ -3,7 +3,7 @@ titulo: Puesta en marcha
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: desarrollo
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, desarrollo]
 ---
 
@@ -21,6 +21,7 @@ npm install
 cp .env.example .env     # completar con las claves que muestra npm run db:status
 npm run setup            # compila C++, levanta Supabase, crea las tablas y carga los 16 libros
 npm run dev              # http://localhost:4321
+npm run importar:escaneos   # (opcional, con el sitio en marcha) los 3 libros escaneados reales
 ```
 
 > [!tip] Si el puerto 4321 está ocupado
@@ -46,6 +47,8 @@ Todas usan la contraseña `EmmaSoler2026!`.
 | `npm run db:start` / `db:stop` / `db:status` | Supabase local (Studio: http://127.0.0.1:54323) |
 | `npm run db:reset` | Recrea la base de datos (**borra los datos**) |
 | `npm run seed:libros` | Vuelve a cargar los usuarios y los libros, con sus hashes y similares |
+| `npm run importar:escaneos` | Digitaliza los 3 libros escaneados reales (necesita `npm run dev`; unos 15 min la primera vez) |
+| `npm run importar:gutenberg` | Vuelve a preparar los textos completos (solo si se agregan libros) |
 | `npm run prueba:*` | Pruebas de extremo a extremo. Ver [[Biblioteca Emma Soler/04-Desarrollo/Pruebas|Pruebas]] |
 
 ## Problemas frecuentes

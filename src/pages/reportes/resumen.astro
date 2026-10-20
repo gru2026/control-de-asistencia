@@ -159,16 +159,17 @@ const horas = (n: number) => n.toFixed(1).replace(".", ",");
             <EncabezadoOrden campo="nombre" orden={orden} dir={dir}>
               Persona
             </EncabezadoOrden>
+            <th scope="col">Categoría</th>
             <th scope="col" class="num">
               Días
             </th>
             <th scope="col" class="num">
               Presente
             </th>
-            <EncabezadoOrden campo="tardanzas" orden={orden} dir={dir}>
+            <EncabezadoOrden campo="tardanzas" orden={orden} dir={dir} num>
               Tarde
             </EncabezadoOrden>
-            <EncabezadoOrden campo="faltas" orden={orden} dir={dir}>
+            <EncabezadoOrden campo="faltas" orden={orden} dir={dir} num>
               Faltas
             </EncabezadoOrden>
             <th scope="col" class="num">
@@ -177,10 +178,10 @@ const horas = (n: number) => n.toFixed(1).replace(".", ",");
             <th scope="col" class="num col-extra">
               Sin registro
             </th>
-            <EncabezadoOrden campo="asistencia" orden={orden} dir={dir}>
+            <EncabezadoOrden campo="asistencia" orden={orden} dir={dir} num>
               Asistencia
             </EncabezadoOrden>
-            <EncabezadoOrden campo="horas" orden={orden} dir={dir}>
+            <EncabezadoOrden campo="horas" orden={orden} dir={dir} num>
               Horas
             </EncabezadoOrden>
             <th scope="col" class="num col-extra">
@@ -197,7 +198,9 @@ const horas = (n: number) => n.toFixed(1).replace(".", ",");
                   <a href={`/personal/${f.personalId}`} class="nombre" data-persona={f.personalId}>
                     {f.nombre}
                   </a>
-                  {c && <ChipCategoria nombre={c.nombre} color={c.color} />}
+                </td>
+                <td data-etiqueta="Categoría">
+                  {c ? <ChipCategoria nombre={c.nombre} color={c.color} /> : "—"}
                 </td>
                 <td data-etiqueta="Días laborables" class="solo-pc num">
                   {f.diasLaborables}

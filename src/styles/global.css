@@ -299,3 +299,10 @@ html.cargando [aria-busy="true"] {
 [hidden]:not([hidden="until-found"]) {
   display: none !important;
 }
+
+/* Tablas en el celular (vista de tarjetas): solo lo esencial; el resto, al tocar la persona */
+@media (max-width: 700px) {
+  td.solo-pc {
+    display: none !important;
+  }
+}

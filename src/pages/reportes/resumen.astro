@@ -199,10 +199,10 @@ const horas = (n: number) => n.toFixed(1).replace(".", ",");
                   </a>
                   {c && <ChipCategoria nombre={c.nombre} color={c.color} />}
                 </td>
-                <td data-etiqueta="Días laborables" class="num">
+                <td data-etiqueta="Días laborables" class="solo-pc num">
                   {f.diasLaborables}
                 </td>
-                <td data-etiqueta="Presente" class="num">
+                <td data-etiqueta="Presente" class="solo-pc num">
                   {f.presentes}
                 </td>
                 <td data-etiqueta="Tarde" class="num">
@@ -211,10 +211,10 @@ const horas = (n: number) => n.toFixed(1).replace(".", ",");
                 <td data-etiqueta="Faltas" class:list={["num", f.faltas > 0 && "alto"]}>
                   {f.faltas}
                 </td>
-                <td data-etiqueta="Permisos" class="num">
+                <td data-etiqueta="Permisos" class="solo-pc num">
                   {f.permisos}
                 </td>
-                <td data-etiqueta="Sin registro" class="num col-extra">
+                <td data-etiqueta="Sin registro" class="solo-pc num col-extra">
                   {f.sinRegistro || "—"}
                 </td>
                 <td data-etiqueta="Asistencia" class="num">
@@ -223,7 +223,7 @@ const horas = (n: number) => n.toFixed(1).replace(".", ",");
                 <td data-etiqueta="Horas" class="num">
                   {horas(f.totalHoras)}
                 </td>
-                <td data-etiqueta="En secretaría" class="num col-extra">
+                <td data-etiqueta="En secretaría" class="solo-pc num col-extra">
                   {f.marcacionesPc || "—"}
                 </td>
               </tr>

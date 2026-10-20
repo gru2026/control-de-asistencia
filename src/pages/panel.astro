@@ -107,7 +107,7 @@ const [
   })(),
   sb
     .from("dispositivos")
-    .select("usuario_id", { count: "exact" })
+    .select("id, usuario_id, descripcion", { count: "exact" })
     .eq("estado", "pendiente")
     .order("creado_en")
     .limit(1),
@@ -259,11 +259,18 @@ const kpis: {
   },
 ];
 
-// El aviso de teléfonos lleva a la ficha del primero pendiente.
-const usuarioTelefono = (primerTelefono as { usuario_id: string }[] | null)?.[0]?.usuario_id;
-const { data: fichaTelefono } = usuarioTelefono
-  ? await sb.from("personal").select("id").eq("usuario_id", usuarioTelefono).maybeSingle()
+// El primer teléfono pendiente se puede aprobar desde aquí mismo.
+const telefono = (
+  primerTelefono as { id: string; usuario_id: string; descripcion: string | null }[] | null
+)?.[0];
+const { data: fichaTelefono } = telefono
+  ? await sb
+      .from("personal")
+      .select("id, nombre, apellido")
+      .eq("usuario_id", telefono.usuario_id)
+      .maybeSingle<{ id: string; nombre: string; apellido: string }>()
   : { data: null };
+const esDirectiva = perfil.rol === "directiva";
 
 // ── Nivel 2: requiere atención (solo lo que tenga pendientes) ──
 const atencion = [
@@ -273,9 +280,16 @@ const atencion = [
     icono: "escudo" as NombreIcono,
   },
   telefonosPendientes && {
-    texto: plural(telefonosPendientes, "teléfono por aprobar", "teléfonos por aprobar"),
+    texto: fichaTelefono
+      ? `${fichaTelefono.nombre} ${fichaTelefono.apellido} pide aprobar un teléfono nuevo${telefono?.descripcion ? ` (${telefono.descripcion})` : ""}${(telefonosPendientes ?? 0) > 1 ? ` y ${plural((telefonosPendientes ?? 0) - 1, "pedido más", "pedidos más")}` : ""}`
+      : plural(telefonosPendientes, "teléfono por aprobar", "teléfonos por aprobar"),
     enlace: fichaTelefono ? `/personal/${fichaTelefono.id}#dispositivo` : "/personal",
-    icono: "usuarios" as NombreIcono,
+    icono: "telefono" as NombreIcono,
+    persona: fichaTelefono?.id,
+    aprobar:
+      fichaTelefono && telefono
+        ? { personalId: fichaTelefono.id, dispositivoId: telefono.id }
+        : undefined,
   },
   conFaltas.length && {
     texto: `${plural(conFaltas.length, "persona", "personas")} con ${UMBRAL_FALTAS} o más faltas`,
@@ -289,10 +303,20 @@ const atencion = [
   },
   sinCuenta && {
     texto: `${plural(sinCuenta, "persona", "personas")} sin cuenta de acceso`,
-    enlace: "/personal?cuenta=no",
+    enlace: esDirectiva ? "/personal/cuentas" : "/personal?cuenta=no",
     icono: "escudo" as NombreIcono,
   },
-].filter((x): x is { texto: string; enlace: string; icono: NombreIcono } => Boolean(x));
+].filter(
+  (
+    x,
+  ): x is {
+    texto: string;
+    enlace: string;
+    icono: NombreIcono;
+    persona?: string;
+    aprobar?: { personalId: string; dispositivoId: string };
+  } => Boolean(x),
+);
 
 // ── Formato ──
 const DIAS_CORTOS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
@@ -441,12 +465,26 @@ const hoySegmentos = [
       {atencion.length ? (
         <ul>
           {atencion.map((a) => (
-            <li>
-              <a href={a.enlace}>
+            <li class:list={[a.aprobar && "con-accion"]}>
+              <a href={a.enlace} data-persona={a.persona}>
                 <Icono nombre={a.icono} tamano={18} />
                 <span>{a.texto}</span>
-                <Icono nombre="siguiente" tamano={16} class="ir" />
+                {!a.aprobar && <Icono nombre="siguiente" tamano={16} class="ir" />}
               </a>
+              {a.aprobar && (
+                <form method="post" action="/api/acciones" data-api class="resolver">
+                  <input type="hidden" name="accion" value="disp_aprobar" />
+                  <input type="hidden" name="personal_id" value={a.aprobar.personalId} />
+                  <input type="hidden" name="dispositivo_id" value={a.aprobar.dispositivoId} />
+                  <button
+                    type="submit"
+                    class="v-boton v-secundario"
+                    data-texto-cargando="Aprobando…"
+                  >
+                    Aprobar
+                  </button>
+                </form>
+              )}
             </li>
           ))}
         </ul>
@@ -929,6 +967,18 @@ const hoySegmentos = [
   }
   .atencion li + li {
     border-top: 1px solid var(--color-borde);
+  }
+  /* Pendiente que se resuelve aquí mismo (aprobar teléfono) */
+  .atencion li.con-accion {
+    display: flex;
+    align-items: center;
+  }
+  .atencion li.con-accion a {
+    flex: 1;
+    grid-template-columns: auto 1fr;
+  }
+  .resolver {
+    padding-right: var(--esp-6);
   }
   .atencion a {
     display: grid;

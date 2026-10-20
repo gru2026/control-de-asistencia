@@ -326,8 +326,46 @@ export function recargarPantalla() {
   return navigate(location.href, { history: "replace" });
 }
 
+// Pestañas de la ficha: una sección a la vez; el ancla (#permisos, #dispositivo…) elige la suya
+function mostrarPestana(nav: HTMLElement, id: string, desplazar = false) {
+  const contenedor = nav.parentElement;
+  if (!contenedor) return;
+  const paneles = [...contenedor.querySelectorAll<HTMLElement>("[data-panel]")];
+  const panel =
+    paneles.find((p) => p.dataset.panel === id) ??
+    paneles.find((p) => p.querySelector(`#${CSS.escape(id)}`));
+  if (!panel) return;
+  paneles.forEach((p) => p.classList.toggle("activo", p === panel));
+  nav.querySelectorAll<HTMLAnchorElement>("[data-tab]").forEach((a) => {
+    if (a.dataset.tab === panel.dataset.panel) a.setAttribute("aria-current", "true");
+    else a.removeAttribute("aria-current");
+  });
+  if (desplazar) {
+    const destino = panel.dataset.panel === id ? null : panel.querySelector(`#${CSS.escape(id)}`);
+    (destino ?? nav).scrollIntoView({ block: "start" });
+  }
+}
+document.addEventListener("click", (ev) => {
+  const a = (ev.target as HTMLElement).closest<HTMLAnchorElement>(
+    "[data-pestanas-ficha] a[data-tab]",
+  );
+  if (!a) return;
+  ev.preventDefault();
+  const nav = a.closest<HTMLElement>("[data-pestanas-ficha]")!;
+  mostrarPestana(nav, a.dataset.tab!);
+  history.replaceState(history.state, "", `#${a.dataset.tab}`);
+});
+
+addEventListener("hashchange", () => {
+  const nav = document.querySelector<HTMLElement>("[data-pestanas-ficha]");
+  if (nav && location.hash) mostrarPestana(nav, decodeURIComponent(location.hash.slice(1)), true);
+});
+
 /** Inicializaciones que dependen de elementos concretos (se repiten tras cada reemplazo). */
 function inicializar(raiz: ParentNode) {
+  const navFicha = raiz.querySelector<HTMLElement>("[data-pestanas-ficha]");
+  if (navFicha && location.hash)
+    mostrarPestana(navFicha, decodeURIComponent(location.hash.slice(1)), true);
   const estado = leerSecciones();
   raiz.querySelectorAll<HTMLDetailsElement>("details[data-recordar]").forEach((d) => {
     const guardado = estado[d.dataset.recordar!];

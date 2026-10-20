@@ -205,14 +205,16 @@ const hayFiltros = Boolean(q || categoria || vinculo || jornada || cuenta || est
               <td data-etiqueta="Categoría">
                 {c ? <ChipCategoria nombre={c.nombre} color={c.color} /> : "—"}
               </td>
-              <td data-etiqueta="Vínculo">{NOMBRE_VINCULO[f.vinculo]}</td>
-              <td data-etiqueta="Carga" class="num">
+              <td data-etiqueta="Vínculo" class="solo-pc">
+                {NOMBRE_VINCULO[f.vinculo]}
+              </td>
+              <td data-etiqueta="Carga" class="solo-pc num">
                 {f.carga_horaria ? `${f.carga_horaria} h` : "—"}
               </td>
-              <td data-etiqueta="Jornada" class="col-jornada">
+              <td data-etiqueta="Jornada" class="solo-pc col-jornada">
                 {f.jornadas?.nombre ?? <span class="suave">Sin asignar</span>}
               </td>
-              <td data-etiqueta="Cuenta">
+              <td data-etiqueta="Cuenta" class="solo-pc">
                 {f.usuarios ? (
                   <span title={f.usuarios.email}>Sí</span>
                 ) : (

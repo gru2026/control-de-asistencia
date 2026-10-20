@@ -53,16 +53,21 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   ctx.locals.perfil = null;
   ctx.locals.flash = ctx.request.method === "GET" ? tomarFlash(ctx.cookies) : null;
 
+  // Tiempos del servidor (cabecera Server-Timing) para medir dónde se va la espera.
+  const t0 = performance.now();
   // getClaims verifica la firma del JWT (y refresca la sesión si hace falta).
   const { data } = await supabase.auth.getClaims();
+  const tClaims = performance.now();
   const uid = data?.claims?.sub;
 
+  let tPerfil = tClaims;
   if (uid) {
     const { data: perfil } = await supabase
       .from("usuarios")
       .select("id, nombre, apellido, email, rol, estado, debe_cambiar_clave")
       .eq("id", uid)
       .maybeSingle<Perfil>();
+    tPerfil = performance.now();
     if (perfil?.estado === "activo") {
       ctx.locals.perfil = perfil;
     } else {
@@ -100,5 +105,11 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
       return ctx.redirect(decision.destino);
   }
 
-  return cabecerasSeguridad(await next(), ctx.locals.perfil !== null);
+  const res = cabecerasSeguridad(await next(), ctx.locals.perfil !== null);
+  const fin = performance.now();
+  res.headers.set(
+    "Server-Timing",
+    `sesion;dur=${(tClaims - t0).toFixed(0)}, perfil;dur=${(tPerfil - tClaims).toFixed(0)}, pagina;dur=${(fin - tPerfil).toFixed(0)}`,
+  );
+  return res;
 });

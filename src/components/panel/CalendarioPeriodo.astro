@@ -43,9 +43,12 @@ const NOMBRE_NIVEL = {
                     href={`/reportes?fecha=${c.fecha}`}
                     class:list={["dia", c.nivel]}
                     title={`${fechaCorta(c.fecha)}: ${porcentaje(c.valor)} de asistencia`}
-                    aria-label={`${fechaCorta(c.fecha)}: ${porcentaje(c.valor)} de asistencia. Ver planilla`}
                   >
                     {c.dia}
+                    <span class="visualmente-oculto">
+                      {" "}
+                      ({fechaCorta(c.fecha)}): {porcentaje(c.valor)} de asistencia. Ver planilla
+                    </span>
                   </a>
                 ) : (
                   <span

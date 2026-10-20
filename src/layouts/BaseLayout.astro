@@ -14,6 +14,10 @@ const { titulo, colorTema = "#0f172a" } = Astro.props;
 <html lang="es">
   <head>
     <meta charset="utf-8" />
+    <!-- Antes del primer pintado: evita que los filtros plegables salten al cargar -->
+    <script is:inline>
+      document.documentElement.classList.add("js");
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content={colorTema} />
     <meta name="color-scheme" content="light" />

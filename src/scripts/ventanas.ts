@@ -16,6 +16,7 @@
  * antes que los demás y antes que el router.
  */
 import { navigate } from "astro:transitions/client";
+import { olvidarPrecargas, tomarPrecarga } from "./precarga";
 
 const ESQUELETO =
   '<div class="v-cargando" aria-hidden="true"><span></span><span></span><span></span><span></span></div>';
@@ -36,6 +37,12 @@ export async function abrirVentana(url: string, modo: "cajon" | "centro" = "cajo
   contenido.setAttribute("aria-busy", "true");
   if (!dialogo.open) dialogo.showModal();
   try {
+    // ¿Se precargó al pasar el mouse o tocar el nombre?
+    const precargada = await tomarPrecarga(url);
+    if (precargada && new URL(precargada.url).pathname !== "/login") {
+      mostrarContenido(dialogo, contenido, precargada.html);
+      return;
+    }
     const res = await fetch(url, { headers: { "X-Ventana": "1" }, credentials: "same-origin" });
     const final = new URL(res.url);
     // Sesión vencida u otra respuesta inesperada: navegación normal
@@ -47,17 +54,20 @@ export async function abrirVentana(url: string, modo: "cajon" | "centro" = "cajo
       location.href = final.pathname === "/login" ? final.href : url;
       return;
     }
-    const html = await res.text();
-    if (!dialogo.open) return;
-    contenido.innerHTML = html;
-    contenido.removeAttribute("aria-busy");
-    const titulo = contenido.querySelector<HTMLElement>("[data-ventana-titulo]");
-    if (titulo?.id) dialogo.setAttribute("aria-labelledby", titulo.id);
-    contenido.querySelector<HTMLElement>("[autofocus], .v-cabecera")?.focus?.();
+    mostrarContenido(dialogo, contenido, await res.text());
   } catch {
     contenido.innerHTML =
       '<div class="v-cargando"><p class="v-mensaje-error">No se pudo cargar. Revise la conexión e intente de nuevo.</p></div>';
   }
+}
+
+function mostrarContenido(dialogo: HTMLDialogElement, contenido: HTMLElement, html: string) {
+  if (!dialogo.open) return;
+  contenido.innerHTML = html;
+  contenido.removeAttribute("aria-busy");
+  const titulo = contenido.querySelector<HTMLElement>("[data-ventana-titulo]");
+  if (titulo?.id) dialogo.setAttribute("aria-labelledby", titulo.id);
+  contenido.querySelector<HTMLElement>("[autofocus], .v-cabecera")?.focus?.();
 }
 
 export function cerrarVentana() {
@@ -165,6 +175,7 @@ async function enviarApi(form: HTMLFormElement, submitter: HTMLElement | null) {
       errores?: Record<string, string>;
     };
     if (r.ok) {
+      olvidarPrecargas();
       cerrarVentana();
       form.closest("dialog")?.close();
       // El mensaje de resultado llega en la cookie flash de esta pantalla

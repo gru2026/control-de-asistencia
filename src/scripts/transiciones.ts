@@ -12,6 +12,7 @@
  * Si algo falla (sin conexión, respuesta que no es HTML), el router hace una
  * navegación normal: la app sigue funcionando igual que sin JavaScript.
  */
+import { olvidarPrecargas, tomarPrecarga } from "./precarga";
 import type {
   TransitionBeforePreparationEvent,
   TransitionBeforeSwapEvent,
@@ -74,6 +75,19 @@ function conservarEstado(viejo: Element, nuevo: Element, conservarFoco: boolean)
 export function activarTransiciones(alCargar: AlCargar) {
   document.addEventListener("astro:before-preparation", (ev) => {
     const e = ev as TransitionBeforePreparationEvent;
+    // Pantalla ya precargada: se usa esa respuesta en lugar de pedirla otra vez
+    if (e.formData) olvidarPrecargas();
+    else {
+      const precargada = tomarPrecarga(e.to.href);
+      if (precargada) {
+        const original = e.loader;
+        e.loader = async () => {
+          const r = await precargada;
+          if (!r || new URL(r.url).pathname !== e.to.pathname) return original();
+          e.newDocument = new DOMParser().parseFromString(r.html, "text/html");
+        };
+      }
+    }
     const sucio = document.querySelector("form[data-avisar-cambios][data-sucio]");
     if (
       sucio &&

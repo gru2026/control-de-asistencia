@@ -65,7 +65,9 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   const supabase = crearClienteSesion(ctx.request, ctx.cookies);
   ctx.locals.supabase = supabase;
   ctx.locals.perfil = null;
-  ctx.locals.flash = ctx.request.method === "GET" ? tomarFlash(ctx.cookies) : null;
+  // Una precarga no debe «gastar» el mensaje de la acción anterior.
+  const precarga = ctx.request.headers.get("X-Precarga") === "1";
+  ctx.locals.flash = ctx.request.method === "GET" && !precarga ? tomarFlash(ctx.cookies) : null;
 
   // Tiempos del servidor (cabecera Server-Timing) para medir dónde se va la espera.
   const t0 = performance.now();

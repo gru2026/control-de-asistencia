@@ -5,25 +5,13 @@
 // Primero: sus oyentes de envío (confirmación, formularios rápidos) deben correr antes.
 import "./ventanas";
 import { navigate } from "astro:transitions/client";
-import { prefetch } from "astro:prefetch";
+import "./precarga";
 import { activarTransiciones } from "./transiciones";
 
 document.documentElement.classList.add("js");
 
 // Este módulo se carga antes que el ClientRouter: sus preventDefault() se respetan.
 activarTransiciones((raiz) => inicializar(raiz));
-
-// En el celular no hay «pasar el mouse»: la pantalla se pide apenas el dedo toca el enlace.
-document.addEventListener(
-  "touchstart",
-  (ev) => {
-    const a = (ev.target as HTMLElement).closest<HTMLAnchorElement>("a[href]");
-    if (!a || a.target || a.hasAttribute("download") || a.dataset.astroReload !== undefined) return;
-    const url = new URL(a.href, location.href);
-    if (url.origin === location.origin && !url.pathname.startsWith("/api/")) prefetch(url.href);
-  },
-  { passive: true },
-);
 
 const MENSAJES = {
   requerido: "Este campo es obligatorio.",

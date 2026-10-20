@@ -25,7 +25,8 @@
     "test:e2e": "node tests/e2e/navegacion.mjs",
     "capturas": "node tests/e2e/capturas.mjs",
     "e2e:instalar": "playwright install chromium",
-    "diseno:revisar": "node tests/e2e/detector.mjs"
+    "diseno:revisar": "node tests/e2e/detector.mjs",
+    "db:respaldo": "node --env-file=.env scripts/respaldo.mjs"
   },
   "dependencies": {
     "@astrojs/vercel": "^11.0.12",

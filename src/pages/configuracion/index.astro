@@ -94,6 +94,13 @@ const e = (a: string) => (accion === a ? errores : {});
     {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
 
     <nav class="accesos" aria-label="Secciones de ajustes">
+      <a href="/configuracion/puesta-en-marcha">
+        <Icono nombre="exito" />{" "}
+        <span>
+          <strong>Puesta en marcha</strong>
+          <small>Lista para empezar el uso real</small>
+        </span>
+      </a>
       <a href="/configuracion/marcacion">
         <Icono nombre="ubicacion" />{" "}
         <span>

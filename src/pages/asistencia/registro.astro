@@ -24,7 +24,7 @@ import { horaEnZona, sumarDias } from "@/lib/reglas/tiempo";
 import { esUuid, terminosBusqueda, texto } from "@/lib/validacion";
 import { fechaLarga, hoyEnZona } from "@/lib/fecha";
 import { ponerFlash } from "@/lib/flash";
-import { marcarAsistido } from "@/lib/servicios/asistido";
+import { deshacerAsistido, marcarAsistido } from "@/lib/servicios/asistido";
 import type { EstadoAsistencia } from "@/types";
 
 const sb = Astro.locals.supabase;
@@ -41,12 +41,21 @@ if (Astro.request.method === "POST") {
   const f = await Astro.request.formData();
   const personalId = texto(f, "personal_id");
   const tipo = texto(f, "tipo");
+  const deshacer = texto(f, "accion") === "deshacer";
   const hora = texto(f, "hora");
   const observacion = texto(f, "observacion").slice(0, 300) || null;
   if (!esUuid(personalId) || (tipo !== "entrada" && tipo !== "salida")) {
     mensaje = "Solicitud no válida.";
   } else if (hora && !/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) {
     mensaje = "Hora no válida.";
+  } else if (deshacer) {
+    const ok = await deshacerAsistido({ personalId, fecha, tipo, usuarioId: perfil.id });
+    ponerFlash(
+      Astro.cookies,
+      ok ? "info" : "error",
+      ok ? "Marcación deshecha." : "Ya no se puede deshacer: corríjala con otra hora.",
+    );
+    return Astro.redirect(Astro.url.pathname + Astro.url.search, 303);
   } else {
     try {
       const r = await marcarAsistido({
@@ -57,7 +66,14 @@ if (Astro.request.method === "POST") {
         observacion,
         usuarioId: perfil.id,
       });
-      ponerFlash(Astro.cookies, r.ok ? "exito" : "error", r.mensaje);
+      ponerFlash(
+        Astro.cookies,
+        r.ok ? "exito" : "error",
+        r.mensaje,
+        r.ok && r.deshacible
+          ? { accion: "deshacer", datos: { personal_id: personalId, tipo } }
+          : undefined,
+      );
       return Astro.redirect(Astro.url.pathname + Astro.url.search, 303);
     } catch (e) {
       console.error("[asistencia/registro]", e);

@@ -1,0 +1,122 @@
+---
+/**
+ * Mensaje breve tras una acción (abajo, sobre la barra del celular). Los de
+ * éxito se cierran solos; si la acción se puede revertir, ofrece «Deshacer».
+ */
+import Icono from "./Icono.astro";
+import type { Flash } from "@/lib/flash";
+
+interface Props {
+  flash: Flash;
+}
+const { flash } = Astro.props;
+const esError = flash.tipo === "error";
+---
+
+<div class="mensajes">
+  <div
+    class:list={["mensaje", flash.tipo]}
+    role={esError ? "alert" : "status"}
+    data-autocerrar={esError ? undefined : flash.deshacer ? "9000" : "5000"}
+  >
+    <Icono nombre={flash.tipo === "exito" ? "exito" : flash.tipo} tamano={20} class="simbolo" />
+    <p>{flash.mensaje}</p>
+    {flash.deshacer && (
+      <form method="post">
+        <input type="hidden" name="accion" value={flash.deshacer.accion} />
+        {Object.entries(flash.deshacer.datos ?? {}).map(([k, v]) => (
+          <input type="hidden" name={k} value={v} />
+        ))}
+        <button type="submit" class="deshacer">
+          Deshacer
+        </button>
+      </form>
+    )}
+    <button type="button" class="cerrar" data-cerrar-mensaje aria-label="Cerrar mensaje">
+      <Icono nombre="error" tamano={18} />
+    </button>
+  </div>
+</div>
+
+<style>
+  .mensajes {
+    position: fixed;
+    left: 50%;
+    bottom: calc(80px + var(--seguro-abajo));
+    z-index: 25;
+    transform: translateX(-50%);
+    width: min(36rem, calc(100vw - 2rem));
+  }
+  .mensaje {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-3);
+    padding: var(--esp-2) var(--esp-2) var(--esp-2) var(--esp-4);
+    border-radius: var(--radio);
+    background: var(--color-primario);
+    color: #fff;
+    box-shadow: var(--sombra-lg);
+    animation: subir var(--duracion) var(--curva);
+  }
+  .mensaje.error {
+    background: var(--color-error);
+  }
+  .mensaje :global(.simbolo) {
+    flex: none;
+    color: #86efac;
+  }
+  .mensaje.error :global(.simbolo),
+  .mensaje.info :global(.simbolo) {
+    color: #fff;
+  }
+  p {
+    flex: 1;
+    margin: var(--esp-2) 0;
+    font-size: var(--texto-sm);
+  }
+  .deshacer {
+    min-height: 40px;
+    padding: 0 var(--esp-3);
+    border: 0;
+    border-radius: var(--radio-sm);
+    background: #fff;
+    color: var(--color-primario);
+    font: inherit;
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-fuerte);
+    cursor: pointer;
+  }
+  .cerrar {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: var(--radio-sm);
+    background: transparent;
+    color: rgb(255 255 255 / 0.8);
+    cursor: pointer;
+  }
+  .cerrar:hover {
+    background: rgb(255 255 255 / 0.12);
+    color: #fff;
+  }
+  @keyframes subir {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  @media (min-width: 900px) {
+    .mensajes {
+      bottom: var(--esp-6);
+      left: calc(50% + 7.5rem);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mensaje {
+      animation: none;
+    }
+  }
+</style>

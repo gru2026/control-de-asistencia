@@ -26,7 +26,18 @@ if (Astro.request.method === "POST") {
   const f = await Astro.request.formData();
   const ids = lista(f, "id").filter(esUuid).slice(0, 100);
   const nota = texto(f, "nota").slice(0, 300) || null;
-  if (ids.length) {
+  if (texto(f, "accion") === "deshacer") {
+    // Vuelve a «por revisar» lo que esta misma persona acaba de revisar.
+    const deshacer = texto(f, "ids").split(",").filter(esUuid).slice(0, 100);
+    if (deshacer.length) {
+      await clienteAdmin()
+        .from("registros_asistencia")
+        .update({ revisado_por: null, revisado_en: null, nota_revision: null })
+        .in("id", deshacer)
+        .eq("revisado_por", perfil.id);
+      ponerFlash(Astro.cookies, "info", "Listo: volvieron a «por revisar».");
+    }
+  } else if (ids.length) {
     const { data, error } = await clienteAdmin()
       .from("registros_asistencia")
       .update({
@@ -49,6 +60,9 @@ if (Astro.request.method === "POST") {
         n === 1
           ? "Marcación revisada."
           : `${plural(n, "marcación revisada", "marcaciones revisadas")}.`,
+        n
+          ? { accion: "deshacer", datos: { ids: (data ?? []).map((x) => x.id).join(",") } }
+          : undefined,
       );
     }
   }

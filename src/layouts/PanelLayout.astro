@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "./BaseLayout.astro";
 import { fade } from "astro:transitions";
-import Alerta from "@/components/ui/Alerta.astro";
+import Mensaje from "@/components/ui/Mensaje.astro";
 import Icono, { type NombreIcono } from "@/components/ui/Icono.astro";
 import { puedeVer } from "@/lib/auth/acceso";
 import { NOMBRE_ROL } from "@/types";
@@ -176,11 +176,7 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
           <slot name="acciones" />
         </div>
       </div>
-      {flash && (
-        <div class="flash">
-          <Alerta tipo={flash.tipo}>{flash.mensaje}</Alerta>
-        </div>
-      )}
+      {flash && <Mensaje flash={flash} />}
       <slot />
     </main>
   </div>
@@ -357,9 +353,6 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     gap: var(--esp-2);
     flex-wrap: wrap;
     align-items: center;
-  }
-  .flash {
-    margin-bottom: var(--esp-4);
   }
   .migas ol {
     display: flex;

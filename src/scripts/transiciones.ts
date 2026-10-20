@@ -83,12 +83,14 @@ export function activarTransiciones(alCargar: AlCargar) {
       e.preventDefault();
       return;
     }
-    mismaPantalla = e.to.pathname === location.pathname && e.formData === undefined;
+    // Misma pantalla: filtros (GET) o una acción que vuelve a ella (POST → redirección)
+    mismaPantalla = e.to.pathname === location.pathname;
+    const esAccion = e.formData !== undefined;
     haciaAtras = e.navigationType === "traverse";
     desplazamiento = scrollY;
     alPaginar = !!(e.sourceElement as Element | undefined)?.closest?.(".paginacion");
     raiz.classList.add("navegando");
-    if (mismaPantalla) {
+    if (mismaPantalla && !esAccion) {
       raiz.classList.add("cargando");
       document.getElementById("contenido")?.setAttribute("aria-busy", "true");
     }

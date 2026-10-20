@@ -31,8 +31,15 @@ if (Astro.request.method === "POST") {
     const seguro = enlace && enlace.startsWith("/") && !enlace.startsWith("//");
     return Astro.redirect(seguro ? enlace : Astro.url.pathname + Astro.url.search, 303);
   }
-  if (accion === "leer" && esUuid(id)) {
+  if (accion === "no_leer") {
+    const ids = texto(f, "ids").split(",").filter(esUuid).slice(0, 200);
+    if (ids.length) await sb.from("notificaciones").update({ leida: false }).in("id", ids);
+  } else if (accion === "leer" && esUuid(id)) {
     await sb.from("notificaciones").update({ leida: true }).eq("id", id);
+    ponerFlash(Astro.cookies, "exito", "Aviso marcado como leído.", {
+      accion: "no_leer",
+      datos: { ids: id },
+    });
   } else if (accion === "leer_todas") {
     const { data } = await sb
       .from("notificaciones")
@@ -46,6 +53,9 @@ if (Astro.request.method === "POST") {
       data?.length
         ? `${plural(data.length, "aviso marcado", "avisos marcados")} como leído${data.length === 1 ? "" : "s"}.`
         : "No había avisos sin leer.",
+      data?.length
+        ? { accion: "no_leer", datos: { ids: data.map((x) => x.id as string).join(",") } }
+        : undefined,
     );
   }
   return Astro.redirect(Astro.url.pathname + Astro.url.search, 303);

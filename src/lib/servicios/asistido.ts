@@ -17,7 +17,8 @@ import { horaEnZona } from "@/lib/reglas/tiempo";
 import { instanteManual, motivoManual, validarInstante } from "@/lib/reglas/registro";
 import type { TipoMarcacion } from "@/lib/reglas/marcacion";
 
-export type ResultadoAsistido = { ok: true; mensaje: string } | { ok: false; mensaje: string };
+export type ResultadoAsistido =
+  { ok: true; mensaje: string; deshacible: boolean } | { ok: false; mensaje: string };
 
 export async function marcarAsistido(p: {
   personalId: string;
@@ -132,6 +133,8 @@ export async function marcarAsistido(p: {
     return {
       ok: true,
       mensaje: `Entrada de ${nombre} registrada a las ${horaEnZona(instante)} (${estado === "presente" ? "a tiempo" : "tarde"}).`,
+      // Una falta o permiso corregido no se deshace automáticamente.
+      deshacible: !real,
     };
   }
 
@@ -164,7 +167,11 @@ export async function marcarAsistido(p: {
     .select("id");
   if (e) throw new Error(e.message);
   if (!hecho?.length) return { ok: false, mensaje: `${nombre} ya registró la salida.` };
-  return { ok: true, mensaje: `Salida de ${nombre} registrada a las ${horaEnZona(instante)}.` };
+  return {
+    ok: true,
+    mensaje: `Salida de ${nombre} registrada a las ${horaEnZona(instante)}.`,
+    deshacible: true,
+  };
 }
 
 /** Día de la jornada en curso: de madrugada, una jornada nocturna es la de ayer. */
@@ -172,4 +179,45 @@ function fechaDeHoy(ahora: Date, nocturna: boolean): string {
   const local = new Date(ahora.getTime() - 4 * 3_600_000);
   if (nocturna && local.getUTCHours() < 12) local.setUTCDate(local.getUTCDate() - 1);
   return local.toISOString().slice(0, 10);
+}
+
+/**
+ * Revierte una marcación asistida recién hecha por la misma persona (botón
+ * «Deshacer» del mensaje). La entrada solo se borra si aún no tiene salida.
+ */
+export async function deshacerAsistido(p: {
+  personalId: string;
+  fecha: string;
+  tipo: TipoMarcacion;
+  usuarioId: string;
+}): Promise<boolean> {
+  const sb = clienteAdmin();
+  const hace = new Date(Date.now() - 15 * 60_000).toISOString();
+  if (p.tipo === "entrada") {
+    const { data } = await sb
+      .from("registros_asistencia")
+      .delete()
+      .eq("personal_id", p.personalId)
+      .eq("fecha", p.fecha)
+      .eq("registrado_por", p.usuarioId)
+      .in("entrada_metodo", ["asistido", "manual"])
+      .is("hora_salida", null)
+      .gte("creado_en", hace)
+      .select("id");
+    return !!data?.length;
+  }
+  const { data } = await sb
+    .from("registros_asistencia")
+    .update({
+      hora_salida: null,
+      horas_trabajadas: null,
+      salida_metodo: null,
+      salida_registrada_por: null,
+    })
+    .eq("personal_id", p.personalId)
+    .eq("fecha", p.fecha)
+    .eq("salida_registrada_por", p.usuarioId)
+    .gte("actualizado_en", hace)
+    .select("id");
+  return !!data?.length;
 }

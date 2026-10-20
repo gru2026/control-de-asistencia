@@ -173,6 +173,18 @@ addEventListener("beforeunload", (ev) => {
   if (document.querySelector("form[data-avisar-cambios][data-sucio]")) ev.preventDefault();
 });
 
+function cerrarMensaje(el: HTMLElement) {
+  if (!el.isConnected) return;
+  el.style.transition = "opacity 200ms";
+  el.style.opacity = "0";
+  setTimeout(() => el.remove(), 220);
+}
+document.addEventListener("click", (ev) => {
+  const b = (ev.target as HTMLElement).closest("[data-cerrar-mensaje]");
+  const m = b?.closest<HTMLElement>(".mensaje");
+  if (m) cerrarMensaje(m);
+});
+
 // Mostrar / ocultar contraseña y copiar al portapapeles
 document.addEventListener("click", async (ev) => {
   const el = (ev.target as HTMLElement).closest<HTMLElement>("[data-mostrar-clave], [data-copiar]");
@@ -317,13 +329,9 @@ function inicializar(raiz: ParentNode) {
     });
   });
 
-  // Avisos de éxito: se ocultan solos
+  // Mensajes de éxito: se ocultan solos (más tarde si ofrecen «Deshacer»)
   raiz.querySelectorAll<HTMLElement>("[data-autocerrar]").forEach((el) => {
-    setTimeout(() => {
-      el.style.transition = "opacity 300ms";
-      el.style.opacity = "0";
-      setTimeout(() => el.remove(), 320);
-    }, 6000);
+    setTimeout(() => cerrarMensaje(el), Number(el.dataset.autocerrar) || 6000);
   });
 }
 

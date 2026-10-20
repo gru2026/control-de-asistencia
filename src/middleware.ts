@@ -10,12 +10,35 @@ import type { Perfil } from "@/types";
 
 const ESTATICO = /^\/(_astro|icons)\/|\.(svg|png|ico|webmanifest|js|css|txt|html|woff2?)$/;
 
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self'",
+  "connect-src 'self'",
+  "media-src 'self' blob:",
+  "worker-src 'self'",
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "upgrade-insecure-requests",
+].join("; ");
+
 function cabecerasSeguridad(res: Response, privada: boolean): Response {
   const h = res.headers;
   h.set("X-Content-Type-Options", "nosniff");
   h.set("X-Frame-Options", "DENY");
   h.set("Referrer-Policy", "strict-origin-when-cross-origin");
   h.set("Permissions-Policy", "camera=(self), geolocation=(self), microphone=()");
+  if (import.meta.env.PROD) {
+    // Solo recursos propios; el navegador nunca habla directo con Supabase (D-16).
+    // 'unsafe-inline' sigue siendo necesario por los scripts y estilos en línea de Astro (D-43).
+    h.set("Content-Security-Policy", CSP);
+    h.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
   // Tras cerrar sesión, el botón "atrás" no debe mostrar datos privados (F5).
   if (privada) h.set("Cache-Control", "private, no-store");
   return res;

@@ -40,6 +40,7 @@ import {
   restablecerClaveInicial,
 } from "@/lib/servicios/cuentas";
 import { CLAVE_INICIAL, esCuentaCedula, usuarioVisible } from "@/lib/auth/cedula";
+import { limpiarIntentos } from "@/lib/servicios/intentos";
 import { ponerFlash } from "@/lib/flash";
 import { fechaCorta, horaCorta } from "@/lib/fecha";
 import ChipCategoria from "@/components/ui/ChipCategoria.astro";
@@ -241,6 +242,7 @@ if (Astro.request.method === "POST") {
     case "clave_inicial": {
       if (!ficha.usuarios) break;
       const res = await restablecerClaveInicial(ficha.usuarios.id, ficha.usuarios.email);
+      if (res.ok) await limpiarIntentos(ficha.cedula);
       if (res.ok)
         exito = `Contraseña restablecida a ${CLAVE_INICIAL}. Al entrar deberá crear una nueva.`;
       else mensaje = res.mensaje;

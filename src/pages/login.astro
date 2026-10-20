@@ -8,6 +8,12 @@ import { texto } from "@/lib/validacion";
 import type { Perfil } from "@/types";
 import { claveInterna, leerIdentificador } from "@/lib/auth/cedula";
 import { clienteAdmin } from "@/lib/supabase/servidor";
+import {
+  accesoBloqueado,
+  limpiarIntentos,
+  registrarFallo,
+  VENTANA_MIN,
+} from "@/lib/servicios/intentos";
 
 const volver = Astro.url.searchParams.get("volver");
 let error: string | null = null;
@@ -19,6 +25,7 @@ if (Astro.request.method === "POST") {
   const password = texto(f, "password");
   const sb = Astro.locals.supabase;
   const id = leerIdentificador(usuario);
+  const clave = id ? (id.tipo === "email" ? id.email : id.cedula) : "";
 
   // Con cédula se busca el correo de su cuenta (la persona nunca lo ve).
   let email: string | null = id?.tipo === "email" ? id.email : null;
@@ -35,7 +42,10 @@ if (Astro.request.method === "POST") {
     error = "Escriba su cédula y su contraseña.";
   } else if (!id) {
     error = "Escriba su cédula (por ejemplo, 12345678) o su correo.";
+  } else if (await accesoBloqueado(clave)) {
+    error = `Demasiados intentos fallidos. Espere ${VENTANA_MIN} minutos o pida en secretaría que restablezcan su contraseña.`;
   } else if (!email) {
+    await registrarFallo(clave);
     error = "Cédula o contraseña incorrectas.";
   } else {
     const { data, error: e } = await sb.auth.signInWithPassword({
@@ -43,6 +53,7 @@ if (Astro.request.method === "POST") {
       password: claveInterna(password, email),
     });
     if (e || !data.user) {
+      if (e?.code !== "user_banned") await registrarFallo(clave);
       error =
         e?.code === "user_banned"
           ? "Su cuenta está desactivada. Contacte a la administración."
@@ -59,6 +70,7 @@ if (Astro.request.method === "POST") {
         await sb.auth.signOut();
         error = "Su cuenta no está activa. Contacte a la administración.";
       } else {
+        await limpiarIntentos(clave);
         if (perfil.debe_cambiar_clave) return Astro.redirect("/cambiar-clave", 303);
         return Astro.redirect(destinoSeguro(volver, perfil.rol), 303);
       }

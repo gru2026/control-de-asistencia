@@ -10,8 +10,9 @@ import Icono from "@/components/ui/Icono.astro";
 import { esUuid, MOTIVOS_PERMISO, texto, validarPermiso, type Errores } from "@/lib/validacion";
 import { eliminarPermiso, guardarPermiso } from "@/lib/servicios/permisos";
 import { ponerFlash } from "@/lib/flash";
-import { hoyEnZona } from "@/lib/fecha";
+import { fechaCorta, hoyEnZona } from "@/lib/fecha";
 import { plural } from "@/lib/formato";
+import { diasDelPermiso } from "@/lib/reglas/permisos";
 
 const { id = "" } = Astro.params;
 const esNuevo = id === "nuevo";
@@ -151,19 +152,46 @@ const opcionesMotivo = [
   ...MOTIVOS_PERMISO.map((m) => ({ valor: m, texto: m })),
   ...(motivoEsLista ? [] : [{ valor: v("motivo"), texto: v("motivo") }]),
 ];
+// Zona lateral: faltas que cubre y otros permisos de la persona
+const personaElegida = v("personal_id");
+const [faltasRes, otrosRes] = esUuid(personaElegida)
+  ? await Promise.all([
+      sb
+        .from("registros_asistencia")
+        .select("id", { count: "exact", head: true })
+        .eq("personal_id", personaElegida)
+        .eq("estado", "falta")
+        .is("hora_entrada", null)
+        .gte("fecha", v("fecha_desde") || hoy)
+        .lte("fecha", v("fecha_hasta") || v("fecha_desde") || hoy),
+      sb
+        .from("permisos")
+        .select("id, fecha_desde, fecha_hasta, motivo")
+        .eq("personal_id", personaElegida)
+        .neq("id", actual?.id ?? "00000000-0000-0000-0000-000000000000")
+        .order("fecha_desde", { ascending: false })
+        .limit(5),
+    ])
+  : [{ count: 0 }, { data: [] }];
+const faltasEnRango = faltasRes.count ?? 0;
+const otrosPermisos = (otrosRes.data ?? []) as {
+  fecha_desde: string;
+  fecha_hasta: string;
+  motivo: string;
+}[];
 ---
 
 <PanelLayout
-  ancho="medio"
   titulo={esNuevo ? "Nuevo permiso" : "Editar permiso"}
   migas={[{ texto: "Permisos", href: "/permisos" }, { texto: esNuevo ? "Nuevo" : "Editar" }]}
 >
-  <div class="pila">
-    {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
-    <Tarjeta>
-      <form method="post" class="rejilla" novalidate data-avisar-cambios>
-        <div class="ancho">
+  <form method="post" class="dos-zonas" novalidate data-avisar-cambios data-form-permiso>
+    <div class="zona-principal">
+      {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
+      <Tarjeta>
+        <div class="campos">
           <Select
+            class="c-largo"
             etiqueta="Persona"
             nombre="personal_id"
             opciones={opcionesPersonas}
@@ -172,74 +200,126 @@ const opcionesMotivo = [
             error={errores.personal_id}
             required
           />
-        </div>
-        <Input
-          etiqueta="Desde"
-          nombre="fecha_desde"
-          type="date"
-          value={v("fecha_desde")}
-          error={errores.fecha_desde}
-          required
-        />
-        <Input
-          etiqueta="Hasta"
-          nombre="fecha_hasta"
-          type="date"
-          value={v("fecha_hasta")}
-          error={errores.fecha_hasta}
-          ayuda="Para un solo día, deje la misma fecha."
-        />
-        <div class="ancho">
-          <Select
-            etiqueta="Motivo"
-            nombre="motivo"
-            opciones={opcionesMotivo}
-            valor={v("motivo")}
-            vacia="Seleccione…"
-            error={errores.motivo}
+          <Input
+            class="c-corto"
+            etiqueta="Desde"
+            nombre="fecha_desde"
+            type="date"
+            value={v("fecha_desde")}
+            error={errores.fecha_desde}
             required
           />
+          <Input
+            class="c-corto"
+            etiqueta="Hasta"
+            nombre="fecha_hasta"
+            type="date"
+            value={v("fecha_hasta")}
+            error={errores.fecha_hasta}
+            ayuda="Un solo día: la misma fecha."
+          />
+          <fieldset class="opciones-campo c-completo">
+            <legend>
+              Motivo{" "}
+              <span class="obligatorio" aria-hidden="true">
+                *
+              </span>
+            </legend>
+            <div class="v-chips">
+              {opcionesMotivo.map((m) => (
+                <label>
+                  <input
+                    type="radio"
+                    name="motivo"
+                    value={m.valor}
+                    checked={m.valor === v("motivo")}
+                  />
+                  {m.texto}
+                </label>
+              ))}
+            </div>
+            {errores.motivo && <small class="error">{errores.motivo}</small>}
+          </fieldset>
+          <div class="campo c-completo">
+            <label for="observacion">Observación</label>
+            <textarea
+              id="observacion"
+              name="observacion"
+              rows="3"
+              maxlength="500"
+              aria-invalid={errores.observacion ? "true" : undefined}
+              aria-describedby={errores.observacion ? "observacion-error" : "observacion-ayuda"}
+            >{v("observacion")}</textarea>
+            {errores.observacion ? (
+              <small id="observacion-error" class="error">
+                {errores.observacion}
+              </small>
+            ) : (
+              <small id="observacion-ayuda">
+                Opcional. Por ejemplo, el número del reposo o quién lo autorizó. Obligatoria si el
+                motivo es «Otro».
+              </small>
+            )}
+          </div>
         </div>
-        <div class="campo ancho">
-          <label for="observacion">Observación</label>
-          <textarea
-            id="observacion"
-            name="observacion"
-            rows="3"
-            maxlength="500"
-            aria-invalid={errores.observacion ? "true" : undefined}
-            aria-describedby={errores.observacion ? "observacion-error" : "observacion-ayuda"}
-          >{v("observacion")}</textarea>
-          {errores.observacion ? (
-            <small id="observacion-error" class="error">
-              {errores.observacion}
-            </small>
-          ) : (
-            <small id="observacion-ayuda">
-              Opcional. Por ejemplo, el número del reposo o quién lo autorizó.
-            </small>
-          )}
-        </div>
-        <p class="nota ancho">
-          Si la persona ya tiene faltas registradas en esas fechas, pasan a permiso al guardar.
-        </p>
-        <div class="final ancho">
-          {!esNuevo && (
-            <Boton variante="fantasma" data-abrir-modal="modal-eliminar" class="eliminar">
-              <Icono nombre="papelera" tamano={18} />
-              Eliminar
-            </Boton>
-          )}
-          <Boton href={volverA} variante="secundario">
-            Cancelar
+      </Tarjeta>
+    </div>
+
+    <aside class="zona-lateral" aria-label="Resumen del permiso">
+      <Tarjeta titulo="Resumen">
+        <dl class="datos-lateral">
+          <div>
+            <dt>Duración</dt>
+            <dd data-dias-permiso>
+              {plural(
+                diasDelPermiso(
+                  v("fecha_desde") || hoy,
+                  v("fecha_hasta") || v("fecha_desde") || hoy,
+                ),
+                "día",
+                "días",
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>Faltas que pasan a permiso</dt>
+            <dd>{faltasEnRango}</dd>
+          </div>
+        </dl>
+        <p class="nota espacio">Las faltas de esas fechas pasan a permiso al guardar.</p>
+      </Tarjeta>
+      {otrosPermisos.length > 0 && (
+        <Tarjeta titulo="Otros permisos de la persona">
+          <ul class="lista">
+            {otrosPermisos.map((x) => (
+              <li>
+                <span>
+                  {x.fecha_desde === x.fecha_hasta
+                    ? fechaCorta(x.fecha_desde)
+                    : `${fechaCorta(x.fecha_desde)} – ${fechaCorta(x.fecha_hasta)}`}
+                </span>
+                <span class="nota">{x.motivo}</span>
+              </li>
+            ))}
+          </ul>
+        </Tarjeta>
+      )}
+      <div class="pie-form">
+        {!esNuevo && (
+          <Boton variante="fantasma" data-abrir-modal="modal-eliminar" class="eliminar">
+            <Icono nombre="papelera" tamano={18} />
+            Eliminar
           </Boton>
-          <Boton type="submit" data-texto-cargando="Guardando…">
-            {esNuevo ? "Cargar permiso" : "Guardar cambios"}
-          </Boton>
-        </div>
-      </form>
-    </Tarjeta>
-  </div>
+        )}
+        <Boton href={volverA} variante="secundario">
+          Cancelar
+        </Boton>
+        <Boton type="submit" data-texto-cargando="Guardando…">
+          {esNuevo ? "Cargar permiso" : "Guardar cambios"}
+        </Boton>
+      </div>
+    </aside>
+  </form>
 
   {!esNuevo && (
     <Modal id="modal-eliminar" titulo="¿Eliminar este permiso?">
@@ -264,25 +344,20 @@ const opcionesMotivo = [
     hasta.min = desde.value;
     if (!hasta.value || hasta.value < desde.value) hasta.value = desde.value;
   });
+  // Duración en vivo en la zona lateral
+  document.addEventListener("change", (ev) => {
+    const form = (ev.target as HTMLInputElement).form;
+    if (!form?.hasAttribute("data-form-permiso")) return;
+    const d = form.querySelector<HTMLInputElement>('input[name="fecha_desde"]')?.value;
+    const h = form.querySelector<HTMLInputElement>('input[name="fecha_hasta"]')?.value || d;
+    const salida = document.querySelector("[data-dias-permiso]");
+    if (!d || !h || !salida) return;
+    const n = Math.round((Date.parse(h) - Date.parse(d)) / 86_400_000) + 1;
+    salida.textContent = n > 0 ? `${n} ${n === 1 ? "día" : "días"}` : "—";
+  });
 </script>
 
 <style>
-  .pila {
-    display: grid;
-    gap: var(--esp-4);
-  }
-  .rejilla {
-    display: grid;
-    gap: var(--esp-4);
-  }
-  @media (min-width: 640px) {
-    .rejilla {
-      grid-template-columns: 1fr 1fr;
-    }
-    .ancho {
-      grid-column: 1 / -1;
-    }
-  }
   .campo {
     display: grid;
     gap: 6px;
@@ -308,18 +383,35 @@ const opcionesMotivo = [
     color: var(--color-error);
     font-weight: 600;
   }
+  .obligatorio {
+    color: var(--color-error);
+  }
   .nota {
     margin: 0;
     font-size: var(--texto-sm);
     color: var(--color-texto-suave);
   }
-  .final {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: var(--esp-2);
+  .espacio {
+    margin-top: var(--esp-3);
   }
-  .final :global(.eliminar) {
+  .lista {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .lista li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--esp-2);
+    padding: var(--esp-2) 0;
+    border-top: 1px solid var(--color-borde);
+    font-size: var(--texto-sm);
+  }
+  .lista li:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .pie-form :global(.eliminar) {
     margin-right: auto;
     color: var(--color-error);
   }

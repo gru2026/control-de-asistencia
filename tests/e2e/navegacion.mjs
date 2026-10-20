@@ -360,12 +360,20 @@ try {
   await pag.waitForSelector("#ventana[open] #ventana-titulo-cuenta", { timeout: 15000 });
   r.ok("gestionar una cuenta abre una ventana", true);
   await pag.keyboard.press("Escape");
-  await pag.goto(`${B}/personal/nuevo`);
-  const caja = await pag.$eval("main", (m) => {
-    const b = m.getBoundingClientRect();
-    return Math.abs(b.left - 240 - (innerWidth - b.right));
-  });
-  r.ok("los formularios de una columna quedan centrados", caja < 4, `${caja}px`);
+  for (const ruta of ["/personal/nuevo", "/configuracion", "/configuracion/marcacion"]) {
+    await pag.goto(`${B}${ruta}`);
+    const z = await pag.evaluate(() => {
+      const p = document.querySelector(".zona-principal")?.getBoundingClientRect();
+      const l = document.querySelector(".zona-lateral")?.getBoundingClientRect();
+      const m = document.querySelector("main")?.getBoundingClientRect();
+      return p && l && m ? { lado: l.left > p.right, ancho: Math.round(m.width) } : null;
+    });
+    r.ok(
+      `${ruta}: formulario y columna de apoyo lado a lado, a todo el ancho`,
+      !!z && z.lado && z.ancho >= 1000,
+      JSON.stringify(z),
+    );
+  }
 
   r.seccion("Errores");
   await pag.goto(`${B}/personal`);

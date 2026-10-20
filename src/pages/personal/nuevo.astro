@@ -5,13 +5,14 @@ import Boton from "@/components/ui/Boton.astro";
 import Icono from "@/components/ui/Icono.astro";
 import Alerta from "@/components/ui/Alerta.astro";
 import CamposPersonal from "@/components/personal/CamposPersonal.astro";
-import CamposCuenta from "@/components/personal/CamposCuenta.astro";
 import { listarJornadas } from "@/lib/datos/jornadas";
 import { listarCategorias } from "@/lib/datos/categorias";
-import { texto, validarCuenta, validarPersonal, type Errores } from "@/lib/validacion";
+import { texto, validarPersonal, type Errores } from "@/lib/validacion";
 import { crearPersonal } from "@/lib/servicios/personal";
-import { generarClaveTemporal } from "@/lib/servicios/cuentas";
+import { crearCuentaCedula } from "@/lib/servicios/cuentas";
+import { CLAVE_INICIAL } from "@/lib/auth/cedula";
 import { ponerFlash } from "@/lib/flash";
+import { NOMBRE_ROL, ROLES, type Rol } from "@/types";
 
 const sb = Astro.locals.supabase;
 const [jornadas, categorias] = await Promise.all([listarJornadas(sb), listarCategorias(sb)]);
@@ -20,39 +21,41 @@ let valores: Record<string, string> = {};
 let errores: Errores = {};
 let mensaje: string | null = null;
 let conCuenta = true;
+let rol: Rol = "personal";
 
 if (Astro.request.method === "POST") {
   const f = await Astro.request.formData();
   valores = Object.fromEntries([...f.entries()].map(([k, v]) => [k, String(v)]));
   conCuenta = texto(f, "con_cuenta") === "si";
+  rol = ROLES.includes(texto(f, "rol") as Rol) ? (texto(f, "rol") as Rol) : "personal";
 
   const rp = validarPersonal(f);
-  const rc = conCuenta ? validarCuenta(f) : null;
-  errores = { ...(rp.ok ? {} : rp.errores), ...(rc && !rc.ok ? rc.errores : {}) };
-
-  if (rp.ok && (!rc || rc.ok)) {
-    const r = await crearPersonal(sb, rp.datos, rc?.ok ? rc.datos : null);
+  if (rp.ok) {
+    const r = await crearPersonal(sb, rp.datos, null);
     if (r.ok) {
-      ponerFlash(
-        Astro.cookies,
-        "exito",
-        conCuenta
-          ? `${rp.datos.nombre} ${rp.datos.apellido} registrado con su cuenta de acceso.`
-          : `${rp.datos.nombre} ${rp.datos.apellido} registrado.`,
-      );
+      const persona = `${rp.datos.nombre} ${rp.datos.apellido}`;
+      let texto_ = `${persona} registrado.`;
+      if (conCuenta) {
+        const c = await crearCuentaCedula(sb, { id: r.id, ...rp.datos }, rol);
+        texto_ = c.ok
+          ? `${persona} registrado. Entra con su cédula ${rp.datos.cedula} y la contraseña ${CLAVE_INICIAL}.`
+          : `${persona} registrado, pero no se creó la cuenta: ${c.mensaje}`;
+      }
+      ponerFlash(Astro.cookies, "exito", texto_);
       return Astro.redirect(`/personal/${r.id}`, 303);
     }
     mensaje = r.mensaje;
-    errores = { ...errores, ...r.errores };
+    errores = { ...(r.errores ?? {}) };
   } else {
+    errores = rp.errores;
     mensaje = "Revise los campos marcados.";
   }
   Astro.response.status = 400;
 }
+const jornadaElegida = jornadas.find((j) => j.id === valores.jornada_id);
 ---
 
 <PanelLayout
-  ancho="medio"
   titulo="Nuevo personal"
   migas={[
     { texto: "Panel", href: "/panel" },
@@ -67,76 +70,88 @@ if (Astro.request.method === "POST") {
     </Boton>
   </Fragment>
 
-  <form method="post" class="pila" novalidate data-avisar-cambios>
-    {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
-
-    <Tarjeta titulo="Datos personales">
-      <CamposPersonal
-        valores={valores}
-        errores={errores}
-        jornadas={jornadas}
-        categorias={categorias}
-      />
-    </Tarjeta>
-
-    <Tarjeta
-      titulo="Cuenta de acceso"
-      descripcion="Necesaria para que la persona marque desde su teléfono."
-    >
-      <label class="interruptor">
-        <input
-          type="checkbox"
-          name="con_cuenta"
-          value="si"
-          checked={conCuenta}
-          data-alternar="campos-cuenta"
+  <form method="post" class="dos-zonas" novalidate data-avisar-cambios>
+    <div class="zona-principal">
+      {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
+      <Tarjeta titulo="Datos personales">
+        <CamposPersonal
+          valores={valores}
+          errores={errores}
+          jornadas={jornadas}
+          categorias={categorias}
         />
-        Crear cuenta de acceso ahora
-      </label>
-      <div id="campos-cuenta" hidden={!conCuenta}>
-        <CamposCuenta valores={valores} errores={errores} claveSugerida={generarClaveTemporal()} />
-      </div>
-    </Tarjeta>
-
-    <div class="final">
-      <Boton href="/personal" variante="secundario">
-        Cancelar
-      </Boton>
-      <Boton type="submit">Guardar</Boton>
+      </Tarjeta>
     </div>
+
+    <aside class="zona-lateral" aria-label="Cuenta y resumen">
+      <Tarjeta titulo="Cuenta de acceso" descripcion="Para que marque desde su teléfono.">
+        <div class="cuenta">
+          <label class="casilla">
+            <input type="checkbox" name="con_cuenta" value="si" checked={conCuenta} />
+            <span>
+              <strong>Crear su cuenta ahora</strong>
+              <small>Entrará con su cédula y la contraseña {CLAVE_INICIAL}.</small>
+            </span>
+          </label>
+          <fieldset class="opciones-campo">
+            <legend>Tipo de cuenta</legend>
+            <div class="v-chips">
+              {ROLES.map((r) => (
+                <label>
+                  <input type="radio" name="rol" value={r} checked={r === rol} />
+                  {NOMBRE_ROL[r]}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </div>
+      </Tarjeta>
+      <Tarjeta titulo="Jornada">
+        <p class="resumen" data-resumen-jornada>
+          {jornadaElegida ? jornadaElegida.nombre : "Sin asignar"}
+        </p>
+        <p class="nota">
+          Se propone sola al elegir la categoría. Puede cambiarla luego en su ficha.
+        </p>
+      </Tarjeta>
+      <div class="pie-form">
+        <Boton href="/personal" variante="secundario">
+          Cancelar
+        </Boton>
+        <Boton type="submit">Guardar</Boton>
+      </div>
+    </aside>
   </form>
 </PanelLayout>
 
-<script>
-  // Mostrar u ocultar los campos de la cuenta (delegado: sobrevive a la navegación).
-  document.addEventListener("change", (ev) => {
-    const c = ev.target as HTMLInputElement;
-    if (!c.matches?.("[data-alternar]")) return;
-    const destino = document.getElementById(c.dataset.alternar ?? "");
-    if (destino) destino.hidden = !c.checked;
-  });
-</script>
-
 <style>
-  .pila {
+  .cuenta {
     display: grid;
     gap: var(--esp-4);
   }
-  .interruptor {
-    display: flex;
-    gap: var(--esp-2);
-    align-items: center;
-    font-weight: 600;
-    margin-bottom: var(--esp-4);
-    min-height: var(--toque-min);
+  .casilla {
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    column-gap: var(--esp-3);
+    cursor: pointer;
   }
-  .interruptor input {
+  .casilla input {
     width: 20px;
     height: 20px;
   }
-  .final {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--esp-2);
+  .casilla span {
+    display: grid;
+  }
+  .casilla small,
+  .nota {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .resumen {
+    margin: 0 0 var(--esp-2);
+    font-weight: var(--peso-fuerte);
+  }
+  .nota {
+    margin: 0;
   }
 </style>

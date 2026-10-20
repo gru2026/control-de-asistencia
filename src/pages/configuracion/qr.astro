@@ -80,7 +80,6 @@ const vence = valores.vence === "si";
 ---
 
 <PanelLayout
-  ancho="medio"
   titulo="Código QR"
   subtitulo="El QR impreso en la entrada que el personal escanea para marcar."
   migas={[{ texto: "Ajustes", href: "/configuracion" }, { texto: "Código QR" }]}
@@ -126,123 +125,132 @@ const vence = valores.vence === "si";
       </>
     ) : (
       <>
-        <Tarjeta titulo="QR actual">
-          {activo ? (
-            <div class="actual">
-              <Badge tipo={vigente ? "activo" : "falta"}>{vigente ? "Vigente" : "Vencido"}</Badge>
-              <dl>
-                <div>
-                  <dt>Generado</dt>
-                  <dd>{fechaDe(activo.creado_en)}</dd>
+        <div class="dos-zonas">
+          <div class="zona-principal">
+            <Tarjeta
+              titulo={activo ? "Generar un QR nuevo" : "Generar QR"}
+              descripcion="Recomendación: renovarlo cada lapso escolar o si la hoja se pierde o se fotografía fuera del colegio."
+              id="generar"
+            >
+              <form method="post" class="campos" novalidate id="form-generar">
+                <input type="hidden" name="accion" value="generar" />
+                <div class="c-largo">
+                  <Input
+                    etiqueta="Nota (opcional)"
+                    nombre="descripcion"
+                    value={valores.descripcion ?? ""}
+                    placeholder="Entrada principal · 1.er lapso"
+                    maxlength="120"
+                  />
                 </div>
-                <div>
-                  <dt>Vence</dt>
-                  <dd>
-                    {activo.vigente_hasta ? fechaCorta(activo.vigente_hasta) : "Sin vencimiento"}
-                  </dd>
+                <fieldset class="c-largo opciones">
+                  <legend>Vencimiento</legend>
+                  <label>
+                    <input type="radio" name="vence" value="" checked={!vence} /> Sin vencimiento
+                  </label>
+                  <label>
+                    <input type="radio" name="vence" value="si" checked={vence} /> Vence en una
+                    fecha
+                  </label>
+                </fieldset>
+                <div class="c-corto" data-fecha-vence hidden={!vence}>
+                  <Input
+                    etiqueta="Fecha de vencimiento"
+                    nombre="vigente_hasta"
+                    type="date"
+                    min={hoy}
+                    value={valores.vigente_hasta ?? ""}
+                    error={errores.vigente_hasta}
+                    ayuda="El QR funciona hasta ese día inclusive."
+                  />
                 </div>
-                {activo.descripcion && (
-                  <div>
-                    <dt>Nota</dt>
-                    <dd>{activo.descripcion}</dd>
-                  </div>
-                )}
-              </dl>
-              {!vigente && (
-                <p class="vencido">
-                  El QR venció: nadie puede marcar con el teléfono. Genere uno nuevo.
+                <div class="pie-form c-completo">
+                  {activo ? (
+                    <Boton data-abrir-modal="modal-generar">
+                      <Icono nombre="qr" tamano={18} />
+                      Generar e imprimir
+                    </Boton>
+                  ) : (
+                    <Boton type="submit" data-texto-cargando="Generando…">
+                      <Icono nombre="qr" tamano={18} />
+                      Generar e imprimir
+                    </Boton>
+                  )}
+                </div>
+              </form>
+            </Tarjeta>
+          </div>
+          <aside class="zona-lateral" aria-label="QR actual">
+            <Tarjeta titulo="QR actual">
+              {activo ? (
+                <div class="actual">
+                  <Badge tipo={vigente ? "activo" : "falta"}>
+                    {vigente ? "Vigente" : "Vencido"}
+                  </Badge>
+                  <dl>
+                    <div>
+                      <dt>Generado</dt>
+                      <dd>{fechaDe(activo.creado_en)}</dd>
+                    </div>
+                    <div>
+                      <dt>Vence</dt>
+                      <dd>
+                        {activo.vigente_hasta
+                          ? fechaCorta(activo.vigente_hasta)
+                          : "Sin vencimiento"}
+                      </dd>
+                    </div>
+                    {activo.descripcion && (
+                      <div>
+                        <dt>Nota</dt>
+                        <dd>{activo.descripcion}</dd>
+                      </div>
+                    )}
+                  </dl>
+                  {!vigente && (
+                    <p class="vencido">
+                      El QR venció: nadie puede marcar con el teléfono. Genere uno nuevo.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p class="vacio">
+                  No hay un QR activo. Genere uno e imprímalo para que el personal pueda marcar con
+                  el teléfono.
                 </p>
               )}
-            </div>
-          ) : (
-            <p class="vacio">
-              No hay un QR activo. Genere uno e imprímalo para que el personal pueda marcar con el
-              teléfono.
-            </p>
-          )}
-        </Tarjeta>
+            </Tarjeta>
+            {historial.length > 1 && (
+              <Tarjeta titulo="Historial">
+                <ul class="historial">
+                  {historial.map((q) => (
+                    <li>
+                      <span>
+                        {fechaDe(q.creado_en)}
+                        {q.descripcion && <span class="tenue"> · {q.descripcion}</span>}
+                      </span>
+                      <span class="tenue">
+                        {q.activo
+                          ? "Actual"
+                          : q.revocado_en
+                            ? `Reemplazado el ${fechaDe(q.revocado_en)}`
+                            : "Inactivo"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </Tarjeta>
+            )}
 
-        <Tarjeta
-          titulo={activo ? "Generar un QR nuevo" : "Generar QR"}
-          descripcion="Recomendación: renovarlo cada lapso escolar o si la hoja se pierde o se fotografía fuera del colegio."
-          id="generar"
-        >
-          <form method="post" class="rejilla" novalidate id="form-generar">
-            <input type="hidden" name="accion" value="generar" />
-            <div class="ancho">
-              <Input
-                etiqueta="Nota (opcional)"
-                nombre="descripcion"
-                value={valores.descripcion ?? ""}
-                placeholder="Entrada principal · 1.er lapso"
-                maxlength="120"
-              />
-            </div>
-            <fieldset class="ancho opciones">
-              <legend>Vencimiento</legend>
-              <label>
-                <input type="radio" name="vence" value="" checked={!vence} /> Sin vencimiento
-              </label>
-              <label>
-                <input type="radio" name="vence" value="si" checked={vence} /> Vence en una fecha
-              </label>
-            </fieldset>
-            <div data-fecha-vence hidden={!vence}>
-              <Input
-                etiqueta="Fecha de vencimiento"
-                nombre="vigente_hasta"
-                type="date"
-                min={hoy}
-                value={valores.vigente_hasta ?? ""}
-                error={errores.vigente_hasta}
-                ayuda="El QR funciona hasta ese día inclusive."
-              />
-            </div>
-            <div class="final ancho">
-              {activo ? (
-                <Boton data-abrir-modal="modal-generar">
-                  <Icono nombre="qr" tamano={18} />
-                  Generar e imprimir
+            {activo && (
+              <p class="desactivar">
+                <Boton variante="fantasma" tamano="pequeno" data-abrir-modal="modal-desactivar">
+                  Desactivar el QR actual sin generar otro
                 </Boton>
-              ) : (
-                <Boton type="submit" data-texto-cargando="Generando…">
-                  <Icono nombre="qr" tamano={18} />
-                  Generar e imprimir
-                </Boton>
-              )}
-            </div>
-          </form>
-        </Tarjeta>
-
-        {historial.length > 1 && (
-          <Tarjeta titulo="Historial">
-            <ul class="historial">
-              {historial.map((q) => (
-                <li>
-                  <span>
-                    {fechaDe(q.creado_en)}
-                    {q.descripcion && <span class="tenue"> · {q.descripcion}</span>}
-                  </span>
-                  <span class="tenue">
-                    {q.activo
-                      ? "Actual"
-                      : q.revocado_en
-                        ? `Reemplazado el ${fechaDe(q.revocado_en)}`
-                        : "Inactivo"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Tarjeta>
-        )}
-
-        {activo && (
-          <p class="desactivar">
-            <Boton variante="fantasma" tamano="pequeno" data-abrir-modal="modal-desactivar">
-              Desactivar el QR actual sin generar otro
-            </Boton>
-          </p>
-        )}
+              </p>
+            )}
+          </aside>
+        </div>
       </>
     )}
   </div>
@@ -286,18 +294,6 @@ const vence = valores.vence === "si";
     display: grid;
     gap: var(--esp-4);
   }
-  .rejilla {
-    display: grid;
-    gap: var(--esp-4);
-  }
-  @media (min-width: 768px) {
-    .rejilla {
-      grid-template-columns: 1fr 1fr;
-    }
-    .ancho {
-      grid-column: 1 / -1;
-    }
-  }
   .opciones {
     display: flex;
     flex-wrap: wrap;
@@ -320,10 +316,6 @@ const vence = valores.vence === "si";
   .opciones input {
     width: 18px;
     height: 18px;
-  }
-  .final {
-    display: flex;
-    justify-content: flex-end;
   }
   .actual {
     display: grid;

@@ -80,11 +80,7 @@ const horas = (n: number | null) =>
   n === null ? "" : `${Number(n).toFixed(1).replace(".", ",")} h`;
 ---
 
-<PanelLayout
-  ancho="angosto"
-  titulo={`Hola, ${perfil.nombre}`}
-  subtitulo={ctx ? fechaLarga(ctx.fecha) : undefined}
->
+<PanelLayout titulo={`Hola, ${perfil.nombre}`} subtitulo={ctx ? fechaLarga(ctx.fecha) : undefined}>
   <div class="pila">
     {!ficha || !ctx ? (
       <Alerta tipo="info">
@@ -110,103 +106,108 @@ const horas = (n: number | null) =>
         )}
         {avisoTelefono && <Alerta tipo="alerta">{avisoTelefono}</Alerta>}
 
-        <section class="marcar" aria-labelledby="titulo-marcar">
-          <h2 id="titulo-marcar" class="sr-only">
-            Marcar asistencia
-          </h2>
-          <p class="reloj" data-reloj data-servidor={ctx.ahora.getTime()} aria-live="off">
-            {ctx.horaLocal}
-          </p>
-          {ctx.regla ? (
-            <p class="jornada">
-              {esOtroDia ? "Jornada iniciada ayer" : "Su jornada"}: {ctx.regla.horaEntrada} a{" "}
-              {ctx.regla.horaSalida}
-              <span class="tenue"> · tolerancia {ctx.regla.toleranciaMin} min</span>
-            </p>
-          ) : (
-            <p class="jornada">
-              {ctx.feriado
-                ? `Hoy es feriado: ${ctx.feriado}.`
-                : !ficha.jornadas && !ficha.horarios.length
-                  ? "Aún no tiene una jornada asignada. Consulte con la directiva."
-                  : "Hoy no es día laborable para usted."}
-            </p>
-          )}
-
-          {reg?.hora_entrada && (
-            <dl class="hoy">
-              <div>
-                <dt>Entrada</dt>
-                <dd>{horaEnZona(reg.hora_entrada)}</dd>
-              </div>
-              <div>
-                <dt>Salida</dt>
-                <dd>{reg.hora_salida ? horaEnZona(reg.hora_salida) : "—"}</dd>
-              </div>
-              <div>
-                <dt>Estado</dt>
-                <dd>
-                  <Badge tipo={reg.estado}>{NOMBRE_ESTADO[reg.estado]}</Badge>
-                </dd>
-              </div>
-            </dl>
-          )}
-
-          {sig === "completa" ? (
-            <p class="listo">
-              <Icono nombre="exito" tamano={22} /> Jornada completa
-              {reg?.horas_trabajadas !== null && reg?.horas_trabajadas !== undefined && (
-                <span class="tenue">· {horas(reg.horas_trabajadas)}</span>
+        <div class="dos-zonas">
+          <div class="zona-principal">
+            <section class="marcar" aria-labelledby="titulo-marcar">
+              <h2 id="titulo-marcar" class="sr-only">
+                Marcar asistencia
+              </h2>
+              <p class="reloj" data-reloj data-servidor={ctx.ahora.getTime()} aria-live="off">
+                {ctx.horaLocal}
+              </p>
+              {ctx.regla ? (
+                <p class="jornada">
+                  {esOtroDia ? "Jornada iniciada ayer" : "Su jornada"}: {ctx.regla.horaEntrada} a{" "}
+                  {ctx.regla.horaSalida}
+                  <span class="tenue"> · tolerancia {ctx.regla.toleranciaMin} min</span>
+                </p>
+              ) : (
+                <p class="jornada">
+                  {ctx.feriado
+                    ? `Hoy es feriado: ${ctx.feriado}.`
+                    : !ficha.jornadas && !ficha.horarios.length
+                      ? "Aún no tiene una jornada asignada. Consulte con la directiva."
+                      : "Hoy no es día laborable para usted."}
+                </p>
               )}
-            </p>
-          ) : sig === "cerrada" ? (
-            <p class="listo">
-              Día registrado como{" "}
-              <strong>{NOMBRE_ESTADO[ctx.registro!.estado].toLowerCase()}</strong>. Si es un error,
-              diríjase a secretaría.
-            </p>
-          ) : puedeMarcar ? (
-            <Boton
-              tamano="grande"
-              bloque
-              variante={sig === "salida" ? "secundario" : "primario"}
-              data-marcar={sig}
-              data-geocerca={cfg.geocerca_activa ? "1" : "0"}
-            >
-              <Icono nombre="qr" tamano={22} />
-              {sig === "salida" ? "Marcar salida" : "Marcar entrada"}
-            </Boton>
-          ) : null}
-          {puedeMarcar && (
-            <p class="ayuda">
-              Se le pedirá la ubicación y la cámara para escanear el código de la entrada.
-            </p>
-          )}
-        </section>
 
-        {ultimos.length > 0 && (
-          <Tarjeta titulo="Últimos días">
-            <a slot="acciones" href="/historial" class="ver-historial">
-              Ver historial
-            </a>
-            <ul class="ultimos">
-              {ultimos.map((u) => (
-                <li>
-                  <span class="dia">{corta(u.fecha)}</span>
-                  <span class="tenue horas">
-                    {u.hora_entrada ? horaEnZona(u.hora_entrada) : ""}
-                    {u.hora_salida
-                      ? ` – ${horaEnZona(u.hora_salida)}`
-                      : u.salida_no_registrada
-                        ? " – sin salida"
-                        : ""}
-                  </span>
-                  <Badge tipo={u.estado}>{NOMBRE_ESTADO[u.estado]}</Badge>
-                </li>
-              ))}
-            </ul>
-          </Tarjeta>
-        )}
+              {reg?.hora_entrada && (
+                <dl class="hoy">
+                  <div>
+                    <dt>Entrada</dt>
+                    <dd>{horaEnZona(reg.hora_entrada)}</dd>
+                  </div>
+                  <div>
+                    <dt>Salida</dt>
+                    <dd>{reg.hora_salida ? horaEnZona(reg.hora_salida) : "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>Estado</dt>
+                    <dd>
+                      <Badge tipo={reg.estado}>{NOMBRE_ESTADO[reg.estado]}</Badge>
+                    </dd>
+                  </div>
+                </dl>
+              )}
+
+              {sig === "completa" ? (
+                <p class="listo">
+                  <Icono nombre="exito" tamano={22} /> Jornada completa
+                  {reg?.horas_trabajadas !== null && reg?.horas_trabajadas !== undefined && (
+                    <span class="tenue">· {horas(reg.horas_trabajadas)}</span>
+                  )}
+                </p>
+              ) : sig === "cerrada" ? (
+                <p class="listo">
+                  Día registrado como{" "}
+                  <strong>{NOMBRE_ESTADO[ctx.registro!.estado].toLowerCase()}</strong>. Si es un
+                  error, diríjase a secretaría.
+                </p>
+              ) : puedeMarcar ? (
+                <Boton
+                  tamano="grande"
+                  bloque
+                  variante={sig === "salida" ? "secundario" : "primario"}
+                  data-marcar={sig}
+                  data-geocerca={cfg.geocerca_activa ? "1" : "0"}
+                >
+                  <Icono nombre="qr" tamano={22} />
+                  {sig === "salida" ? "Marcar salida" : "Marcar entrada"}
+                </Boton>
+              ) : null}
+              {puedeMarcar && (
+                <p class="ayuda">
+                  Se le pedirá la ubicación y la cámara para escanear el código de la entrada.
+                </p>
+              )}
+            </section>
+          </div>
+          <aside class="zona-lateral" aria-label="Últimos días">
+            {ultimos.length > 0 && (
+              <Tarjeta titulo="Últimos días">
+                <a slot="acciones" href="/historial" class="ver-historial">
+                  Ver historial
+                </a>
+                <ul class="ultimos">
+                  {ultimos.map((u) => (
+                    <li>
+                      <span class="dia">{corta(u.fecha)}</span>
+                      <span class="tenue horas">
+                        {u.hora_entrada ? horaEnZona(u.hora_entrada) : ""}
+                        {u.hora_salida
+                          ? ` – ${horaEnZona(u.hora_salida)}`
+                          : u.salida_no_registrada
+                            ? " – sin salida"
+                            : ""}
+                      </span>
+                      <Badge tipo={u.estado}>{NOMBRE_ESTADO[u.estado]}</Badge>
+                    </li>
+                  ))}
+                </ul>
+              </Tarjeta>
+            )}
+          </aside>
+        </div>
       </>
     )}
   </div>

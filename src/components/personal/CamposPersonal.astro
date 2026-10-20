@@ -1,4 +1,8 @@
 ---
+/**
+ * Campos de la ficha de personal en la rejilla de 12 columnas (D-52): cada
+ * campo con el ancho de su dato; categoría y vínculo con botones.
+ */
 import Input from "@/components/ui/Input.astro";
 import Select from "@/components/ui/Select.astro";
 import type { FilaJornada } from "@/lib/datos/jornadas";
@@ -14,12 +18,14 @@ interface Props {
 }
 const { valores: v, errores: e = {}, jornadas, categorias } = Astro.props;
 const val = (k: string) => (v[k] === null || v[k] === undefined ? "" : String(v[k]));
+const vinculo = val("vinculo") || "fijo";
 ---
 
 <fieldset class="seccion">
   <legend>Identificación</legend>
-  <div class="rejilla">
+  <div class="campos">
     <Input
+      class="c-largo"
       etiqueta="Nombre(s)"
       nombre="nombre"
       value={val("nombre")}
@@ -29,6 +35,7 @@ const val = (k: string) => (v[k] === null || v[k] === undefined ? "" : String(v[
       autocomplete="off"
     />
     <Input
+      class="c-largo"
       etiqueta="Apellido(s)"
       nombre="apellido"
       value={val("apellido")}
@@ -38,6 +45,7 @@ const val = (k: string) => (v[k] === null || v[k] === undefined ? "" : String(v[
       autocomplete="off"
     />
     <Input
+      class="c-medio"
       etiqueta="Cédula"
       nombre="cedula"
       value={val("cedula")}
@@ -49,47 +57,61 @@ const val = (k: string) => (v[k] === null || v[k] === undefined ? "" : String(v[
       data-formato="cedula"
     />
     <Input
+      class="c-medio"
       etiqueta="Teléfono"
       nombre="telefono"
       type="tel"
       inputmode="tel"
       value={val("telefono")}
       error={e.telefono}
-      ayuda="Opcional. Ejemplo: 0414-1234567"
+      ayuda="Opcional. 0414-1234567"
     />
   </div>
 </fieldset>
 
 <fieldset class="seccion">
   <legend>Trabajo</legend>
-  <div class="rejilla">
-    <Select
-      etiqueta="Categoría"
-      nombre="categoria_id"
-      valor={val("categoria_id")}
-      error={e.categoria_id}
-      required
-      vacia="Seleccione…"
-      data-jornada-sugerida="campo-jornada_id"
-      opciones={categorias
-        .filter((c) => c.activa || c.id === val("categoria_id"))
-        .map((c) => ({
-          valor: c.id,
-          texto: c.nombre,
-          datos: c.jornada_sugerida_id
-            ? ({ jornada: c.jornada_sugerida_id } as Record<string, string>)
-            : undefined,
-        }))}
-    />
-    <Select
-      etiqueta="Vínculo"
-      nombre="vinculo"
-      valor={val("vinculo") || "fijo"}
-      error={e.vinculo}
-      opciones={VINCULOS.map((x) => ({ valor: x, texto: NOMBRE_VINCULO[x] }))}
-    />
+  <div class="campos">
+    <fieldset class="opciones-campo c-completo">
+      <legend>
+        Categoría{" "}
+        <span class="obligatorio" aria-hidden="true">
+          *
+        </span>
+      </legend>
+      <div class="v-chips">
+        {categorias
+          .filter((c) => c.activa || c.id === val("categoria_id"))
+          .map((c) => (
+            <label>
+              <input
+                type="radio"
+                name="categoria_id"
+                value={c.id}
+                checked={c.id === val("categoria_id")}
+                data-jornada={c.jornada_sugerida_id ?? undefined}
+              />
+              {c.nombre}
+            </label>
+          ))}
+      </div>
+      {e.categoria_id && <small class="error">{e.categoria_id}</small>}
+    </fieldset>
+    <fieldset class="opciones-campo c-largo">
+      <legend>Vínculo</legend>
+      <div class="v-chips">
+        {VINCULOS.map((x) => (
+          <label>
+            <input type="radio" name="vinculo" value={x} checked={x === vinculo} />
+            {NOMBRE_VINCULO[x]}
+          </label>
+        ))}
+      </div>
+      {e.vinculo && <small class="error">{e.vinculo}</small>}
+    </fieldset>
     <Input
-      etiqueta="Carga horaria semanal"
+      class="c-corto"
+      etiqueta="Carga semanal (h)"
       nombre="carga_horaria"
       type="number"
       inputmode="numeric"
@@ -97,9 +119,10 @@ const val = (k: string) => (v[k] === null || v[k] === undefined ? "" : String(v[
       max="80"
       value={val("carga_horaria")}
       error={e.carga_horaria}
-      ayuda="Horas por semana (aparece en la planilla oficial)."
+      ayuda="Sale en la planilla."
     />
     <Input
+      class="c-corto"
       etiqueta="Fecha de ingreso"
       nombre="fecha_ingreso"
       type="date"
@@ -108,13 +131,13 @@ const val = (k: string) => (v[k] === null || v[k] === undefined ? "" : String(v[
       ayuda="Opcional"
     />
     <Select
-      class="ancho"
+      class="c-ancho"
       etiqueta="Jornada"
       nombre="jornada_id"
       valor={val("jornada_id")}
       error={e.jornada_id}
       vacia="Sin asignar"
-      ayuda="Horario de entrada, salida y tolerancia. Al elegir la categoría se propone la jornada habitual."
+      ayuda="Al elegir la categoría se propone su jornada habitual."
       opciones={jornadas.map((j) => ({
         valor: j.id,
         texto: `${j.nombre} · ${horaCorta(j.hora_entrada)}–${horaCorta(j.hora_salida)}${j.nocturna ? " (nocturna)" : ""} · ${resumenDias(j.dias_laborables)}${j.activa ? "" : " (inactiva)"}`,
@@ -133,23 +156,14 @@ const val = (k: string) => (v[k] === null || v[k] === undefined ? "" : String(v[
   .seccion:last-of-type {
     margin-bottom: 0;
   }
-  legend {
+  .seccion > legend {
     padding: 0;
     margin-bottom: var(--esp-3);
     font-size: var(--texto-base);
     font-weight: var(--peso-fuerte);
     color: var(--color-texto);
   }
-  .rejilla {
-    display: grid;
-    gap: var(--esp-4);
-  }
-  @media (min-width: 768px) {
-    .rejilla {
-      grid-template-columns: 1fr 1fr;
-    }
-    .rejilla :global(.ancho) {
-      grid-column: 1 / -1;
-    }
+  .obligatorio {
+    color: var(--color-error);
   }
 </style>

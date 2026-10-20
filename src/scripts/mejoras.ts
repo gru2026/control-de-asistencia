@@ -349,6 +349,24 @@ addEventListener("hashchange", () => {
   if (nav && location.hash) mostrarPestana(nav, decodeURIComponent(location.hash.slice(1)), true);
 });
 
+// Al elegir la categoría (botones), proponer su jornada si no se eligió otra a mano
+document.addEventListener("change", (ev) => {
+  const t = ev.target as HTMLInputElement | HTMLSelectElement;
+  const form = t.form;
+  if (!form) return;
+  const jornada = form.querySelector<HTMLSelectElement>("select[name=jornada_id]");
+  if (!jornada) return;
+  if (t === jornada) {
+    jornada.dataset.tocada = "1";
+  } else if (t.name === "categoria_id" && t instanceof HTMLInputElement && t.dataset.jornada) {
+    if (!jornada.dataset.tocada || !jornada.value) jornada.value = t.dataset.jornada;
+  } else return;
+  // Resumen de la jornada elegida (zona lateral)
+  const resumen = document.querySelector<HTMLElement>("[data-resumen-jornada]");
+  if (resumen)
+    resumen.textContent = jornada.selectedOptions[0]?.textContent?.trim() || "Sin asignar";
+});
+
 /** Inicializaciones que dependen de elementos concretos (se repiten tras cada reemplazo). */
 function inicializar(raiz: ParentNode) {
   const navFicha = raiz.querySelector<HTMLElement>("[data-pestanas-ficha]");
@@ -360,20 +378,6 @@ function inicializar(raiz: ParentNode) {
     if (guardado !== undefined) d.open = guardado;
   });
   abrirSeccionDelAncla();
-
-  // Al elegir categoría, proponer su jornada (si el usuario no eligió otra)
-  raiz.querySelectorAll<HTMLSelectElement>("select[data-jornada-sugerida]").forEach((cat) => {
-    const jornada = document.getElementById(
-      cat.dataset.jornadaSugerida ?? "",
-    ) as HTMLSelectElement | null;
-    if (!jornada) return;
-    let tocada = jornada.value !== "";
-    jornada.addEventListener("change", () => (tocada = true));
-    cat.addEventListener("change", () => {
-      const sugerida = cat.selectedOptions[0]?.dataset.jornada;
-      if (sugerida && !tocada) jornada.value = sugerida;
-    });
-  });
 
   // Mensajes de éxito: se ocultan solos (más tarde si ofrecen «Deshacer»)
   raiz.querySelectorAll<HTMLElement>("[data-autocerrar]").forEach((el) => {

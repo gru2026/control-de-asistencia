@@ -25,6 +25,17 @@ export const ICONO_AVISO: Record<string, NombreIcono> = {
   sistema: "info",
 };
 
+export const NOMBRE_AVISO: Record<string, [string, string]> = {
+  falta: ["falta", "faltas"],
+  tarde: ["tardanza", "tardanzas"],
+  senalado: ["marca señalada", "marcas señaladas"],
+  dispositivo: ["teléfono", "teléfonos"],
+  salida: ["salida sin marcar", "salidas sin marcar"],
+  qr: ["aviso del QR", "avisos del QR"],
+  permiso: ["permiso", "permisos"],
+  sistema: ["aviso del sistema", "avisos del sistema"],
+};
+
 /** "Hoy · 07:15" o "16/10/2026 · 18:00" */
 export function cuandoAviso(iso: string): string {
   const dia = hoyEnZona(undefined, new Date(iso));

@@ -3,7 +3,7 @@ import PanelLayout from "@/layouts/PanelLayout.astro";
 import Tarjeta from "@/components/ui/Tarjeta.astro";
 import Boton from "@/components/ui/Boton.astro";
 import Icono from "@/components/ui/Icono.astro";
-import { cuandoAviso, ICONO_AVISO, type Aviso } from "@/lib/avisos";
+import { cuandoAviso, ICONO_AVISO, NOMBRE_AVISO, type Aviso } from "@/lib/avisos";
 import Paginacion from "@/components/ui/Paginacion.astro";
 import Pestanas from "@/components/ui/Pestanas.astro";
 import { esUuid, texto } from "@/lib/validacion";
@@ -72,6 +72,7 @@ if (Astro.request.method === "POST") {
 }
 
 const vista = p.get("ver") === "todas" ? "todas" : "sin_leer";
+const tipo = p.get("tipo") && p.get("tipo")! in NOMBRE_AVISO ? p.get("tipo")! : null;
 const porPagina = 30;
 const pagina = Math.max(1, Number.parseInt(p.get("pagina") ?? "1", 10) || 1);
 let consulta = sb
@@ -80,17 +81,28 @@ let consulta = sb
   .order("fecha", { ascending: false })
   .range((pagina - 1) * porPagina, pagina * porPagina - 1);
 if (vista === "sin_leer") consulta = consulta.eq("leida", false);
+if (tipo) consulta = consulta.eq("tipo", tipo);
 
-const [{ data, count }, { count: sinLeer }] = await Promise.all([
+const [{ data, count }, { data: tiposSinLeer }] = await Promise.all([
   consulta,
-  sb.from("notificaciones").select("id", { count: "exact", head: true }).eq("leida", false),
+  sb.from("notificaciones").select("tipo").eq("leida", false).limit(1000),
 ]);
+// Resumen de lo que falta por leer, por tipo (zona lateral)
+const porTipo = new Map<string, number>();
+for (const x of tiposSinLeer ?? []) porTipo.set(x.tipo, (porTipo.get(x.tipo) ?? 0) + 1);
+const sinLeer = tiposSinLeer?.length ?? 0;
+const resumenTipos = [...porTipo].sort((a, b) => b[1] - a[1]);
+const conTipo = (t: string | null) => {
+  const u = new URLSearchParams();
+  if (vista === "todas") u.set("ver", "todas");
+  if (t) u.set("tipo", t);
+  return `/notificaciones${u.size ? `?${u}` : ""}`;
+};
 const avisos = (data ?? []) as Aviso[];
 const total = count ?? 0;
 ---
 
 <PanelLayout
-  ancho="medio"
   titulo="Avisos"
   subtitulo="Lo que el sistema le informa: faltas, salidas sin marcar, teléfonos y el QR."
 >
@@ -113,57 +125,129 @@ const total = count ?? 0;
     ]}
   />
 
-  <div class="pila">
-    <Tarjeta>
-      {avisos.length === 0 ? (
-        <p class="vacio">
-          <Icono nombre="campana" tamano={22} />
-          {vista === "sin_leer" ? "No tiene avisos sin leer." : "Aún no tiene avisos."}
-        </p>
-      ) : (
-        <ul class="avisos">
-          {avisos.map((a) => (
-            <li class:list={[!a.leida && "nuevo"]}>
-              <span class="icono-aviso" aria-hidden="true">
-                <Icono nombre={ICONO_AVISO[a.tipo] ?? "info"} tamano={18} />
-              </span>
-              <div class="texto">
-                {a.enlace ? (
-                  <form method="post">
-                    <input type="hidden" name="accion" value="abrir" />
-                    <input type="hidden" name="id" value={a.id} />
-                    <button type="submit" class="mensaje enlace">
-                      {a.mensaje}
-                    </button>
-                  </form>
-                ) : (
-                  <p class="mensaje">{a.mensaje}</p>
-                )}
-                <span class="cuando">
-                  {!a.leida && <span class="visualmente-oculto">Sin leer. </span>}
-                  {cuandoAviso(a.fecha)}
+  <div class="dos-zonas">
+    <div class="zona-principal">
+      <Tarjeta>
+        {avisos.length === 0 ? (
+          <p class="vacio">
+            <Icono nombre="campana" tamano={22} />
+            {vista === "sin_leer" ? "No tiene avisos sin leer." : "Aún no tiene avisos."}
+          </p>
+        ) : (
+          <ul class="avisos">
+            {avisos.map((a) => (
+              <li class:list={[!a.leida && "nuevo"]}>
+                <span class="icono-aviso" aria-hidden="true">
+                  <Icono nombre={ICONO_AVISO[a.tipo] ?? "info"} tamano={18} />
                 </span>
-              </div>
-              {!a.leida && (
-                <form method="post">
-                  <input type="hidden" name="accion" value="leer" />
-                  <input type="hidden" name="id" value={a.id} />
-                  <Boton type="submit" variante="fantasma" tamano="pequeno">
-                    Leído
-                  </Boton>
-                </form>
-              )}
+                <div class="texto">
+                  {a.enlace ? (
+                    <form method="post">
+                      <input type="hidden" name="accion" value="abrir" />
+                      <input type="hidden" name="id" value={a.id} />
+                      <button type="submit" class="mensaje enlace">
+                        {a.mensaje}
+                      </button>
+                    </form>
+                  ) : (
+                    <p class="mensaje">{a.mensaje}</p>
+                  )}
+                  <span class="cuando">
+                    {!a.leida && <span class="visualmente-oculto">Sin leer. </span>}
+                    {cuandoAviso(a.fecha)}
+                  </span>
+                </div>
+                {!a.leida && (
+                  <form method="post">
+                    <input type="hidden" name="accion" value="leer" />
+                    <input type="hidden" name="id" value={a.id} />
+                    <Boton type="submit" variante="fantasma" tamano="pequeno">
+                      Leído
+                    </Boton>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {total > porPagina && <Paginacion pagina={pagina} total={total} porPagina={porPagina} />}
+      </Tarjeta>
+    </div>
+
+    <aside class="zona-lateral" aria-label="Resumen de avisos">
+      <Tarjeta
+        titulo="Sin leer"
+        descripcion={resumenTipos.length ? "Toque un tipo para ver solo esos avisos." : undefined}
+      >
+        {resumenTipos.length ? (
+          <ul class="tipos">
+            <li>
+              <a href={conTipo(null)} aria-current={!tipo ? "true" : undefined}>
+                <span>Todos los tipos</span>
+                <strong>{sinLeer}</strong>
+              </a>
             </li>
-          ))}
-        </ul>
-      )}
-      {total > porPagina && <Paginacion pagina={pagina} total={total} porPagina={porPagina} />}
-    </Tarjeta>
+            {resumenTipos.map(([t, n]) => (
+              <li>
+                <a href={conTipo(t)} aria-current={tipo === t ? "true" : undefined}>
+                  <span class="tipo">
+                    <Icono nombre={ICONO_AVISO[t] ?? "info"} tamano={16} />
+                    {(NOMBRE_AVISO[t] ?? ["aviso", "avisos"])[n === 1 ? 0 : 1]}
+                  </span>
+                  <strong>{n}</strong>
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="nota">Está al día: no hay avisos sin leer.</p>
+        )}
+      </Tarjeta>
+    </aside>
   </div>
 </PanelLayout>
 
 <style>
-  .pila {
+  .tipos {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tipos a {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--esp-3);
+    min-height: 44px;
+    padding: 0 var(--esp-3);
+    border-radius: var(--radio-sm);
+    color: var(--color-texto);
+    font-size: var(--texto-sm);
+    text-decoration: none;
+  }
+  .tipos a:hover {
+    background: var(--color-superficie-hover);
+  }
+  .tipos a[aria-current] {
+    background: var(--color-fondo);
+    font-weight: var(--peso-medio);
+  }
+  .tipo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+    color: var(--color-texto-suave);
+  }
+  .tipos strong {
+    font-variant-numeric: tabular-nums;
+  }
+  .nota {
+    margin: 0;
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .pila-x {
     display: grid;
     gap: var(--esp-4);
   }

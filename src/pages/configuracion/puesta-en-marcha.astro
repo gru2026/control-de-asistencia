@@ -158,50 +158,76 @@ const listos = pasos.filter((p) => p.listo).length;
 ---
 
 <PanelLayout
-  ancho="medio"
   titulo="Puesta en marcha"
   subtitulo="Lo que falta para pasar de las pruebas al uso real. Esta página solo revisa; cada paso se hace en su pantalla."
   migas={[{ texto: "Ajustes", href: "/configuracion" }, { texto: "Puesta en marcha" }]}
 >
-  <div class="pila">
-    <p class="progreso-texto">
-      <strong>
-        {listos} de {pasos.length}
-      </strong>{" "}
-      pasos listos.
-    </p>
-    <Tarjeta>
-      <ol class="pasos">
-        {pasos.map((p) => (
-          <li class:list={[p.listo && "listo"]}>
-            <span class="marca" aria-hidden="true">
-              <Icono nombre={p.listo ? "exito" : "reloj"} tamano={22} />
-            </span>
-            <div class="texto">
-              <strong>{p.titulo}</strong>
-              <span class="visualmente-oculto">{p.listo ? "Listo." : "Pendiente."}</span>
-              <span class="detalle">{p.detalle}</span>
-            </div>
-            {!p.listo && (
-              <a href={p.enlace} class="ir">
-                {p.accion}
-              </a>
-            )}
-          </li>
-        ))}
-      </ol>
-    </Tarjeta>
-    <p class="nota">
-      Antes de empezar, guarde un respaldo de la base de datos (<code>npm run db:respaldo</code>).
-      El orden sugerido y los detalles están en la guía de puesta en marcha de la documentación.
-    </p>
+  <div class="dos-zonas">
+    <div class="zona-principal">
+      <Tarjeta>
+        <ol class="pasos">
+          {pasos.map((p) => (
+            <li class:list={[p.listo && "listo"]}>
+              <span class="marca" aria-hidden="true">
+                <Icono nombre={p.listo ? "exito" : "reloj"} tamano={22} />
+              </span>
+              <div class="texto">
+                <strong>{p.titulo}</strong>
+                <span class="visualmente-oculto">{p.listo ? "Listo." : "Pendiente."}</span>
+                <span class="detalle">{p.detalle}</span>
+              </div>
+              {!p.listo && (
+                <a href={p.enlace} class="ir">
+                  {p.accion}
+                </a>
+              )}
+            </li>
+          ))}
+        </ol>
+      </Tarjeta>
+    </div>
+    <aside class="zona-lateral" aria-label="Avance">
+      <Tarjeta titulo="Avance">
+        <p class="progreso-texto">
+          <strong>
+            {listos} de {pasos.length}
+          </strong>{" "}
+          pasos listos.
+        </p>
+        <div
+          class="barra-avance"
+          role="progressbar"
+          aria-label="Pasos listos"
+          aria-valuemin="0"
+          aria-valuemax={pasos.length}
+          aria-valuenow={listos}
+        >
+          <span style={`width: ${Math.round((listos / Math.max(pasos.length, 1)) * 100)}%`}></span>
+        </div>
+      </Tarjeta>
+      <Tarjeta titulo="Antes de empezar">
+        <p class="nota">
+          Guarde un respaldo de la base de datos (<code>npm run db:respaldo</code>). El orden
+          sugerido y los detalles están en la guía de puesta en marcha de la documentación.
+        </p>
+      </Tarjeta>
+    </aside>
   </div>
 </PanelLayout>
 
 <style>
-  .pila {
-    display: grid;
-    gap: var(--esp-4);
+  .barra-avance {
+    height: 8px;
+    margin-top: var(--esp-3);
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--color-borde);
+  }
+  .barra-avance span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--color-exito);
   }
   .progreso-texto,
   .nota {

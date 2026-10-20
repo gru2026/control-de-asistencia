@@ -89,11 +89,7 @@ const v = (k: string) =>
 const e = (a: string) => (accion === a ? errores : {});
 ---
 
-<PanelLayout
-  ancho="medio"
-  titulo="Ajustes"
-  subtitulo="Configuración de la institución y mantenimiento de datos."
->
+<PanelLayout titulo="Ajustes" subtitulo="Configuración de la institución y mantenimiento de datos.">
   <div class="pila">
     {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
 
@@ -156,106 +152,140 @@ const e = (a: string) => (accion === a ? errores : {});
       </a>
     </nav>
 
-    <Tarjeta
-      titulo="Institución y planilla oficial"
-      descripcion="Estos datos aparecen en el encabezado y el pie de las planillas PDF y Excel."
-      id="institucion"
-    >
-      <form method="post" class="rejilla" novalidate data-avisar-cambios>
-        <input type="hidden" name="accion" value="institucion" />
-        <div class="campo ancho">
-          <label for="encabezado">Encabezado (una línea por renglón)</label>
-          <textarea id="encabezado" name="encabezado" rows="3">{v("encabezado")}</textarea>
-        </div>
-        <Input
-          etiqueta="Nombre del plantel"
-          nombre="nombre_planilla"
-          value={v("nombre_planilla")}
-          error={e("institucion").nombre_planilla}
-          required
-        />
-        <Input etiqueta="Ubicación" nombre="ubicacion" value={v("ubicacion")} />
-        <Input etiqueta="Código DEA" nombre="cod_dea" value={v("cod_dea")} />
-        <span></span>
-        <Input
-          etiqueta="Firma: nombre"
-          nombre="firmante_nombre"
-          value={v("firmante_nombre")}
-          placeholder="Prof. Nombre Apellido"
-        />
-        <Input
-          etiqueta="Firma: cédula"
-          nombre="firmante_cedula"
-          value={v("firmante_cedula")}
-          placeholder="V-12345678"
-        />
-        <Input
-          etiqueta="Firma: cargo"
-          nombre="firmante_cargo"
-          value={v("firmante_cargo")}
-          placeholder="Directora (E)"
-        />
-        <p class="nota ancho">
-          Pendiente: logo del colegio y escudo del estado en buena calidad para el encabezado.
-        </p>
-        <div class="final ancho">
-          <Boton type="submit">Guardar</Boton>
-        </div>
-      </form>
-    </Tarjeta>
-
-    <Tarjeta
-      id="demo"
-      titulo="Datos de demostración"
-      descripcion="Asistencia simulada de las últimas 5 semanas para el personal activo, para mostrar el panel y los reportes."
-    >
-      <p class="estado-demo">
-        {demo ? (
-          <>
-            <strong>{demo}</strong> registros de demostración cargados.
-          </>
-        ) : (
-          "No hay datos de demostración cargados."
-        )}
-      </p>
-      <div class="botones">
-        <form method="post">
-          <input type="hidden" name="accion" value="demo_generar" />
-          <Boton type="submit" variante="secundario" data-texto-cargando="Generando…">
-            <Icono nombre="datos" tamano={18} />
-            {demo ? "Volver a generar" : "Generar datos de demostración"}
-          </Boton>
-        </form>
-        {demo ? (
-          <Boton variante="peligro" data-abrir-modal="modal-demo">
-            <Icono nombre="papelera" tamano={18} />
-            Eliminar datos de demostración
-          </Boton>
-        ) : null}
+    <div class="dos-zonas">
+      <div class="zona-principal">
+        <Tarjeta
+          titulo="Institución y planilla oficial"
+          descripcion="Estos datos aparecen en el encabezado y el pie de las planillas PDF y Excel."
+          id="institucion"
+        >
+          <form method="post" class="campos" novalidate data-avisar-cambios data-previa-planilla>
+            <input type="hidden" name="accion" value="institucion" />
+            <div class="campo c-completo">
+              <label for="encabezado">Encabezado (una línea por renglón)</label>
+              <textarea id="encabezado" name="encabezado" rows="3">{v("encabezado")}</textarea>
+            </div>
+            <Input
+              class="c-largo"
+              etiqueta="Nombre del plantel"
+              nombre="nombre_planilla"
+              value={v("nombre_planilla")}
+              error={e("institucion").nombre_planilla}
+              required
+            />
+            <Input class="c-largo" etiqueta="Ubicación" nombre="ubicacion" value={v("ubicacion")} />
+            <Input class="c-corto" etiqueta="Código DEA" nombre="cod_dea" value={v("cod_dea")} />
+            <Input
+              class="c-corto"
+              etiqueta="Firma: nombre"
+              nombre="firmante_nombre"
+              value={v("firmante_nombre")}
+              placeholder="Prof. Nombre Apellido"
+            />
+            <Input
+              class="c-corto"
+              etiqueta="Firma: cédula"
+              nombre="firmante_cedula"
+              value={v("firmante_cedula")}
+              placeholder="V-12345678"
+            />
+            <Input
+              class="c-corto"
+              etiqueta="Firma: cargo"
+              nombre="firmante_cargo"
+              value={v("firmante_cargo")}
+              placeholder="Directora (E)"
+            />
+            <p class="nota c-completo">
+              Pendiente: logo del colegio y escudo del estado en buena calidad para el encabezado.
+            </p>
+            <div class="pie-form c-completo">
+              <Boton type="submit">Guardar</Boton>
+            </div>
+          </form>
+        </Tarjeta>
       </div>
-    </Tarjeta>
 
-    <Tarjeta
-      titulo="Personal importado"
-      descripcion="Personas cargadas desde un archivo (por ejemplo, la nómina inicial)."
-      id="importados"
-    >
-      <p class="estado-demo">
-        {importados ? (
-          <>
-            <strong>{importados}</strong> personas importadas.
-          </>
-        ) : (
-          "No hay personal importado."
-        )}
-      </p>
-      {importados ? (
-        <Boton variante="peligro" data-abrir-modal="modal-importados">
-          <Icono nombre="papelera" tamano={18} />
-          Eliminar personal importado
-        </Boton>
-      ) : null}
-    </Tarjeta>
+      <aside class="zona-lateral" aria-label="Vista previa y mantenimiento">
+        <Tarjeta titulo="Así sale en la planilla" descripcion="Se actualiza mientras escribe.">
+          <div class="previa" aria-live="polite">
+            <p class="previa-enc" data-previa="encabezado">
+              {v("encabezado")}
+            </p>
+            <p class="previa-plantel" data-previa="nombre_planilla">
+              {v("nombre_planilla")}
+            </p>
+            <p class="previa-meta">
+              <span data-previa="ubicacion">{v("ubicacion")}</span>
+              {" · DEA "}
+              <span data-previa="cod_dea">{v("cod_dea")}</span>
+            </p>
+            <div class="previa-tabla" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <p class="previa-firma">
+              <span data-previa="firmante_nombre">{v("firmante_nombre")}</span>
+              <span data-previa="firmante_cedula">{v("firmante_cedula")}</span>
+              <span data-previa="firmante_cargo">{v("firmante_cargo")}</span>
+            </p>
+          </div>
+        </Tarjeta>
+        <Tarjeta
+          id="demo"
+          titulo="Datos de demostración"
+          descripcion="Asistencia simulada de las últimas 5 semanas para el personal activo, para mostrar el panel y los reportes."
+        >
+          <p class="estado-demo">
+            {demo ? (
+              <>
+                <strong>{demo}</strong> registros de demostración cargados.
+              </>
+            ) : (
+              "No hay datos de demostración cargados."
+            )}
+          </p>
+          <div class="botones">
+            <form method="post">
+              <input type="hidden" name="accion" value="demo_generar" />
+              <Boton type="submit" variante="secundario" data-texto-cargando="Generando…">
+                <Icono nombre="datos" tamano={18} />
+                {demo ? "Volver a generar" : "Generar datos de demostración"}
+              </Boton>
+            </form>
+            {demo ? (
+              <Boton variante="peligro" data-abrir-modal="modal-demo">
+                <Icono nombre="papelera" tamano={18} />
+                Eliminar datos de demostración
+              </Boton>
+            ) : null}
+          </div>
+        </Tarjeta>
+
+        <Tarjeta
+          titulo="Personal importado"
+          descripcion="Personas cargadas desde un archivo (por ejemplo, la nómina inicial)."
+          id="importados"
+        >
+          <p class="estado-demo">
+            {importados ? (
+              <>
+                <strong>{importados}</strong> personas importadas.
+              </>
+            ) : (
+              "No hay personal importado."
+            )}
+          </p>
+          {importados ? (
+            <Boton variante="peligro" data-abrir-modal="modal-importados">
+              <Icono nombre="papelera" tamano={18} />
+              Eliminar personal importado
+            </Boton>
+          ) : null}
+        </Tarjeta>
+      </aside>
+    </div>
   </div>
 
   <Modal id="modal-demo" titulo="¿Eliminar los datos de demostración?">
@@ -305,6 +335,17 @@ const e = (a: string) => (accion === a ? errores : {});
   </Modal>
 </PanelLayout>
 
+<script>
+  // Vista previa del encabezado de la planilla mientras se escribe
+  document.addEventListener("input", (ev) => {
+    const campo = ev.target as HTMLInputElement | HTMLTextAreaElement;
+    if (!campo.form?.hasAttribute("data-previa-planilla")) return;
+    document
+      .querySelectorAll<HTMLElement>(`[data-previa="${campo.name}"]`)
+      .forEach((el) => (el.textContent = campo.value));
+  });
+</script>
+
 <style>
   .pila {
     display: grid;
@@ -339,17 +380,46 @@ const e = (a: string) => (accion === a ? errores : {});
   .accesos small {
     color: var(--color-texto-suave);
   }
-  .rejilla {
+  .previa {
     display: grid;
-    gap: var(--esp-4);
+    gap: var(--esp-1);
+    padding: var(--esp-4);
+    background: var(--color-fondo);
+    border-radius: var(--radio-sm);
+    text-align: center;
+    font-size: var(--texto-xs);
   }
-  @media (min-width: 768px) {
-    .rejilla {
-      grid-template-columns: 1fr 1fr;
-    }
-    .ancho {
-      grid-column: 1 / -1;
-    }
+  .previa p {
+    margin: 0;
+  }
+  .previa-enc {
+    white-space: pre-line;
+    color: var(--color-texto-suave);
+  }
+  .previa-plantel {
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-fuerte);
+  }
+  .previa-meta {
+    color: var(--color-texto-suave);
+  }
+  .previa-tabla {
+    display: grid;
+    gap: 6px;
+    margin: var(--esp-3) 0;
+  }
+  .previa-tabla span {
+    height: 8px;
+    border-radius: 2px;
+    background: var(--color-borde);
+  }
+  .previa-firma {
+    display: grid;
+    justify-items: center;
+    padding-top: var(--esp-2);
+    border-top: 1px solid var(--color-borde-fuerte);
+    margin-inline: auto !important;
+    min-width: 60%;
   }
   .campo {
     display: grid;
@@ -370,10 +440,6 @@ const e = (a: string) => (accion === a ? errores : {});
     margin: 0;
     font-size: var(--texto-sm);
     color: var(--color-texto-suave);
-  }
-  .final {
-    display: flex;
-    justify-content: flex-end;
   }
   .estado-demo {
     margin: 0 0 var(--esp-4);

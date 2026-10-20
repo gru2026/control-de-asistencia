@@ -42,6 +42,7 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-52 | 2026-10-20 | Todas las pantallas a todo el ancho: formularios en rejilla de 12 columnas (cada campo según su dato) y columna lateral de apoyo (vista previa, resumen o estado) | ✅ Vigente |
 | D-51 | 2026-10-20 | Botón **Acciones** en la barra (buscar persona, nuevo personal, permiso, cuentas, planillas); alta de personal y gestión de cuentas en ventanas; pantallas de una columna centradas | ✅ Vigente |
 | D-50 | 2026-10-20 | Formularios sin estrés: «Ahora» por defecto, fechas y motivos con botones, buscador de persona, errores junto al campo | ✅ Vigente |
 | D-49 | 2026-10-20 | **Ventanas**: panel lateral de la persona con acciones rápidas, formularios en ventana (`/api/acciones`) y confirmaciones propias | ✅ Vigente |
@@ -104,6 +105,12 @@ Motivo: cada acción cargaba una pantalla nueva (1 a 2,6 s desde el colegio) y s
 - **D-48 · Avisos y mensajes.** La campana abre un panel (en el celular, desde abajo) con los avisos sin leer, en la misma consulta que el contador. Los resultados de las acciones aparecen abajo y se cierran solos; los reversibles ofrecen **Deshacer** (marcación asistida de los últimos 15 min, revisión, aviso leído). Las acciones graves siguen pidiendo confirmación.
 - **D-49 · Ventanas.** Tocar un nombre abre el **panel lateral** de la persona (hoy, mes, permisos, teléfono, cuenta) con acciones: marcar, cargar permiso, aprobar o cambiar teléfono, «no tiene teléfono», crear cuenta, restablecer a 0000. Los formularios en ventana van a `/api/acciones` (JSON); si sale bien se cierra y se actualiza la pantalla; si no, los errores quedan junto al campo. Confirmaciones con una ventana propia. El contenido llega como fragmento y usa `ventanas.css` (clases `v-`). La ficha completa queda a un toque, por capas (pestañas).
 - **D-50 · Formularios sin estrés.** Marcar empieza en «Ahora»; «Otra hora» pide hora y motivo con botones. Permiso: buscador de persona (escribir nombre o cédula), fecha con botones (Hoy · Mañana · Otras fechas) y motivo con botones. En el celular, las tablas muestran solo lo esencial. Guía de prueba con personas reales: [[05-Entregables/Prueba-de-usabilidad]].
+
+### D-52 · Formularios a todo el ancho
+- Se retira el ancho angosto de D-51: todas las pantallas usan el ancho del panel (96 rem).
+- **`.dos-zonas`** (global): formulario a la izquierda (2/3) y columna de apoyo a la derecha (1/3, fija al desplazarse; `.libre` para listas largas). En celular, una debajo de la otra.
+- **`.campos`**: rejilla de 12 columnas; `c-mini` (2), `c-corto` (3: cédula, fecha, número), `c-medio` (4), `c-largo` (6), `c-ancho` (8), `c-completo`. Categoría, vínculo, motivo y tipo de cuenta con botones.
+- Columna de apoyo por pantalla: Nuevo personal (cuenta y jornada propuesta), Ficha (De un vistazo: hoy, jornada, teléfono, cuenta), Permiso (duración en vivo, faltas que cubre, otros permisos), Ajustes (vista previa del encabezado de la planilla y mantenimiento), Marcación (punto del colegio y cierre diario), QR (QR actual e historial), Avisos (sin leer por tipo, con filtro), Historial y Mi asistencia (días registrados), Puesta en marcha (avance), Cuentas (instrucciones y sin activar).
 
 ### D-51 · Acciones rápidas y orden visual
 - **Acciones** (barra superior, directiva y secretaría): buscador de persona (abre su panel lateral) y accesos a Registro del día, Cargar permiso, Nuevo personal, Crear cuentas, Planilla de hoy (PDF) y Resumen del mes (Excel).

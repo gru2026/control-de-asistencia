@@ -70,7 +70,6 @@ const sinActivar = personas.filter((x) => x.usuarios?.debe_cambiar_clave);
 ---
 
 <PanelLayout
-  ancho="medio"
   titulo="Cuentas del personal"
   subtitulo="Crear las cuentas de acceso de varias personas a la vez."
   migas={[{ texto: "Personal", href: "/personal" }, { texto: "Cuentas" }]}
@@ -124,86 +123,95 @@ const sinActivar = personas.filter((x) => x.usuarios?.debe_cambiar_clave);
         {errores.length > 0 && (
           <Alerta tipo="error">No se pudieron crear: {errores.join(" · ")}</Alerta>
         )}
-        <Alerta tipo="info">
-          Cada cuenta nueva entra con su <strong>cédula</strong> y la contraseña inicial{" "}
-          <strong>{CLAVE_INICIAL}</strong>. En el primer ingreso la app obliga a crear una
-          contraseña propia. Créelas cerca de la capacitación: mientras alguien no entre, cualquiera
-          que sepa su cédula podría hacerlo por él.
-        </Alerta>
-
-        <Tarjeta
-          titulo="Sin cuenta"
-          descripcion="Personal activo que aún no puede entrar a la app. Quienes marcan en secretaría no la necesitan."
-        >
-          {sinCuenta.length === 0 ? (
-            <p class="nota">Todo el personal activo ya tiene cuenta.</p>
-          ) : (
-            <form method="post" class="lista-form">
-              <input type="hidden" name="accion" value="crear" />
-              <label class="todas">
-                <input type="checkbox" data-marcar-todas checked />
-                Seleccionar todas ({sinCuenta.filter((x) => !x.marca_en_pc).length})
-              </label>
-              <ul class="lista">
-                {sinCuenta.map((x) => {
-                  const c = catPorId.get(x.categoria_id);
-                  return (
-                    <li>
-                      <label>
-                        <input type="checkbox" name="id" value={x.id} checked={!x.marca_en_pc} />
-                        <span class="nombre">
-                          {x.apellido}, {x.nombre}
-                        </span>
-                        <span class="tenue">{x.cedula}</span>
-                        {c && <ChipCategoria nombre={c.nombre} color={c.color} />}
-                        {x.marca_en_pc && <span class="tenue">Marca en secretaría</span>}
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
-              <div class="final">
-                <Boton type="submit" data-texto-cargando="Creando cuentas…">
-                  Crear cuentas con contraseña {CLAVE_INICIAL}
-                </Boton>
-              </div>
-            </form>
-          )}
-        </Tarjeta>
-
-        {sinActivar.length > 0 && (
-          <Tarjeta
-            titulo="Sin activar"
-            descripcion="Tienen cuenta pero todavía no han creado su contraseña. Puede volver a imprimir su tira."
-          >
-            <form method="post" class="lista-form">
-              <input type="hidden" name="accion" value="imprimir" />
-              <label class="todas">
-                <input type="checkbox" data-marcar-todas checked />
-                Seleccionar todas ({sinActivar.length})
-              </label>
-              <ul class="lista">
-                {sinActivar.map((x) => (
-                  <li>
-                    <label>
-                      <input type="checkbox" name="id" value={x.id} checked />
-                      <span class="nombre">
-                        {x.apellido}, {x.nombre}
-                      </span>
-                      <span class="tenue">{usuarioVisible(x.usuarios!.email)}</span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-              <div class="final">
-                <Boton type="submit" variante="secundario">
-                  <Icono nombre="imprimir" tamano={18} />
-                  Hoja de claves
-                </Boton>
-              </div>
-            </form>
-          </Tarjeta>
-        )}
+        <div class="dos-zonas">
+          <div class="zona-principal">
+            <Tarjeta
+              titulo="Sin cuenta"
+              descripcion="Personal activo que aún no puede entrar a la app. Quienes marcan en secretaría no la necesitan."
+            >
+              {sinCuenta.length === 0 ? (
+                <p class="nota">Todo el personal activo ya tiene cuenta.</p>
+              ) : (
+                <form method="post" class="lista-form">
+                  <input type="hidden" name="accion" value="crear" />
+                  <label class="todas">
+                    <input type="checkbox" data-marcar-todas checked />
+                    Seleccionar todas ({sinCuenta.filter((x) => !x.marca_en_pc).length})
+                  </label>
+                  <ul class="lista columnas">
+                    {sinCuenta.map((x) => {
+                      const c = catPorId.get(x.categoria_id);
+                      return (
+                        <li>
+                          <label>
+                            <input
+                              type="checkbox"
+                              name="id"
+                              value={x.id}
+                              checked={!x.marca_en_pc}
+                            />
+                            <span class="nombre">
+                              {x.apellido}, {x.nombre}
+                            </span>
+                            <span class="tenue">{x.cedula}</span>
+                            <span>{c && <ChipCategoria nombre={c.nombre} color={c.color} />}</span>
+                            <span class="tenue">{x.marca_en_pc ? "Marca en secretaría" : ""}</span>
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <div class="final">
+                    <Boton type="submit" data-texto-cargando="Creando cuentas…">
+                      Crear cuentas con contraseña {CLAVE_INICIAL}
+                    </Boton>
+                  </div>
+                </form>
+              )}
+            </Tarjeta>
+          </div>
+          <aside class="zona-lateral libre" aria-label="Cómo entran y cuentas sin activar">
+            <Alerta tipo="info">
+              Cada cuenta nueva entra con su <strong>cédula</strong> y la contraseña inicial{" "}
+              <strong>{CLAVE_INICIAL}</strong>. En el primer ingreso la app obliga a crear una
+              contraseña propia. Créelas cerca de la capacitación: mientras alguien no entre,
+              cualquiera que sepa su cédula podría hacerlo por él.
+            </Alerta>
+            {sinActivar.length > 0 && (
+              <Tarjeta
+                titulo="Sin activar"
+                descripcion="Tienen cuenta pero todavía no han creado su contraseña. Puede volver a imprimir su tira."
+              >
+                <form method="post" class="lista-form">
+                  <input type="hidden" name="accion" value="imprimir" />
+                  <label class="todas">
+                    <input type="checkbox" data-marcar-todas checked />
+                    Seleccionar todas ({sinActivar.length})
+                  </label>
+                  <ul class="lista">
+                    {sinActivar.map((x) => (
+                      <li>
+                        <label>
+                          <input type="checkbox" name="id" value={x.id} checked />
+                          <span class="nombre">
+                            {x.apellido}, {x.nombre}
+                          </span>
+                          <span class="tenue">{usuarioVisible(x.usuarios!.email)}</span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                  <div class="final">
+                    <Boton type="submit" variante="secundario">
+                      <Icono nombre="imprimir" tamano={18} />
+                      Hoja de claves
+                    </Boton>
+                  </div>
+                </form>
+              </Tarjeta>
+            )}
+          </aside>
+        </div>
       </>
     )}
   </div>
@@ -223,10 +231,6 @@ const sinActivar = personas.filter((x) => x.usuarios?.debe_cambiar_clave);
   .pila {
     display: grid;
     gap: var(--esp-4);
-  }
-  /* Aviso legible: líneas de menos de 80 caracteres */
-  .pila > :global(.aviso) {
-    max-width: 36rem;
   }
   .nota,
   .tenue {
@@ -266,6 +270,16 @@ const sinActivar = personas.filter((x) => x.usuarios?.debe_cambiar_clave);
     min-height: 44px;
     padding: var(--esp-2) 0;
     cursor: pointer;
+  }
+  /* En la PC, cada dato en su columna, como una tabla */
+  @media (min-width: 900px) {
+    .lista.columnas label {
+      display: grid;
+      grid-template-columns: 18px minmax(12rem, 2fr) minmax(7rem, 1fr) minmax(8rem, 1fr) minmax(
+          8rem,
+          1fr
+        );
+    }
   }
   input[type="checkbox"] {
     width: 18px;

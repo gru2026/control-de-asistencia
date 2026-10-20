@@ -103,6 +103,7 @@ En el PC se entra con el **correo** de la cuenta (o con la cédula, si la cuenta
 > - Después de cada acción aparece un mensaje abajo. Si se equivocó, toque **Deshacer**.
 > - La **campana** abre los avisos encima de la pantalla; tóquelos para ir a lo que indican.
 > - El botón **Acciones** (arriba) reúne lo más frecuente: buscar a una persona, registrar personal nuevo, cargar un permiso, crear cuentas y descargar la planilla de hoy o el resumen del mes.
+> - En la PC, los formularios muestran a la derecha una columna de ayuda: por ejemplo, en Ajustes se ve cómo saldrá el encabezado de la planilla mientras se escribe, y en un permiso cuántos días abarca.
 > - En **Ajustes › Usuarios**, «Gestionar» abre una ventana para cambiar el tipo de cuenta, la contraseña o desactivarla.
 
 ## 7. Registro del día (Asistencia)

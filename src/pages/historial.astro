@@ -137,144 +137,150 @@ const horas = (n: number | string | null) =>
 const LEYENDA: EstadoAsistencia[] = ["presente", "tarde", "falta", "permiso"];
 ---
 
-<PanelLayout ancho="angosto" titulo="Mi historial" subtitulo="Su asistencia mes a mes.">
+<PanelLayout titulo="Mi historial" subtitulo="Su asistencia mes a mes.">
   {!ficha ? (
     <Alerta tipo="info">
       Su cuenta no tiene una ficha de personal asociada, por lo que no registra asistencia.
     </Alerta>
   ) : (
-    <div class="pila">
-      <nav class="mes" aria-label="Cambiar de mes">
-        <a
-          href={`/historial?mes=${anterior}`}
-          class="flecha"
-          aria-label={`Ver ${nombreMes(anterior)}`}
-        >
-          <Icono nombre="anterior" />
-        </a>
-        <h2>{nombreMes(mes)}</h2>
-        {haySiguiente ? (
+    <div class="dos-zonas">
+      <div class="zona-principal">
+        <nav class="mes" aria-label="Cambiar de mes">
           <a
-            href={`/historial?mes=${siguiente}`}
+            href={`/historial?mes=${anterior}`}
             class="flecha"
-            aria-label={`Ver ${nombreMes(siguiente)}`}
+            aria-label={`Ver ${nombreMes(anterior)}`}
           >
-            <Icono nombre="siguiente" />
+            <Icono nombre="anterior" />
           </a>
-        ) : (
-          <span class="flecha inactiva" aria-hidden="true">
-            <Icono nombre="siguiente" />
-          </span>
+          <h2>{nombreMes(mes)}</h2>
+          {haySiguiente ? (
+            <a
+              href={`/historial?mes=${siguiente}`}
+              class="flecha"
+              aria-label={`Ver ${nombreMes(siguiente)}`}
+            >
+              <Icono nombre="siguiente" />
+            </a>
+          ) : (
+            <span class="flecha inactiva" aria-hidden="true">
+              <Icono nombre="siguiente" />
+            </span>
+          )}
+        </nav>
+
+        {resumen && (
+          <dl class="cifras">
+            <div>
+              <dt>Asistencia</dt>
+              <dd>
+                {resumen.diasLaborables ? `${Math.round(resumen.porcentajeAsistencia)} %` : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt>Tardanzas</dt>
+              <dd>{resumen.tardanzas}</dd>
+            </div>
+            <div>
+              <dt>Faltas</dt>
+              <dd>{resumen.faltas}</dd>
+            </div>
+            <div>
+              <dt>Horas</dt>
+              <dd>{Math.round(resumen.totalHoras)}</dd>
+            </div>
+          </dl>
         )}
-      </nav>
 
-      {resumen && (
-        <dl class="cifras">
-          <div>
-            <dt>Asistencia</dt>
-            <dd>
-              {resumen.diasLaborables ? `${Math.round(resumen.porcentajeAsistencia)} %` : "—"}
-            </dd>
-          </div>
-          <div>
-            <dt>Tardanzas</dt>
-            <dd>{resumen.tardanzas}</dd>
-          </div>
-          <div>
-            <dt>Faltas</dt>
-            <dd>{resumen.faltas}</dd>
-          </div>
-          <div>
-            <dt>Horas</dt>
-            <dd>{Math.round(resumen.totalHoras)}</dd>
-          </div>
-        </dl>
-      )}
-
-      <Tarjeta>
-        <table class="calendario">
-          <caption class="visualmente-oculto">Calendario de {nombreMes(mes)}</caption>
-          <thead>
-            <tr>
-              {["L", "M", "X", "J", "V", "S", "D"].map((d) => (
-                <th scope="col">{d}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {semanas.map((s) => (
+        <Tarjeta>
+          <table class="calendario">
+            <caption class="visualmente-oculto">Calendario de {nombreMes(mes)}</caption>
+            <thead>
               <tr>
-                {s.map((c) =>
-                  c ? (
-                    <td>
-                      <span
-                        class:list={["dia", c.estado, c.fecha === hoy && "hoy"]}
-                        title={NOMBRE_DIA[c.estado] || undefined}
-                      >
-                        {c.dia}
-                        {NOMBRE_DIA[c.estado] && (
-                          <span class="visualmente-oculto">: {NOMBRE_DIA[c.estado]}</span>
-                        )}
-                      </span>
-                    </td>
-                  ) : (
-                    <td />
-                  ),
-                )}
+                {["L", "M", "X", "J", "V", "S", "D"].map((d) => (
+                  <th scope="col">{d}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-        <ul class="leyenda">
-          {LEYENDA.map((e) => (
-            <li>
-              <span class:list={["muestra", e]} aria-hidden="true"></span>
-              {NOMBRE_ESTADO[e]}
-            </li>
-          ))}
-        </ul>
-      </Tarjeta>
-
-      {(perms ?? []).length > 0 && (
-        <Tarjeta titulo="Permisos del mes">
-          <ul class="lista">
-            {(perms as { fecha_desde: string; fecha_hasta: string; motivo: string }[]).map((x) => (
+            </thead>
+            <tbody>
+              {semanas.map((s) => (
+                <tr>
+                  {s.map((c) =>
+                    c ? (
+                      <td>
+                        <span
+                          class:list={["dia", c.estado, c.fecha === hoy && "hoy"]}
+                          title={NOMBRE_DIA[c.estado] || undefined}
+                        >
+                          {c.dia}
+                          {NOMBRE_DIA[c.estado] && (
+                            <span class="visualmente-oculto">: {NOMBRE_DIA[c.estado]}</span>
+                          )}
+                        </span>
+                      </td>
+                    ) : (
+                      <td />
+                    ),
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <ul class="leyenda">
+            {LEYENDA.map((e) => (
               <li>
-                <span class="fecha">
-                  {x.fecha_desde === x.fecha_hasta
-                    ? corta(x.fecha_desde)
-                    : `${corta(x.fecha_desde)} – ${corta(x.fecha_hasta)}`}
-                </span>
-                <span class="suave">{x.motivo}</span>
+                <span class:list={["muestra", e]} aria-hidden="true"></span>
+                {NOMBRE_ESTADO[e]}
               </li>
             ))}
           </ul>
         </Tarjeta>
-      )}
+      </div>
 
-      <Tarjeta titulo="Días registrados">
-        {registros.length ? (
-          <ul class="lista">
-            {registros.map((r) => (
-              <li>
-                <span class="fecha">{corta(r.fecha)}</span>
-                <span class="suave horas">
-                  {r.hora_entrada ? horaEnZona(r.hora_entrada) : ""}
-                  {r.hora_salida
-                    ? ` – ${horaEnZona(r.hora_salida)}`
-                    : r.salida_no_registrada
-                      ? " – sin salida"
-                      : ""}
-                  {r.horas_trabajadas !== null && ` · ${horas(r.horas_trabajadas)}`}
-                </span>
-                <Badge tipo={r.estado}>{NOMBRE_ESTADO[r.estado]}</Badge>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p class="suave vacio">No hay días registrados en este mes.</p>
+      <aside class="zona-lateral libre" aria-label="Detalle del mes">
+        {(perms ?? []).length > 0 && (
+          <Tarjeta titulo="Permisos del mes">
+            <ul class="lista">
+              {(perms as { fecha_desde: string; fecha_hasta: string; motivo: string }[]).map(
+                (x) => (
+                  <li>
+                    <span class="fecha">
+                      {x.fecha_desde === x.fecha_hasta
+                        ? corta(x.fecha_desde)
+                        : `${corta(x.fecha_desde)} – ${corta(x.fecha_hasta)}`}
+                    </span>
+                    <span class="suave">{x.motivo}</span>
+                  </li>
+                ),
+              )}
+            </ul>
+          </Tarjeta>
         )}
-      </Tarjeta>
+
+        <Tarjeta titulo="Días registrados">
+          {registros.length ? (
+            <ul class="lista">
+              {registros.map((r) => (
+                <li>
+                  <span class="fecha">{corta(r.fecha)}</span>
+                  <span class="suave horas">
+                    {r.hora_entrada ? horaEnZona(r.hora_entrada) : ""}
+                    {r.hora_salida
+                      ? ` – ${horaEnZona(r.hora_salida)}`
+                      : r.salida_no_registrada
+                        ? " – sin salida"
+                        : ""}
+                    {r.horas_trabajadas !== null && ` · ${horas(r.horas_trabajadas)}`}
+                  </span>
+                  <Badge tipo={r.estado}>{NOMBRE_ESTADO[r.estado]}</Badge>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p class="suave vacio">No hay días registrados en este mes.</p>
+          )}
+        </Tarjeta>
+      </aside>
     </div>
   )}
 </PanelLayout>

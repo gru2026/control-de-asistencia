@@ -346,6 +346,7 @@ const { data: regs } = await sb
   .gte("fecha", sumarDias(hoy, -30))
   .order("fecha", { ascending: false });
 const registros = (regs ?? []) as FilaRegistro[];
+const registroHoy = registros.find((r) => r.fecha === hoy);
 const resumen30 = resumir(
   registros.map((r): RegistroEstadistica => ({
     fecha: r.fecha,
@@ -378,6 +379,13 @@ const NOMBRE_ESTADO_FICHA = {
   falta: "Falta",
   permiso: "Permiso",
 };
+const estadoTelefono = ficha.marca_en_pc
+  ? "Marca en secretaría"
+  : dispositivos.some((d) => d.estado === "pendiente")
+    ? "Por aprobar"
+    : dispositivos.some((d) => d.estado === "aprobado")
+      ? "Aprobado"
+      : "Sin registrar";
 const excepciones = new Map(ficha.horarios.map((h) => [h.dia_semana, h]));
 
 // Resumen semanal efectivo (semana de referencia: 5–11 oct 2026, lunes a domingo)
@@ -489,246 +497,245 @@ const valorExc = (k: string, porDefecto: string) =>
       </dl>
     </section>
 
-    <!-- Por capas: una sección a la vez (sin JavaScript se ven todas) -->
-    <nav class="pestanas" aria-label="Secciones de la ficha" data-pestanas-ficha>
-      {SECCIONES_FICHA.filter((x) => esDirectiva || x.id !== "estado").map((x) => (
-        <a href={`#${x.id}`} data-tab={x.id} aria-current={activa === x.id ? "true" : undefined}>
-          {x.texto}
-        </a>
-      ))}
-    </nav>
+    <div class="dos-zonas">
+      <div class="zona-principal">
+        <!-- Por capas: una sección a la vez (sin JavaScript se ven todas) -->
+        <nav class="pestanas" aria-label="Secciones de la ficha" data-pestanas-ficha>
+          {SECCIONES_FICHA.filter((x) => esDirectiva || x.id !== "estado").map((x) => (
+            <a
+              href={`#${x.id}`}
+              data-tab={x.id}
+              aria-current={activa === x.id ? "true" : undefined}
+            >
+              {x.texto}
+            </a>
+          ))}
+        </nav>
 
-    {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
-    {!esDirectiva && (
-      <Alerta tipo="info">Vista de solo lectura. Los cambios los realiza la directiva.</Alerta>
-    )}
-
-    <div class:list={["panel-ficha", activa === "resumen" && "activo"]} data-panel="resumen">
-      <!-- Asistencia y permisos -->
-      <Tarjeta
-        titulo="Últimos registros de asistencia"
-        id="historial"
-        descripcion="Últimos 10 días registrados."
-      >
-        {ultimos.length ? (
-          <ul class="historial">
-            {ultimos.map((u) => (
-              <li>
-                <span class="fecha">{fechaCorta(u.fecha)}</span>
-                <Badge tipo={u.estado}>{NOMBRE_ESTADO_FICHA[u.estado]}</Badge>
-                <span class="horas">
-                  {u.hora_entrada ? horaEnZona(u.hora_entrada) : "—"} →{" "}
-                  {u.hora_salida ? horaEnZona(u.hora_salida) : "—"}
-                </span>
-                {u.es_demo && <span class="demo">demo</span>}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p class="nota">Aún no hay registros de asistencia.</p>
+        {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
+        {!esDirectiva && (
+          <Alerta tipo="info">Vista de solo lectura. Los cambios los realiza la directiva.</Alerta>
         )}
-      </Tarjeta>
 
-      <Tarjeta
-        titulo="Permisos"
-        id="permisos"
-        descripcion="Ausencias justificadas de los últimos 90 días y las próximas."
-      >
-        <Boton
-          slot="acciones"
-          href={`/permisos/nuevo?persona=${ficha.id}&volver=/personal/${ficha.id}`}
-          data-ventana={`/ventanas/permiso?persona=${ficha.id}`}
-          data-ventana-modo="centro"
-          variante="secundario"
-          tamano="pequeno"
-        >
-          <Icono nombre="mas" tamano={16} />
-          Cargar permiso
-        </Boton>
-        {permisos.length ? (
-          <ul class="historial">
-            {permisos.map((x) => {
-              const vig = vigenciaPermiso(x.fecha_desde, x.fecha_hasta, hoy);
-              return (
-                <li>
-                  <a class="fecha" href={`/permisos/${x.id}?volver=/personal/${ficha!.id}`}>
-                    {x.fecha_desde === x.fecha_hasta
-                      ? fechaCorta(x.fecha_desde)
-                      : `${fechaCorta(x.fecha_desde)} – ${fechaCorta(x.fecha_hasta)}`}
-                  </a>
-                  <span class="horas">{x.motivo}</span>
-                  <Badge
-                    tipo={vig === "vigente" ? "activo" : vig === "proximo" ? "info" : "inactivo"}
-                  >
-                    {vig === "vigente" ? "Vigente" : vig === "proximo" ? "Próximo" : "Terminado"}
-                  </Badge>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p class="nota">Sin permisos en este período.</p>
-        )}
-      </Tarjeta>
-    </div>
-
-    <div class:list={["panel-ficha", activa === "datos" && "activo"]} data-panel="datos">
-      <!-- Datos personales -->
-      <Tarjeta titulo="Datos personales" id="datos">
-        <form method="post" novalidate data-avisar-cambios>
-          <input type="hidden" name="accion" value="datos" />
-          <fieldset disabled={!esDirectiva}>
-            <CamposPersonal
-              valores={valoresDatos}
-              errores={err("datos")}
-              jornadas={jornadas}
-              categorias={categorias}
-            />
-          </fieldset>
-          {esDirectiva && (
-            <div class="final">
-              <Boton type="submit">Guardar datos</Boton>
-            </div>
-          )}
-        </form>
-      </Tarjeta>
-    </div>
-
-    <div class:list={["panel-ficha", activa === "horario" && "activo"]} data-panel="horario">
-      <!-- Horario semanal -->
-      <Tarjeta
-        id="horario"
-        titulo="Horario semanal"
-        descripcion={
-          ficha.jornadas
-            ? `Jornada «${ficha.jornadas.nombre}». Use «Horario especial» o «Libre» solo para los días que difieren.`
-            : "Asigne primero una jornada en los datos personales."
-        }
-      >
-        <form method="post" novalidate>
-          <input type="hidden" name="accion" value="excepciones" />
-          <fieldset disabled={!esDirectiva}>
-            <div class="semana">
-              <div class="fila cabecera-horario" aria-hidden="true">
-                <span>Día</span>
-                <span>Tipo</span>
-                <span>Entrada</span>
-                <span>Salida</span>
-                <span>Tolerancia</span>
-                <span>Resultado</span>
-              </div>
-              {semana.map(({ dia, regla, excepcion }) => {
-                const tipo = valorExc(
-                  `tipo_${dia}`,
-                  excepcion ? (excepcion.libre ? "libre" : "especial") : "normal",
-                );
-                const e = err("excepciones");
-                return (
-                  <div class="fila">
-                    <strong>{NOMBRE_DIA[dia]}</strong>
-                    <Select
-                      etiqueta={`Tipo · ${NOMBRE_DIA[dia]}`}
-                      class="sin-etiqueta"
-                      nombre={`tipo_${dia}`}
-                      valor={tipo}
-                      opciones={[
-                        { valor: "normal", texto: "Según jornada" },
-                        { valor: "especial", texto: "Horario especial" },
-                        { valor: "libre", texto: "Libre" },
-                      ]}
-                    />
-                    <Input
-                      class="sin-etiqueta"
-                      etiqueta={`Entrada · ${NOMBRE_DIA[dia]}`}
-                      nombre={`entrada_${dia}`}
-                      type="time"
-                      value={valorExc(`entrada_${dia}`, horaCorta(excepcion?.hora_entrada))}
-                      error={e[`entrada_${dia}`]}
-                    />
-                    <Input
-                      class="sin-etiqueta"
-                      etiqueta={`Salida · ${NOMBRE_DIA[dia]}`}
-                      nombre={`salida_${dia}`}
-                      type="time"
-                      value={valorExc(`salida_${dia}`, horaCorta(excepcion?.hora_salida))}
-                      error={e[`salida_${dia}`]}
-                    />
-                    <Input
-                      class="sin-etiqueta"
-                      etiqueta={`Tolerancia (min) · ${NOMBRE_DIA[dia]}`}
-                      nombre={`tolerancia_${dia}`}
-                      type="number"
-                      min="0"
-                      max="180"
-                      placeholder="Jornada"
-                      value={valorExc(
-                        `tolerancia_${dia}`,
-                        excepcion?.tolerancia_min?.toString() ?? "",
-                      )}
-                      error={e[`tolerancia_${dia}`]}
-                    />
-                    <span class="resultado">
-                      {regla
-                        ? `${regla.horaEntrada}–${regla.horaSalida} (±${regla.toleranciaMin}′)`
-                        : "No laborable"}
+        <div class:list={["panel-ficha", activa === "resumen" && "activo"]} data-panel="resumen">
+          <!-- Asistencia y permisos -->
+          <Tarjeta
+            titulo="Últimos registros de asistencia"
+            id="historial"
+            descripcion="Últimos 10 días registrados."
+          >
+            {ultimos.length ? (
+              <ul class="historial">
+                {ultimos.map((u) => (
+                  <li>
+                    <span class="fecha">{fechaCorta(u.fecha)}</span>
+                    <Badge tipo={u.estado}>{NOMBRE_ESTADO_FICHA[u.estado]}</Badge>
+                    <span class="horas">
+                      {u.hora_entrada ? horaEnZona(u.hora_entrada) : "—"} →{" "}
+                      {u.hora_salida ? horaEnZona(u.hora_salida) : "—"}
                     </span>
-                  </div>
-                );
-              })}
-            </div>
-            <p class="nota">
-              Entrada, salida y tolerancia solo se usan en los días con «Horario especial».
-            </p>
-          </fieldset>
-          {esDirectiva && (
-            <div class="final">
-              <Boton type="submit">Guardar horario</Boton>
-            </div>
-          )}
-        </form>
-      </Tarjeta>
-    </div>
-
-    <div class:list={["panel-ficha", activa === "acceso" && "activo"]} data-panel="acceso">
-      <Tarjeta titulo="Cuenta de acceso" id="cuenta">
-        {ficha.usuarios ? (
-          <div class="pila">
-            <dl class="datos">
-              <div>
-                <dt>{esCuentaCedula(ficha.usuarios.email) ? "Usuario" : "Correo"}</dt>
-                <dd>{usuarioVisible(ficha.usuarios.email)}</dd>
-              </div>
-              <div>
-                <dt>Rol</dt>
-                <dd>{NOMBRE_ROL[ficha.usuarios.rol]}</dd>
-              </div>
-              <div>
-                <dt>Estado</dt>
-                <dd>
-                  {ficha.usuarios.estado !== "activo" ? (
-                    <Badge tipo="inactivo">Desactivada</Badge>
-                  ) : ficha.usuarios.debe_cambiar_clave ? (
-                    <Badge tipo="pendiente">Sin activar (contraseña {CLAVE_INICIAL})</Badge>
-                  ) : (
-                    <Badge tipo="activo">Activa</Badge>
-                  )}
-                </dd>
-              </div>
-            </dl>
-            {!esDirectiva && esCuentaCedula(ficha.usuarios.email) && (
-              <form method="post" class="mini">
-                <input type="hidden" name="accion" value="clave_inicial" />
-                <p class="nota">
-                  Si olvidó su contraseña, vuelve a ser {CLAVE_INICIAL} y al entrar crea una nueva.
-                </p>
-                <Boton type="submit" variante="secundario">
-                  Restablecer a {CLAVE_INICIAL}
-                </Boton>
-              </form>
+                    {u.es_demo && <span class="demo">demo</span>}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p class="nota">Aún no hay registros de asistencia.</p>
             )}
-            {esDirectiva && (
-              <div class="dos">
-                {esCuentaCedula(ficha.usuarios.email) ? (
+          </Tarjeta>
+
+          <Tarjeta
+            titulo="Permisos"
+            id="permisos"
+            descripcion="Ausencias justificadas de los últimos 90 días y las próximas."
+          >
+            <Boton
+              slot="acciones"
+              href={`/permisos/nuevo?persona=${ficha.id}&volver=/personal/${ficha.id}`}
+              data-ventana={`/ventanas/permiso?persona=${ficha.id}`}
+              data-ventana-modo="centro"
+              variante="secundario"
+              tamano="pequeno"
+            >
+              <Icono nombre="mas" tamano={16} />
+              Cargar permiso
+            </Boton>
+            {permisos.length ? (
+              <ul class="historial">
+                {permisos.map((x) => {
+                  const vig = vigenciaPermiso(x.fecha_desde, x.fecha_hasta, hoy);
+                  return (
+                    <li>
+                      <a class="fecha" href={`/permisos/${x.id}?volver=/personal/${ficha!.id}`}>
+                        {x.fecha_desde === x.fecha_hasta
+                          ? fechaCorta(x.fecha_desde)
+                          : `${fechaCorta(x.fecha_desde)} – ${fechaCorta(x.fecha_hasta)}`}
+                      </a>
+                      <span class="horas">{x.motivo}</span>
+                      <Badge
+                        tipo={
+                          vig === "vigente" ? "activo" : vig === "proximo" ? "info" : "inactivo"
+                        }
+                      >
+                        {vig === "vigente"
+                          ? "Vigente"
+                          : vig === "proximo"
+                            ? "Próximo"
+                            : "Terminado"}
+                      </Badge>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p class="nota">Sin permisos en este período.</p>
+            )}
+          </Tarjeta>
+        </div>
+
+        <div class:list={["panel-ficha", activa === "datos" && "activo"]} data-panel="datos">
+          <!-- Datos personales -->
+          <Tarjeta titulo="Datos personales" id="datos">
+            <form method="post" novalidate data-avisar-cambios>
+              <input type="hidden" name="accion" value="datos" />
+              <fieldset disabled={!esDirectiva}>
+                <CamposPersonal
+                  valores={valoresDatos}
+                  errores={err("datos")}
+                  jornadas={jornadas}
+                  categorias={categorias}
+                />
+              </fieldset>
+              {esDirectiva && (
+                <div class="final">
+                  <Boton type="submit">Guardar datos</Boton>
+                </div>
+              )}
+            </form>
+          </Tarjeta>
+        </div>
+
+        <div class:list={["panel-ficha", activa === "horario" && "activo"]} data-panel="horario">
+          <!-- Horario semanal -->
+          <Tarjeta
+            id="horario"
+            titulo="Horario semanal"
+            descripcion={
+              ficha.jornadas
+                ? `Jornada «${ficha.jornadas.nombre}». Use «Horario especial» o «Libre» solo para los días que difieren.`
+                : "Asigne primero una jornada en los datos personales."
+            }
+          >
+            <form method="post" novalidate>
+              <input type="hidden" name="accion" value="excepciones" />
+              <fieldset disabled={!esDirectiva}>
+                <div class="semana">
+                  <div class="fila cabecera-horario" aria-hidden="true">
+                    <span>Día</span>
+                    <span>Tipo</span>
+                    <span>Entrada</span>
+                    <span>Salida</span>
+                    <span>Tolerancia</span>
+                    <span>Resultado</span>
+                  </div>
+                  {semana.map(({ dia, regla, excepcion }) => {
+                    const tipo = valorExc(
+                      `tipo_${dia}`,
+                      excepcion ? (excepcion.libre ? "libre" : "especial") : "normal",
+                    );
+                    const e = err("excepciones");
+                    return (
+                      <div class="fila">
+                        <strong>{NOMBRE_DIA[dia]}</strong>
+                        <Select
+                          etiqueta={`Tipo · ${NOMBRE_DIA[dia]}`}
+                          class="sin-etiqueta"
+                          nombre={`tipo_${dia}`}
+                          valor={tipo}
+                          opciones={[
+                            { valor: "normal", texto: "Según jornada" },
+                            { valor: "especial", texto: "Horario especial" },
+                            { valor: "libre", texto: "Libre" },
+                          ]}
+                        />
+                        <Input
+                          class="sin-etiqueta"
+                          etiqueta={`Entrada · ${NOMBRE_DIA[dia]}`}
+                          nombre={`entrada_${dia}`}
+                          type="time"
+                          value={valorExc(`entrada_${dia}`, horaCorta(excepcion?.hora_entrada))}
+                          error={e[`entrada_${dia}`]}
+                        />
+                        <Input
+                          class="sin-etiqueta"
+                          etiqueta={`Salida · ${NOMBRE_DIA[dia]}`}
+                          nombre={`salida_${dia}`}
+                          type="time"
+                          value={valorExc(`salida_${dia}`, horaCorta(excepcion?.hora_salida))}
+                          error={e[`salida_${dia}`]}
+                        />
+                        <Input
+                          class="sin-etiqueta"
+                          etiqueta={`Tolerancia (min) · ${NOMBRE_DIA[dia]}`}
+                          nombre={`tolerancia_${dia}`}
+                          type="number"
+                          min="0"
+                          max="180"
+                          placeholder="Jornada"
+                          value={valorExc(
+                            `tolerancia_${dia}`,
+                            excepcion?.tolerancia_min?.toString() ?? "",
+                          )}
+                          error={e[`tolerancia_${dia}`]}
+                        />
+                        <span class="resultado">
+                          {regla
+                            ? `${regla.horaEntrada}–${regla.horaSalida} (±${regla.toleranciaMin}′)`
+                            : "No laborable"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p class="nota">
+                  Entrada, salida y tolerancia solo se usan en los días con «Horario especial».
+                </p>
+              </fieldset>
+              {esDirectiva && (
+                <div class="final">
+                  <Boton type="submit">Guardar horario</Boton>
+                </div>
+              )}
+            </form>
+          </Tarjeta>
+        </div>
+
+        <div class:list={["panel-ficha", activa === "acceso" && "activo"]} data-panel="acceso">
+          <Tarjeta titulo="Cuenta de acceso" id="cuenta">
+            {ficha.usuarios ? (
+              <div class="pila">
+                <dl class="datos">
+                  <div>
+                    <dt>{esCuentaCedula(ficha.usuarios.email) ? "Usuario" : "Correo"}</dt>
+                    <dd>{usuarioVisible(ficha.usuarios.email)}</dd>
+                  </div>
+                  <div>
+                    <dt>Rol</dt>
+                    <dd>{NOMBRE_ROL[ficha.usuarios.rol]}</dd>
+                  </div>
+                  <div>
+                    <dt>Estado</dt>
+                    <dd>
+                      {ficha.usuarios.estado !== "activo" ? (
+                        <Badge tipo="inactivo">Desactivada</Badge>
+                      ) : ficha.usuarios.debe_cambiar_clave ? (
+                        <Badge tipo="pendiente">Sin activar (contraseña {CLAVE_INICIAL})</Badge>
+                      ) : (
+                        <Badge tipo="activo">Activa</Badge>
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+                {!esDirectiva && esCuentaCedula(ficha.usuarios.email) && (
                   <form method="post" class="mini">
                     <input type="hidden" name="accion" value="clave_inicial" />
                     <p class="nota">
@@ -739,198 +746,284 @@ const valorExc = (k: string, porDefecto: string) =>
                       Restablecer a {CLAVE_INICIAL}
                     </Boton>
                   </form>
-                ) : (
-                  <form method="post" class="mini" novalidate>
-                    <input type="hidden" name="accion" value="clave" />
-                    <Input
-                      etiqueta="Nueva contraseña temporal"
-                      nombre="password"
-                      type="text"
-                      autocomplete="off"
-                      value={seccion === "clave" ? valoresForm.password : generarClaveTemporal()}
-                      error={err("clave").password}
-                    />
-                    <Boton type="submit" variante="secundario">
-                      Restablecer contraseña
-                    </Boton>
-                  </form>
                 )}
-                <form method="post" class="mini">
-                  <input type="hidden" name="accion" value="rol" />
+                {esDirectiva && (
+                  <div class="dos">
+                    {esCuentaCedula(ficha.usuarios.email) ? (
+                      <form method="post" class="mini">
+                        <input type="hidden" name="accion" value="clave_inicial" />
+                        <p class="nota">
+                          Si olvidó su contraseña, vuelve a ser {CLAVE_INICIAL} y al entrar crea una
+                          nueva.
+                        </p>
+                        <Boton type="submit" variante="secundario">
+                          Restablecer a {CLAVE_INICIAL}
+                        </Boton>
+                      </form>
+                    ) : (
+                      <form method="post" class="mini" novalidate>
+                        <input type="hidden" name="accion" value="clave" />
+                        <Input
+                          etiqueta="Nueva contraseña temporal"
+                          nombre="password"
+                          type="text"
+                          autocomplete="off"
+                          value={
+                            seccion === "clave" ? valoresForm.password : generarClaveTemporal()
+                          }
+                          error={err("clave").password}
+                        />
+                        <Boton type="submit" variante="secundario">
+                          Restablecer contraseña
+                        </Boton>
+                      </form>
+                    )}
+                    <form method="post" class="mini">
+                      <input type="hidden" name="accion" value="rol" />
+                      <Select
+                        etiqueta="Rol"
+                        nombre="rol"
+                        valor={ficha.usuarios.rol}
+                        opciones={ROLES.map((r) => ({ valor: r, texto: NOMBRE_ROL[r] }))}
+                      />
+                      <Boton type="submit" variante="secundario">
+                        Cambiar rol
+                      </Boton>
+                    </form>
+                  </div>
+                )}
+              </div>
+            ) : esDirectiva ? (
+              <div class="pila">
+                <form method="post" class="cuenta-cedula">
+                  <input type="hidden" name="accion" value="crear_cuenta_cedula" />
+                  <p class="nota">
+                    Esta persona aún no tiene cuenta. Sin cuenta no puede marcar desde su teléfono.
+                    Entrará con su cédula <strong>{ficha.cedula}</strong> y la contraseña inicial{" "}
+                    <strong>{CLAVE_INICIAL}</strong>, que deberá cambiar en su primer ingreso.
+                  </p>
                   <Select
                     etiqueta="Rol"
                     nombre="rol"
-                    valor={ficha.usuarios.rol}
+                    valor="personal"
                     opciones={ROLES.map((r) => ({ valor: r, texto: NOMBRE_ROL[r] }))}
                   />
-                  <Boton type="submit" variante="secundario">
-                    Cambiar rol
+                  <div class="final">
+                    <Boton type="submit">Crear cuenta</Boton>
+                  </div>
+                </form>
+                <details class="con-correo" open={seccion === "crear_cuenta"}>
+                  <summary>Crear con correo y contraseña propios</summary>
+                  <form method="post" novalidate>
+                    <input type="hidden" name="accion" value="crear_cuenta" />
+                    <CamposCuenta
+                      valores={seccion === "crear_cuenta" ? valoresForm : {}}
+                      errores={err("crear_cuenta")}
+                      claveSugerida={generarClaveTemporal()}
+                    />
+                    <div class="final">
+                      <Boton type="submit" variante="secundario">
+                        Crear cuenta con correo
+                      </Boton>
+                    </div>
+                  </form>
+                </details>
+              </div>
+            ) : (
+              <p class="nota">Sin cuenta de acceso.</p>
+            )}
+          </Tarjeta>
+
+          <Tarjeta
+            titulo="Teléfono de marcación"
+            id="dispositivo"
+            descripcion="Un solo teléfono aprobado por persona. El primero se aprueba solo al marcar por primera vez."
+          >
+            {ficha.marca_en_pc ? (
+              <div class="tel-modo">
+                <p class="nota">
+                  <strong>Marca en secretaría.</strong> No usa teléfono: su entrada y salida se
+                  registran en Asistencia › Registro del día.
+                </p>
+                <form method="post">
+                  <input type="hidden" name="accion" value="marca_pc" />
+                  <input type="hidden" name="valor" value="" />
+                  <Boton type="submit" variante="secundario" tamano="pequeno">
+                    Volver a marcar con teléfono
                   </Boton>
                 </form>
               </div>
-            )}
-          </div>
-        ) : esDirectiva ? (
-          <div class="pila">
-            <form method="post" class="cuenta-cedula">
-              <input type="hidden" name="accion" value="crear_cuenta_cedula" />
-              <p class="nota">
-                Esta persona aún no tiene cuenta. Sin cuenta no puede marcar desde su teléfono.
-                Entrará con su cédula <strong>{ficha.cedula}</strong> y la contraseña inicial{" "}
-                <strong>{CLAVE_INICIAL}</strong>, que deberá cambiar en su primer ingreso.
-              </p>
-              <Select
-                etiqueta="Rol"
-                nombre="rol"
-                valor="personal"
-                opciones={ROLES.map((r) => ({ valor: r, texto: NOMBRE_ROL[r] }))}
-              />
-              <div class="final">
-                <Boton type="submit">Crear cuenta</Boton>
-              </div>
-            </form>
-            <details class="con-correo" open={seccion === "crear_cuenta"}>
-              <summary>Crear con correo y contraseña propios</summary>
-              <form method="post" novalidate>
-                <input type="hidden" name="accion" value="crear_cuenta" />
-                <CamposCuenta
-                  valores={seccion === "crear_cuenta" ? valoresForm : {}}
-                  errores={err("crear_cuenta")}
-                  claveSugerida={generarClaveTemporal()}
-                />
-                <div class="final">
-                  <Boton type="submit" variante="secundario">
-                    Crear cuenta con correo
-                  </Boton>
-                </div>
-              </form>
-            </details>
-          </div>
-        ) : (
-          <p class="nota">Sin cuenta de acceso.</p>
-        )}
-      </Tarjeta>
-
-      <Tarjeta
-        titulo="Teléfono de marcación"
-        id="dispositivo"
-        descripcion="Un solo teléfono aprobado por persona. El primero se aprueba solo al marcar por primera vez."
-      >
-        {ficha.marca_en_pc ? (
-          <div class="tel-modo">
-            <p class="nota">
-              <strong>Marca en secretaría.</strong> No usa teléfono: su entrada y salida se
-              registran en Asistencia › Registro del día.
-            </p>
-            <form method="post">
-              <input type="hidden" name="accion" value="marca_pc" />
-              <input type="hidden" name="valor" value="" />
-              <Boton type="submit" variante="secundario" tamano="pequeno">
-                Volver a marcar con teléfono
-              </Boton>
-            </form>
-          </div>
-        ) : (
-          <>
-            {!ficha.usuarios ? (
-              <p class="nota">Necesita una cuenta de acceso para marcar con el teléfono.</p>
-            ) : dispositivos.length === 0 ? (
-              <p class="nota">Todavía no ha marcado desde ningún teléfono.</p>
             ) : (
-              <ul class="dispositivos">
-                {dispositivos.map((d) => (
-                  <li>
-                    <div class="disp-dato">
-                      <strong>{d.descripcion ?? "Teléfono"}</strong>
-                      <span class="nota">
-                        Registrado {fechaHora(d.creado_en)}
-                        {d.ultimo_uso && <> · último uso {fechaHora(d.ultimo_uso)}</>}
-                      </span>
-                    </div>
-                    <Badge tipo={TIPO_DISP[d.estado]}>{NOMBRE_DISP[d.estado]}</Badge>
-                    <form method="post" class="disp-accion">
-                      <input type="hidden" name="dispositivo_id" value={d.id} />
-                      {d.estado === "aprobado" ? (
-                        <Boton
-                          type="submit"
-                          name="accion"
-                          value="disp_revocar"
-                          variante="secundario"
-                          tamano="pequeno"
-                        >
-                          Revocar
-                        </Boton>
-                      ) : (
-                        <Boton type="submit" name="accion" value="disp_aprobar" tamano="pequeno">
-                          Aprobar
-                        </Boton>
-                      )}
-                    </form>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {dispositivos.some((d) => d.estado === "pendiente") &&
-              dispositivos.some((d) => d.estado === "aprobado") && (
-                <p class="nota disp-aviso">
-                  Al aprobar el teléfono nuevo, el anterior queda revocado.
-                </p>
-              )}
-            {ficha.cambio_telefono && (
-              <p class="nota disp-aviso cambio">
-                Cambio de teléfono autorizado: el próximo teléfono con que marque quedará aprobado.
-              </p>
-            )}
-            <div class="tel-acciones">
-              {ficha.usuarios &&
-                (ficha.cambio_telefono ? (
-                  <form method="post">
-                    <input type="hidden" name="accion" value="tel_cancelar" />
-                    <Boton type="submit" variante="secundario" tamano="pequeno">
-                      Cancelar el cambio
-                    </Boton>
-                  </form>
+              <>
+                {!ficha.usuarios ? (
+                  <p class="nota">Necesita una cuenta de acceso para marcar con el teléfono.</p>
+                ) : dispositivos.length === 0 ? (
+                  <p class="nota">Todavía no ha marcado desde ningún teléfono.</p>
                 ) : (
+                  <ul class="dispositivos">
+                    {dispositivos.map((d) => (
+                      <li>
+                        <div class="disp-dato">
+                          <strong>{d.descripcion ?? "Teléfono"}</strong>
+                          <span class="nota">
+                            Registrado {fechaHora(d.creado_en)}
+                            {d.ultimo_uso && <> · último uso {fechaHora(d.ultimo_uso)}</>}
+                          </span>
+                        </div>
+                        <Badge tipo={TIPO_DISP[d.estado]}>{NOMBRE_DISP[d.estado]}</Badge>
+                        <form method="post" class="disp-accion">
+                          <input type="hidden" name="dispositivo_id" value={d.id} />
+                          {d.estado === "aprobado" ? (
+                            <Boton
+                              type="submit"
+                              name="accion"
+                              value="disp_revocar"
+                              variante="secundario"
+                              tamano="pequeno"
+                            >
+                              Revocar
+                            </Boton>
+                          ) : (
+                            <Boton
+                              type="submit"
+                              name="accion"
+                              value="disp_aprobar"
+                              tamano="pequeno"
+                            >
+                              Aprobar
+                            </Boton>
+                          )}
+                        </form>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {dispositivos.some((d) => d.estado === "pendiente") &&
+                  dispositivos.some((d) => d.estado === "aprobado") && (
+                    <p class="nota disp-aviso">
+                      Al aprobar el teléfono nuevo, el anterior queda revocado.
+                    </p>
+                  )}
+                {ficha.cambio_telefono && (
+                  <p class="nota disp-aviso cambio">
+                    Cambio de teléfono autorizado: el próximo teléfono con que marque quedará
+                    aprobado.
+                  </p>
+                )}
+                <div class="tel-acciones">
+                  {ficha.usuarios &&
+                    (ficha.cambio_telefono ? (
+                      <form method="post">
+                        <input type="hidden" name="accion" value="tel_cancelar" />
+                        <Boton type="submit" variante="secundario" tamano="pequeno">
+                          Cancelar el cambio
+                        </Boton>
+                      </form>
+                    ) : (
+                      <form method="post">
+                        <input type="hidden" name="accion" value="tel_cambio" />
+                        <Boton type="submit" variante="secundario" tamano="pequeno">
+                          <Icono nombre="telefono" tamano={16} />
+                          Cambiar de teléfono
+                        </Boton>
+                      </form>
+                    ))}
                   <form method="post">
-                    <input type="hidden" name="accion" value="tel_cambio" />
-                    <Boton type="submit" variante="secundario" tamano="pequeno">
-                      <Icono nombre="telefono" tamano={16} />
-                      Cambiar de teléfono
+                    <input type="hidden" name="accion" value="marca_pc" />
+                    <input type="hidden" name="valor" value="si" />
+                    <Boton type="submit" variante="fantasma" tamano="pequeno">
+                      No tiene teléfono: marca en secretaría
                     </Boton>
                   </form>
-                ))}
-              <form method="post">
-                <input type="hidden" name="accion" value="marca_pc" />
-                <input type="hidden" name="valor" value="si" />
-                <Boton type="submit" variante="fantasma" tamano="pequeno">
-                  No tiene teléfono: marca en secretaría
-                </Boton>
-              </form>
-            </div>
-          </>
-        )}
-      </Tarjeta>
-    </div>
+                </div>
+              </>
+            )}
+          </Tarjeta>
+        </div>
 
-    <div class:list={["panel-ficha", activa === "estado" && "activo"]} data-panel="estado">
-      {esDirectiva && (
-        <Tarjeta titulo="Estado" id="estado">
-          <p class="nota">
-            Registrada el {fechaCorta(ficha.creado_en.slice(0, 10))}. Las personas nunca se borran:
-            se desactivan para conservar su historial.
-          </p>
-          {ficha.estado === "activo" ? (
-            <Boton variante="peligro" data-abrir-modal="confirmar-desactivar">
-              Desactivar persona
-            </Boton>
-          ) : (
-            <form method="post">
-              <input type="hidden" name="accion" value="activar" />
-              <Boton type="submit">Reactivar persona</Boton>
-            </form>
+        <div class:list={["panel-ficha", activa === "estado" && "activo"]} data-panel="estado">
+          {esDirectiva && (
+            <Tarjeta titulo="Estado" id="estado">
+              <p class="nota">
+                Registrada el {fechaCorta(ficha.creado_en.slice(0, 10))}. Las personas nunca se
+                borran: se desactivan para conservar su historial.
+              </p>
+              {ficha.estado === "activo" ? (
+                <Boton variante="peligro" data-abrir-modal="confirmar-desactivar">
+                  Desactivar persona
+                </Boton>
+              ) : (
+                <form method="post">
+                  <input type="hidden" name="accion" value="activar" />
+                  <Boton type="submit">Reactivar persona</Boton>
+                </form>
+              )}
+            </Tarjeta>
           )}
+        </div>
+      </div>
+
+      <aside class="zona-lateral" aria-label="De un vistazo">
+        <Tarjeta titulo="De un vistazo">
+          <dl class="datos-lateral">
+            <div>
+              <dt>Hoy</dt>
+              <dd>
+                {registroHoy ? (
+                  <>
+                    <Badge tipo={registroHoy.estado}>
+                      {NOMBRE_ESTADO_FICHA[registroHoy.estado]}
+                    </Badge>
+                    {registroHoy.hora_entrada && ` ${horaEnZona(registroHoy.hora_entrada)}`}
+                    {registroHoy.hora_salida && ` → ${horaEnZona(registroHoy.hora_salida)}`}
+                  </>
+                ) : (
+                  "Sin registro"
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>Jornada</dt>
+              <dd>
+                {ficha.jornadas
+                  ? `${horaCorta(ficha.jornadas.hora_entrada)}–${horaCorta(ficha.jornadas.hora_salida)}`
+                  : "Sin asignar"}
+              </dd>
+            </div>
+            <div>
+              <dt>Teléfono</dt>
+              <dd>{estadoTelefono}</dd>
+            </div>
+            <div>
+              <dt>Cuenta</dt>
+              <dd>
+                {ficha.usuarios
+                  ? ficha.usuarios.estado !== "activo"
+                    ? "Desactivada"
+                    : ficha.usuarios.debe_cambiar_clave
+                      ? "Sin activar"
+                      : NOMBRE_ROL[ficha.usuarios.rol]
+                  : "Sin cuenta"}
+              </dd>
+            </div>
+            <div>
+              <dt>Permisos (90 días)</dt>
+              <dd>{permisos.length}</dd>
+            </div>
+          </dl>
         </Tarjeta>
-      )}
+        <div class="pie-form">
+          <Boton
+            href={`/permisos/nuevo?persona=${ficha.id}`}
+            data-ventana={`/ventanas/permiso?persona=${ficha.id}`}
+            data-ventana-modo="centro"
+            variante="secundario"
+          >
+            <Icono nombre="permiso" tamano={18} />
+            Cargar permiso
+          </Boton>
+        </div>
+      </aside>
     </div>
   </div>
 

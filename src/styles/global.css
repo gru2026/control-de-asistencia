@@ -306,3 +306,117 @@ html.cargando [aria-busy="true"] {
     display: none !important;
   }
 }
+
+/* ── Formularios a todo el ancho (D-52) ─────────────────────────
+ * .dos-zonas: formulario a la izquierda (2/3) y ayuda, resumen o vista previa
+ *   a la derecha (1/3, fija al desplazarse). En celular, una debajo de la otra.
+ * .campos: rejilla de 12 columnas; cada campo mide según su dato:
+ *   c-corto (cédula, fecha, número) · c-medio (nombre, correo) · c-largo · c-completo.
+ */
+.dos-zonas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-4);
+  align-items: start;
+}
+.zona-principal,
+.zona-lateral {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+@media (min-width: 1100px) {
+  .dos-zonas {
+    grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+    gap: var(--esp-6);
+  }
+  .zona-lateral {
+    position: sticky;
+    top: calc(56px + var(--esp-6));
+  }
+  /* Columna con listas largas: se desplaza con la página */
+  .zona-lateral.libre {
+    position: static;
+  }
+}
+.campos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-4);
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .campos {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--esp-4) var(--esp-5);
+  }
+  .campos > * {
+    grid-column: span 12;
+  }
+  .campos > .c-mini {
+    grid-column: span 2;
+  }
+  .campos > .c-corto {
+    grid-column: span 3;
+  }
+  .campos > .c-medio {
+    grid-column: span 4;
+  }
+  .campos > .c-largo {
+    grid-column: span 6;
+  }
+  .campos > .c-ancho {
+    grid-column: span 8;
+  }
+  .campos > .c-completo {
+    grid-column: 1 / -1;
+  }
+}
+/* Grupo de botones de opción dentro de .campos (categoría, vínculo…) */
+.opciones-campo {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.opciones-campo > legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-medio);
+}
+.opciones-campo .error {
+  color: var(--color-error);
+  font-size: var(--texto-sm);
+  font-weight: 600;
+}
+/* Pie de un formulario: acciones a la derecha */
+.pie-form {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--esp-2);
+}
+/* Lista de datos en la zona lateral */
+.datos-lateral {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+}
+.datos-lateral > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  font-size: var(--texto-sm);
+}
+.datos-lateral dt {
+  color: var(--color-texto-suave);
+}
+.datos-lateral dd {
+  margin: 0;
+  font-weight: var(--peso-medio);
+  text-align: right;
+}

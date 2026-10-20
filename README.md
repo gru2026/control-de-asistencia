@@ -4,7 +4,7 @@ Aplicación web progresiva (PWA) para el registro y control de asistencia del pe
 
 Proyecto de **Servicio Comunitario** desarrollado por estudiantes universitarios en beneficio de la institución.
 
-![Estado](https://img.shields.io/badge/estado-en%20desarrollo-orange)
+![Estado](https://img.shields.io/badge/estado-listo%20para%20pruebas%20reales-blue)
 ![Astro](https://img.shields.io/badge/Astro-7-BC52EE)
 ![TypeScript](https://img.shields.io/badge/TypeScript-estricto-3178C6)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E)
@@ -63,8 +63,9 @@ Una aplicación que se instala en el teléfono del personal y digitaliza todo el
 - Entrada y salida desde el teléfono personal escaneando un **código QR impreso** en la entrada del plantel.
 - Verificación de **ubicación (geocerca)**: solo se puede marcar dentro del perímetro del colegio.
 - La fecha y la hora las registra el **servidor**, no el teléfono.
-- **Un teléfono por cuenta**; los cambios de equipo los aprueba la secretaría.
-- Respaldo en el **PC del colegio** para quien no tenga su teléfono: registro asistido por secretaría o autoservicio con cédula y PIN.
+- **Un teléfono por cuenta**; secretaría autoriza el cambio de equipo desde la ficha.
+- El personal entra con su **cédula**; la contraseña inicial es 0000 y se cambia en el primer ingreso.
+- Respaldo en el **PC del colegio**: secretaría registra la entrada o salida de quien no tiene su teléfono, o escribe la hora con un motivo si falló el internet (queda señalada para revisión).
 
 **Administración**
 
@@ -72,13 +73,17 @@ Una aplicación que se instala en el teléfono del personal y digitaliza todo el
 - Importación de personal desde una hoja de cálculo (CSV).
 - **Jornadas configurables**: hora de entrada y salida, tolerancia, pausa y días laborables, con excepciones por persona y día.
 - Calendario de feriados.
-- Gestión de cuentas de usuario y roles.
+- Gestión de cuentas de usuario y roles; **creación de cuentas en lote** con hoja de claves para imprimir.
+- **Permisos** con fechas y motivo: las faltas cubiertas pasan a permiso.
+- **Revisión** de marcaciones señaladas (ubicación dudosa u hora escrita a mano).
+- **Lista de puesta en marcha** y respaldo de la base de datos.
 
 **Panel para la directiva**
 
 - Indicadores del período con comparación frente al período anterior: asistencia, puntualidad, faltas, retraso promedio y horas.
 - Gráficas: tendencia diaria, asistencia por día de la semana, hora de llegada, comparación por categoría y seguimiento individual.
 - Lectura rápida con observaciones calculadas a partir de los datos.
+- **Avisos** con campana: faltas y salidas sin marcar, teléfonos nuevos, QR por vencer.
 
 **Cálculos y reportes**
 
@@ -86,24 +91,28 @@ Una aplicación que se instala en el teléfono del personal y digitaliza todo el
 - Horas trabajadas, tardanzas, faltas y porcentaje de asistencia por período.
 - Cierre diario automático que registra las faltas y genera alertas.
 - Planilla diaria en **PDF** y **Excel** con el formato oficial del plantel (Asistencia Docentes / Asistencia Personal).
+- **Resumen del período** por persona en PDF y Excel.
+- **Historial personal** del mes en calendario.
 
 **Aplicación progresiva (PWA)**
 
 - Se instala en Android, iPhone y escritorio sin pasar por tiendas de aplicaciones.
 - Interfaz pensada primero para el teléfono, en español y sin términos técnicos.
+- Aviso «Hay una versión nueva» cuando se publica una actualización.
 
 ## Roles de usuario
 
 | Capacidad                                       | Directiva | Secretaría | Personal |
 | ----------------------------------------------- | :-------: | :--------: | :------: |
-| Marcar su propia asistencia                     |    Sí     |     Sí     |    Sí    |
+| Marcar su propia asistencia (si tiene ficha)    |    Sí     |     Sí     |    Sí    |
 | Ver su historial                                |    Sí     |     Sí     |    Sí    |
 | Registrar asistencia de otros y cargar permisos |    Sí     |     Sí     |    —     |
-| Aprobar cambios de teléfono                     |    Sí     |     Sí     |    —     |
+| Aprobar cambios de teléfono y restablecer a 0000 |    Sí     |     Sí     |    —     |
+| Revisar marcaciones señaladas                   |    Sí     |     Sí     |    —     |
 | Consultar personal, reportes y panel            |    Sí     |     Sí     |    —     |
 | Gestionar personal, jornadas y feriados         |    Sí     |     —      |    —     |
 | Generar el código QR y configurar el sistema    |    Sí     |     —      |    —     |
-| Administrar cuentas y roles                     |    Sí     |     —      |    —     |
+| Administrar cuentas y roles; puesta en marcha   |    Sí     |     —      |    —     |
 
 ## Cómo funciona una marcación
 
@@ -131,7 +140,7 @@ Si una validación falla, la persona recibe un mensaje claro sobre qué hacer (a
 | Estilos                       | CSS nativo con variables de diseño (sin frameworks)                     |
 | Base de datos y autenticación | [Supabase](https://supabase.com) (PostgreSQL, Auth, Row Level Security) |
 | Hospedaje                     | [Vercel](https://vercel.com)                                            |
-| Pruebas                       | [Vitest](https://vitest.dev)                                            |
+| Pruebas                       | [Vitest](https://vitest.dev) y [Playwright](https://playwright.dev)     |
 | Calidad de código             | ESLint y Prettier                                                       |
 
 ### Arquitectura
@@ -169,9 +178,11 @@ Plan de trabajo de cuatro semanas, organizado por entregas funcionales completas
 | Semana | Alcance                                                                         | Estado         |
 | ------ | ------------------------------------------------------------------------------- | -------------- |
 | 1      | Base del sistema, inicio de sesión, roles, personal, jornadas y feriados        | **Completada** |
-| 2      | Código QR, geocerca, aprobación de teléfonos, marcación y cierre diario         | En curso       |
-| 3      | Respaldo en el PC (asistido y kiosco), reportes PDF/Excel y panel               | Pendiente      |
-| 4      | Instalación como PWA, pruebas en dispositivos reales, despliegue y capacitación | Pendiente      |
+| 2      | Código QR, geocerca, aprobación de teléfonos, marcación y cierre diario         | **Completada** |
+| 3      | Registro del día en el PC, revisión, resumen del período, avisos e historial    | **Completada** |
+| 4      | Cuentas por cédula, aviso de actualización, auditoría, puesta en marcha         | Desarrollo listo; faltan pruebas en teléfonos reales y la capacitación |
+
+El kiosco con cédula y PIN se descartó: el colegio no tiene un equipo para eso (decisión D-37).
 
 El detalle de tareas se lleva en [`Tareas por semana`](Documentacion/04-Desarrollo/Tareas-por-semana.md).
 
@@ -179,7 +190,7 @@ El detalle de tareas se lleva en [`Tareas por semana`](Documentacion/04-Desarrol
 
 ### Requisitos
 
-- Node.js 20 o superior
+- Node.js 22
 - Un proyecto de Supabase (plan gratuito)
 
 ### Puesta en marcha
@@ -215,6 +226,7 @@ npm run crear-usuario -- correo@ejemplo.com directiva Nombre Apellido
 | `npm run diseno:revisar` | Revisión de diseño automática (detector de Impeccable)                 |
 | `npm run db:migrar`      | Aplica las migraciones pendientes                                      |
 | `npm run db:seed`        | Carga los datos iniciales                                              |
+| `npm run db:respaldo`    | Respaldo JSON de la base en `Documentacion/_privado/respaldos/`        |
 | `npm run docs`           | Regenera el documento consolidado de la documentación                  |
 
 ## Estructura del repositorio
@@ -231,7 +243,7 @@ npm run crear-usuario -- correo@ejemplo.com directiva Nombre Apellido
 ├── supabase/
 │   ├── migrations/       Esquema versionado de la base de datos
 │   └── seed.sql          Datos iniciales
-├── tests/                Pruebas unitarias
+├── tests/                Pruebas unitarias y de navegador (tests/e2e)
 ├── scripts/              Utilidades de base de datos y cuentas
 └── Documentacion/        Documentación completa del proyecto
 ```
@@ -259,6 +271,10 @@ La documentación completa se encuentra en [`Documentacion/`](Documentacion/00-I
 | [Reglas de negocio](Documentacion/03-Diseno/Reglas-de-negocio.md)                     | Cálculo de estados, horas y validaciones |
 | [Plan de pruebas](Documentacion/05-Entregables/Plan-de-pruebas.md)                    | Casos de prueba y resultados             |
 | [Manual de usuario](Documentacion/05-Entregables/Manual-de-usuario.md)                | Guía para el personal del colegio        |
+| [Guía rápida del personal](Documentacion/05-Entregables/Guia-rapida-personal.md)      | Una página para marcar                   |
+| [Guía rápida de secretaría](Documentacion/05-Entregables/Guia-rapida-secretaria.md)   | Una página para el PC del colegio        |
+| [Puesta en marcha](Documentacion/04-Desarrollo/Puesta-en-marcha.md)                   | Pasos para empezar el uso real           |
+| [Informe de auditoría](Documentacion/05-Entregables/Informe-de-auditoria.md)          | Seguridad, rendimiento y accesibilidad   |
 
 ## Equipo
 

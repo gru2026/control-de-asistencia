@@ -42,6 +42,10 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-45 | 2026-10-19 | Aviso «Hay una versión nueva»: service worker con versión por publicación; recarga solo si la persona acepta | ✅ Vigente |
+| D-44 | 2026-10-19 | **Puesta en marcha** como lista de verificación en Ajustes (no ejecuta nada) + `npm run db:respaldo`; la fecha la decide la coordinación | ✅ Vigente |
+| D-43 | 2026-10-19 | Auditoría: CSP y HSTS, 5 intentos fallidos de inicio de sesión → 15 min, registro público de cuentas desactivado | ✅ Vigente |
+| D-42 | 2026-10-19 | El personal entra con **cédula + contraseña**; contraseña inicial **0000** obligatoria de cambiar en el primer ingreso | ✅ Vigente |
 | D-41 | 2026-10-19 | Avisos con campana en la barra superior y `/notificaciones`; historial personal por mes en `/historial` | ✅ Vigente |
 | D-40 | 2026-10-19 | **Resumen del período** (R5) por persona con PDF y Excel; la planilla diaria se mantiene | ✅ Vigente |
 | D-39 | 2026-10-19 | **Cambiar de teléfono** desde la ficha: el próximo teléfono con que la persona marque queda aprobado solo | ✅ Vigente |
@@ -86,6 +90,12 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 - Vigilancia trabaja de noche: la jornada nocturna termina al día siguiente; una marca de madrugada pertenece a la jornada que empezó la noche anterior.
 - La planilla oficial no lleva firmas por persona (el sistema registra la hora). Solo se imprime y firma si la dirección lo desea.
 - La nómina real (51 personas) se cargó desde un CSV **privado** (no está en el repositorio). La asistencia de demostración es simulada; el panel lo indica con un aviso.
+
+### D-42 a D-45 · Semana 4: cuentas, auditoría y puesta en marcha
+- **D-42 · Cuentas por cédula.** El personal escribe su cédula (solo números; se acepta con letra y puntos) y su contraseña. Internamente la cuenta de Supabase usa un correo técnico `v12345678@cedula.gru-system.local` que la persona nunca ve; la administración puede seguir entrando con su correo. Toda cuenta nueva o restablecida tiene la contraseña **0000** y `usuarios.debe_cambiar_clave`: el middleware lleva a `/cambiar-clave` antes de cualquier otra pantalla. La contraseña propia exige al menos 6 caracteres, no trivial y distinta de la cédula. Como Supabase pide un mínimo de 6 caracteres (no se puede bajar), a las cuentas por cédula se les agrega un sufijo fijo internamente. Creación en lote en **Personal › Cuentas** con hoja de claves recortable; secretaría puede **restablecer a 0000**. Riesgo aceptado: hasta el primer ingreso, quien conozca la cédula puede entrar; se mitiga creando las cuentas el día de la capacitación.
+- **D-43 · Auditoría.** Lighthouse ≥ 96 en rendimiento y 100 en accesibilidad y buenas prácticas en las pantallas principales. `Content-Security-Policy` (solo recursos propios; `'unsafe-inline'` por Astro) y HSTS en producción. Límite propio de 5 intentos fallidos en 15 minutos por cédula o correo (tabla `intentos_acceso`), porque todas las solicitudes llegan a Supabase desde la IP del servidor. Registro público de cuentas desactivado en Supabase. Detalle y riesgos aceptados en [[05-Entregables/Informe-de-auditoria]].
+- **D-44 · Puesta en marcha.** Ajustes › Puesta en marcha muestra 9 pasos con su estado en vivo (demostración, cuentas y ubicaciones de prueba, QR, cuentas del personal, directiva real, planilla, inicio del control) y enlaza a cada pantalla. `npm run db:respaldo` guarda una copia JSON en `_privado`. La fecha de inicio la decide la coordinación; hasta entonces se mantienen los datos de demostración. Guía: [[04-Desarrollo/Puesta-en-marcha]].
+- **D-45 · Actualizaciones.** `/sw.js?v=<commit>`: cada publicación tiene su caché. La versión nueva espera hasta que la persona toque «Actualizar» en el aviso; la primera instalación no recarga la página.
 
 ### D-37 a D-41 · Semana 3: respaldo en el PC, reportes y avisos
 - **D-37 · Sin kiosco ni PIN.** El colegio no tiene un equipo para dejar como kiosco; secretaría maneja el sistema en su PC. Se descartan `/kiosco` y el PIN (los campos `pin_*` quedan sin uso). D-08 se mantiene solo en su modo asistido.

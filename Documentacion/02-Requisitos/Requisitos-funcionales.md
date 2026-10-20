@@ -8,6 +8,10 @@ fecha: 2026-10-06
 
 # Requisitos Funcionales
 
+> [!note] Actualización 19/10/2026
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, [[03-Diseno/Registro-de-decisiones|D-37]]): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
+
 Prioridad: **MVP** (imprescindible) · **Importante** · **Diferible** (ver [[01-Proyecto/Cronograma-4-semanas|corte de emergencia]]). Decisiones de origen: [[03-Diseno/Registro-de-decisiones|Registro de decisiones]].
 
 ## RF — Acceso y usuarios

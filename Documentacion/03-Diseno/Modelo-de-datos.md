@@ -8,6 +8,10 @@ fecha: 2026-10-06
 
 # Modelo de Datos
 
+> [!note] Actualización 19/10/2026
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, [[03-Diseno/Registro-de-decisiones|D-37]]): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
+
 Base de datos **PostgreSQL** en Supabase. Diez tablas. Decisiones de origen en [[03-Diseno/Registro-de-decisiones|Registro de decisiones]].
 
 ## Diagrama de relaciones (ERD simplificado)

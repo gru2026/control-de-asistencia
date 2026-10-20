@@ -63,6 +63,9 @@ Ritmo: dentro de un grupo 6–12 px; entre controles 16 px; entre bloques 32 px 
 - Registro del día: cifras del día en línea (sin tarjetas), tabla con botón «Marcar» secundario por fila; el diálogo pide la hora solo si es contingencia.
 - Barra superior: campana de avisos con contador rojo; en celular se oculta el avatar.
 - Historial: calendario del mes con celdas cuadradas tintadas por estado (verde, ámbar, rojo, azul) y leyenda; hoy con contorno azul.
+- Hoja de claves: tiras recortables con borde punteado (nombre, usuario = cédula, contraseña 0000 y 3 pasos), dos por fila al imprimir.
+- Aviso de versión nueva: barra flotante azul noche con botón blanco «Actualizar», sobre la barra inferior en el celular.
+- Puesta en marcha: lista numerada con ícono verde (listo) o ámbar (pendiente) y enlace a la pantalla de cada paso.
 - Avisos dentro de una tarjeta: línea con ícono y texto (ámbar si es advertencia), nunca un recuadro, para no anidar superficies.
 - Hoja del QR para imprimir: A4, nombre del plantel, título, QR de 120 mm con corrección alta y 3 pasos numerados.
 

@@ -8,6 +8,10 @@ Fecha de generación: 2026-10-20
 
 # Resumen ejecutivo
 
+> **Actualización 19/10/2026**
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
+
 ## Problema
 
 En la U.E.E. General Rafael Urdaneta el registro y control de asistencia del personal docente y administrativo se realiza de forma **manual** (libros de actas y formatos físicos). Esto provoca:
@@ -126,6 +130,10 @@ Ver: Alcance y beneficiarios · Cronograma
 
 # Alcance y Beneficiarios
 
+> **Actualización 19/10/2026**
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
+
 ## Dentro del alcance (v1)
 
 - ✅ Autenticación con login y **roles**: directiva (admin), secretaria, personal (docentes y administrativos).
@@ -172,6 +180,10 @@ Ver: Alcance y beneficiarios · Cronograma
 ---
 
 # 📅 Cronograma — 4 semanas
+
+> **Actualización 19/10/2026**
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
 
 > **Modelo de trabajo**
 > Desarrollo **individual**, por **funciones verticales completas**: cada fase entrega algo operable. Decisiones base en Registro de decisiones.
@@ -247,6 +259,10 @@ Progreso real: Tareas por semana.
 ---
 
 # Requisitos Funcionales
+
+> **Actualización 19/10/2026**
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
 
 Prioridad: **MVP** (imprescindible) · **Importante** · **Diferible** (ver corte de emergencia). Decisiones de origen: Registro de decisiones.
 
@@ -349,6 +365,10 @@ Ver: No funcionales · Roles y permisos
 
 # Requisitos No Funcionales
 
+> **Actualización 19/10/2026**
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
+
 ## Rendimiento
 
 | ID | Requisito | Meta |
@@ -418,6 +438,10 @@ Ver: No funcionales · Roles y permisos
 ---
 
 # Roles y Permisos
+
+> **Actualización 19/10/2026**
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
 
 ## Matriz de roles
 
@@ -514,6 +538,10 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-45 | 2026-10-19 | Aviso «Hay una versión nueva»: service worker con versión por publicación; recarga solo si la persona acepta | ✅ Vigente |
+| D-44 | 2026-10-19 | **Puesta en marcha** como lista de verificación en Ajustes (no ejecuta nada) + `npm run db:respaldo`; la fecha la decide la coordinación | ✅ Vigente |
+| D-43 | 2026-10-19 | Auditoría: CSP y HSTS, 5 intentos fallidos de inicio de sesión → 15 min, registro público de cuentas desactivado | ✅ Vigente |
+| D-42 | 2026-10-19 | El personal entra con **cédula + contraseña**; contraseña inicial **0000** obligatoria de cambiar en el primer ingreso | ✅ Vigente |
 | D-41 | 2026-10-19 | Avisos con campana en la barra superior y `/notificaciones`; historial personal por mes en `/historial` | ✅ Vigente |
 | D-40 | 2026-10-19 | **Resumen del período** (R5) por persona con PDF y Excel; la planilla diaria se mantiene | ✅ Vigente |
 | D-39 | 2026-10-19 | **Cambiar de teléfono** desde la ficha: el próximo teléfono con que la persona marque queda aprobado solo | ✅ Vigente |
@@ -558,6 +586,12 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 - Vigilancia trabaja de noche: la jornada nocturna termina al día siguiente; una marca de madrugada pertenece a la jornada que empezó la noche anterior.
 - La planilla oficial no lleva firmas por persona (el sistema registra la hora). Solo se imprime y firma si la dirección lo desea.
 - La nómina real (51 personas) se cargó desde un CSV **privado** (no está en el repositorio). La asistencia de demostración es simulada; el panel lo indica con un aviso.
+
+### D-42 a D-45 · Semana 4: cuentas, auditoría y puesta en marcha
+- **D-42 · Cuentas por cédula.** El personal escribe su cédula (solo números; se acepta con letra y puntos) y su contraseña. Internamente la cuenta de Supabase usa un correo técnico `v12345678@cedula.gru-system.local` que la persona nunca ve; la administración puede seguir entrando con su correo. Toda cuenta nueva o restablecida tiene la contraseña **0000** y `usuarios.debe_cambiar_clave`: el middleware lleva a `/cambiar-clave` antes de cualquier otra pantalla. La contraseña propia exige al menos 6 caracteres, no trivial y distinta de la cédula. Como Supabase pide un mínimo de 6 caracteres (no se puede bajar), a las cuentas por cédula se les agrega un sufijo fijo internamente. Creación en lote en **Personal › Cuentas** con hoja de claves recortable; secretaría puede **restablecer a 0000**. Riesgo aceptado: hasta el primer ingreso, quien conozca la cédula puede entrar; se mitiga creando las cuentas el día de la capacitación.
+- **D-43 · Auditoría.** Lighthouse ≥ 96 en rendimiento y 100 en accesibilidad y buenas prácticas en las pantallas principales. `Content-Security-Policy` (solo recursos propios; `'unsafe-inline'` por Astro) y HSTS en producción. Límite propio de 5 intentos fallidos en 15 minutos por cédula o correo (tabla `intentos_acceso`), porque todas las solicitudes llegan a Supabase desde la IP del servidor. Registro público de cuentas desactivado en Supabase. Detalle y riesgos aceptados en Informe-de-auditoria.
+- **D-44 · Puesta en marcha.** Ajustes › Puesta en marcha muestra 9 pasos con su estado en vivo (demostración, cuentas y ubicaciones de prueba, QR, cuentas del personal, directiva real, planilla, inicio del control) y enlaza a cada pantalla. `npm run db:respaldo` guarda una copia JSON en `_privado`. La fecha de inicio la decide la coordinación; hasta entonces se mantienen los datos de demostración. Guía: Puesta-en-marcha.
+- **D-45 · Actualizaciones.** `/sw.js?v=<commit>`: cada publicación tiene su caché. La versión nueva espera hasta que la persona toque «Actualizar» en el aviso; la primera instalación no recarga la página.
 
 ### D-37 a D-41 · Semana 3: respaldo en el PC, reportes y avisos
 - **D-37 · Sin kiosco ni PIN.** El colegio no tiene un equipo para dejar como kiosco; secretaría maneja el sistema en su PC. Se descartan `/kiosco` y el PIN (los campos `pin_*` quedan sin uso). D-08 se mantiene solo en su modo asistido.
@@ -666,6 +700,10 @@ Ver: Modelo de datos · Reglas de negocio · Preguntas
 
 # Arquitectura y Stack
 
+> **Actualización 19/10/2026**
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
+
 ## Diagrama general
 
 ```
@@ -759,6 +797,10 @@ Ver: Modelo de datos · Estructura de carpetas
 ---
 
 # Modelo de Datos
+
+> **Actualización 19/10/2026**
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
 
 Base de datos **PostgreSQL** en Supabase. Diez tablas. Decisiones de origen en Registro de decisiones.
 
@@ -1147,6 +1189,10 @@ Si pasa todo → se guarda con hora del servidor, evidencia (lat, lng, precisió
 
 # Mapa de Pantallas
 
+> **Actualización 19/10/2026**
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
+
 Dos contextos de uso:
 - 📱 **Celular** del personal → marcar y ver su historial (mobile-first).
 - 🖥️ **PC del colegio** → administración y respaldo de marcación (escritorio).
@@ -1181,6 +1227,9 @@ Dos contextos de uso:
 /reportes/resumen               Resumen del período (PDF/Excel)
 /notificaciones                 Avisos
 /historial                      Historial personal del mes
+/cambiar-clave                  Crear la contraseña propia (obligatorio en el primer ingreso)
+/personal/cuentas               [directiva] Crear cuentas en lote + hoja de claves
+/configuracion/puesta-en-marcha [directiva] Lista para empezar el uso real
 
 (El kiosco con cédula + PIN se descartó: D-37.)
 ```
@@ -1274,6 +1323,10 @@ Dos contextos de uso:
 ---
 
 # Estructura de Carpetas del Repositorio
+
+> **Actualización 19/10/2026**
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
 
 ```
 servicio comunitario/            # raíz del repositorio
@@ -1772,17 +1825,20 @@ test: casos de tardanza con tolerancia 15 min
 
 ## Semana 4 — PWA, pulido y despliegue
 
-- [ ] `manifest.webmanifest` + iconos (192, 512, maskable, apple-touch)
-- [ ] `sw.js` (app shell + network first en HTML; API sin caché) + aviso de actualización
-- [ ] Prueba en celulares reales: cámara, GPS, instalación (Android + iPhone)
-- [ ] Auditoría: seguridad (checklist RNF), rendimiento, accesibilidad
-- [ ] Deploy a Vercel + variables de entorno + cron
-- [ ] Cargar datos reales (personal, jornadas, coordenadas) + imprimir QR
-- [ ] `README.md` del repo
-- [ ] Manual de usuario final
+- [x] `manifest.webmanifest` + iconos (192, 512, maskable, apple-touch) + acceso directo «Marcar»
+- [x] `sw.js` (app shell + red primero en HTML; API sin caché) + aviso de actualización (D-45)
+- [x] Cuentas por cédula, contraseña inicial 0000 con cambio obligatorio y creación en lote (D-42)
+- [x] Auditoría: seguridad (checklist RNF), rendimiento, accesibilidad → Informe-de-auditoria
+- [x] Deploy a Vercel + variables de entorno + cron
+- [x] Lista de puesta en marcha en Ajustes + respaldo `npm run db:respaldo` (D-44)
+- [x] `README.md` del repo
+- [x] Manual de usuario final + guías rápidas (personal y secretaría)
+- [ ] Prueba en celulares reales: cámara, GPS, instalación (Android + iPhone) — Hector, F13–F20 y F35–F41
+- [ ] Puesta en marcha: borrar demostración, QR definitivo, cuentas del personal, inicio del control — **lo decide la coordinación**
 - [ ] Capacitación + entrega de la cuenta `directiva`
+- [ ] Logo del colegio y escudo para el encabezado (pendiente del colegio)
 
-**🏁 Hito:** app en línea e instalada.
+**🏁 Hito:** desarrollo listo (2026-10-19); falta la prueba en teléfonos reales, la puesta en marcha y la capacitación.
 
 ---
 
@@ -1792,9 +1848,9 @@ test: casos de tardanza con tolerancia 15 min
 |---|---|---|
 | Jornada y tolerancia concretas | 🟡 Configurable, valores pendientes | Preguntas-para-el-colegio #1-2 |
 | Coordenadas del colegio | 🟢 Cargadas | #14 |
-| Administrador inicial | 🟡 Falta nombre/correo | #12 |
+| Administrador inicial | 🟡 Falta nombre/correo (paso 4 de la puesta en marcha) | #12 |
 | Canal de notificaciones | ⬜ Pendiente | #6 |
-| Formato de reportes | ⬜ Pendiente | #7 |
+| Formato de reportes | 🟡 Planilla oficial + resumen del período; se ajusta si el colegio entrega otro formato | #7 |
 | Política de salida no registrada | 🟢 Sin horas + aviso a secretaría (D-35) | Reglas-de-negocio R3 |
 
 ## Semáforo general
@@ -1805,7 +1861,7 @@ test: casos de tardanza con tolerancia 15 min
 | 1 | 🟢 Terminada |
 | 2 | 🟢 Terminada (falta prueba en celulares reales) |
 | 3 | 🟢 Terminada |
-| 4 | ⬜ No iniciada |
+| 4 | 🟡 Desarrollo terminado; faltan pruebas reales, puesta en marcha y capacitación |
 
 ---
 
@@ -1898,127 +1954,154 @@ En `vercel.json`:
 
 ---
 
-# 📖 Manual de Usuario — Control de Asistencia U.E.E. Gral. Rafael Urdaneta
+# Manual de usuario — GRU-system
 
 > **Para quién es**
-> Guía para el personal del colegio. Sin tecnicismos: paso a paso con capturas (pendientes de agregar al final del desarrollo).
+> **Parte 1** es para todo el personal (marcar con el teléfono). **Parte 2** es para secretaría y directiva (el PC del colegio). Hay una versión de una página de cada parte: Guía rápida del personal y Guía rápida de secretaría.
+>
+> Las capturas de la parte 2 no se incluyen en el repositorio porque muestran datos reales del personal. Para el manual impreso se generan en el PC con `npm run capturas`.
 
-## 1. ¿Qué es esta aplicación?
+Dirección de la app: **https://control-de-asistencia-vert.vercel.app**
 
-Es una **aplicación de asistencia** que se instala en su celular. Con ella:
+---
 
-- Marca su **entrada y salida** escaneando el **código QR** de la entrada del colegio.
-- Consulta sus horas, tardanzas y faltas.
-- La directiva obtiene reportes automáticos, sin libros ni papeles.
+# Parte 1 · Personal
 
-Para marcar necesita: **internet**, **estar en el colegio** (la app verifica la ubicación) y **su propio teléfono** registrado.
+## 1. ¿Qué es GRU-system?
 
-## 2. Instalar la app en su celular
+Es la app de asistencia del colegio. Con ella:
 
-1. Abra el enlace de la app en el navegador del celular (Chrome en Android, Safari en iPhone).
-2. **Android:** menú ⋮ → *"Instalar aplicación"*.
-3. **iPhone:** botón compartir ⬆ → *"Agregar a pantalla de inicio"*.
-4. Aparecerá el ícono **Asistencia UEN**. **Ábrala siempre desde ese ícono.**
+- marca su **entrada y salida** escaneando el **código QR** pegado en la entrada;
+- ve su **historial**: días presentes, tardanzas, faltas, permisos y horas.
+
+Para marcar necesita **internet**, **estar en el colegio** (la app verifica la ubicación) y **su teléfono**, siempre el mismo.
+
+## 2. Instalar la app
+
+1. Abra la dirección de la app en el navegador del teléfono: **Chrome** en Android, **Safari** en iPhone.
+2. **Android:** menú ⋮ → **Instalar aplicación**.
+3. **iPhone:** botón Compartir → **Agregar a pantalla de inicio**.
+4. Aparece el ícono **GRU-system**. Ábrala siempre desde ese ícono.
 
 > **iPhone**
-> No use la app desde Safari después de instalarla: el sistema lo verá como otro teléfono y tendrá que pedir aprobación a secretaría.
+> Instale la app **antes** de iniciar sesión. Si entra primero desde Safari y luego desde la app instalada, el iPhone las cuenta como dos teléfonos distintos y el segundo queda pendiente de aprobación.
 
-## 3. Iniciar sesión
+## 3. Primer ingreso
 
-1. Abra la app, escriba su **correo** y **contraseña** y toque **Iniciar sesión**.
-2. La primera vez, su teléfono queda **registrado** como su teléfono de marcación.
-3. ¿Olvidó la contraseña? Solicítela a la administración.
+!260 !260
 
-> Los usuarios los crea la administración. No se autoregistre.
+1. En **Cédula** escriba solo los números (por ejemplo, `12345678`).
+2. En **Contraseña** escriba **0000** (la contraseña inicial de todas las cuentas nuevas).
+3. La app le pide **crear su propia contraseña**: al menos 6 caracteres; puede ser solo de números, pero no su cédula ni algo como 111111. Escríbala dos veces y toque **Guardar contraseña**.
+4. Desde ahora entra con su cédula y su contraseña nueva.
 
-## 4. Marcar su asistencia
+¿La olvidó? Pida en secretaría que la **restablezcan**: vuelve a ser 0000 y al entrar crea una nueva. Después de 5 intentos fallidos, la app espera 15 minutos.
 
-1. Al llegar, abra la app y toque **"Marcar entrada"**.
-2. La primera vez, **permita la ubicación y la cámara** (son necesarias para marcar).
-3. Apunte la cámara al **código QR** pegado en la entrada.
-4. Verá la confirmación: *"Entrada 07:04 ✓ Presente"* (o *Tarde*).
-5. Al salir, repita: **"Marcar salida"** → escanee el mismo QR.
+## 4. Marcar entrada y salida
 
-| Color | Significado |
-|---|---|
-| 🟩 Verde | Presente |
-| 🟨 Amarillo | Tarde |
-| 🟥 Rojo | Falta |
-| ⬜ Gris | Permiso |
+!260
+
+1. Al llegar, abra la app. Verá la hora oficial y su jornada.
+2. Toque **Marcar entrada**. La primera vez, **permita la ubicación y la cámara**.
+3. Apunte la cámara al **código QR** de la entrada, dentro del recuadro.
+4. La app confirma en grande: **Entrada registrada a tiempo** (verde) o **con retraso** (ámbar), con la hora.
+5. Al salir, toque **Marcar salida** y escanee el mismo QR. Verá las horas trabajadas.
+
+El primer teléfono con el que marque queda registrado como **su teléfono**. Marque siempre desde él.
 
 ### Mensajes que puede ver
 
 | Mensaje | Qué hacer |
 |---|---|
-| *Sin conexión* | Active datos o Wi-Fi. Si no puede, vaya a secretaría. |
-| *Debe estar en el colegio para marcar* | Acérquese a la entrada e intente de nuevo. |
-| *Active la ubicación* | Encienda la ubicación del teléfono y dé permiso a la app. |
-| *Código QR no válido* | El QR fue cambiado: escanee el QR **vigente** de la entrada. |
-| *Teléfono pendiente de aprobación* | Cambió de teléfono: pida a secretaría que lo apruebe. |
-| *Ya registró su entrada hoy* | No hace falta marcar de nuevo. |
+| Sin conexión | Active datos o Wi-Fi. Si no puede, vaya a secretaría. |
+| Debe estar en el colegio para marcar. Está a … | Acérquese a la entrada e intente de nuevo. |
+| Active la ubicación para marcar | Encienda la ubicación y dé permiso a la app en los ajustes del teléfono. |
+| Código QR no válido | Escanee el QR **vigente** pegado en la entrada (no una foto vieja). |
+| Este teléfono está pendiente de aprobación | Está usando otro teléfono: avise en secretaría. |
+| Ya registró su entrada hoy a las … | No hace falta marcar de nuevo. |
+| Su asistencia la registra secretaría | Usted marca en secretaría (no tiene teléfono registrado). |
 
-## 5. Si no tiene su teléfono
+## 5. Ver mi historial
 
-Diríjase al **PC del colegio**:
-- **Opción 1:** pida a secretaría que registre su entrada/salida.
-- **Opción 2 (kiosco):** en la pantalla de autoservicio escriba su **cédula** y su **PIN** → toque **Entrada** o **Salida**. El PIN se lo asigna secretaría.
+!260
 
-## 6. Cambié de teléfono
+En **Historial** (o **Ver historial** desde Mi asistencia) ve el mes en un calendario de colores: **verde** presente, **ámbar** tarde, **rojo** falta, **azul** permiso. Debajo están los totales, sus permisos y cada día con sus horas. Con las flechas cambia de mes.
 
-1. Instale la app en el nuevo teléfono e inicie sesión.
-2. Verá *"Teléfono pendiente de aprobación"*.
-3. Avise a secretaría: lo aprueban desde el PC y el teléfono anterior queda desactivado.
+La campana de arriba muestra sus **avisos**.
 
----
+## 6. Situaciones comunes
 
-## Para directiva y secretaría (PC del colegio)
-
-### 7. Registro del día
-1. **Asistencia → Registro del día**: todo el personal con su estado.
-2. **Marcar** en la fila de quien no pudo hacerlo (queda constancia de quién lo registró).
-3. **Cargar permiso**: elija fechas y motivo, agregue observación → **Guardar**.
-4. Si falló el internet del colegio: registre con la observación *"falla de conexión"*.
-
-### 8. Revisión de marcaciones señaladas ⚠️
-Marcaciones con ubicación imprecisa aparecen en **Asistencia → Revisión**. Verifique y toque **Marcar como revisada**.
-
-### 9. Dispositivos y PIN
-En **Personal →** (persona) **→ Dispositivos**: aprobar o revocar teléfonos. En **PIN**: asignar, restablecer o desbloquear.
-
-### 10. Código QR (directiva)
-1. **Configuración → Código QR → Generar nuevo** (opcional: fecha de vencimiento).
-2. **Imprimir** y pegar en la entrada. Puede reutilizarlo todos los días.
-3. Si sospecha que el código circula por fotos, **genere uno nuevo**: el anterior deja de funcionar al instante. Recomendado: renovarlo cada mes.
-
-### 11. Jornadas y configuración (directiva)
-- **Jornadas:** horas de entrada/salida, tolerancia, pausa y días laborables. Los cambios **no alteran** los días ya registrados.
-- **Configuración:** ubicación del colegio y radio permitido, kiosco, datos de la institución.
-- **Usuarios:** crear cuentas y asignar roles.
-
-### 12. Reportes
-1. **Reportes** → elija rango de fechas y persona (o todos) → **Generar**.
-2. Descargue **PDF** (imprimir/firmar) o **Excel** (analizar).
-
-Incluye: horas trabajadas, tardanzas, faltas, permisos, % de asistencia y marcaciones hechas en el PC.
-
-### 13. Panel
-Presentes hoy, tardanzas y faltas del mes, marcaciones por revisar, teléfonos pendientes y alertas 🔔.
-
-## 14. Preguntas frecuentes
-
-| Pregunta | Respuesta |
+| Situación | Qué hacer |
 |---|---|
-| Llegué tarde, ¿qué hago? | Marque igual; quedará como **tarde**. |
-| Olvidé marcar la salida | Avise a secretaría: la registran con observación. |
-| No tengo internet | Conéctese o marque en el PC del colegio. |
+| No tengo el teléfono o no tiene batería | Pase por secretaría: registran su entrada o salida desde el PC. |
+| Cambié de teléfono | Avise en secretaría: tocan «Cambiar de teléfono» en su ficha y el teléfono nuevo queda aprobado al marcar. |
+| Olvidé marcar la salida | Avise en secretaría: la registran con la hora y el motivo. |
+| No tengo teléfono inteligente | Secretaría lo marca como «marca en secretaría» y registra su asistencia en el PC. |
 | ¿La app me rastrea? | No. La ubicación solo se toma en el momento de marcar. |
-| ¿Puedo marcar con una foto del QR? | No: hay que escanear con la cámara **y** estar en el colegio. |
-| ¿Puedo ver las faltas de otros? | No, solo directiva y secretaría. |
-| ¿Se puede borrar un registro? | No; las correcciones las hace la administración con observación. |
+| ¿Puedo marcar con una foto del QR? | No sirve: además del QR, debe estar en el colegio. |
 
 ---
 
-*Manual v1 — pendiente: capturas de pantalla reales y datos definitivos de jornada.*
+# Parte 2 · Secretaría y directiva (PC del colegio)
+
+En el PC se entra con el **correo** de la cuenta (o con la cédula, si la cuenta se creó así). Menú: **Panel · Asistencia · Personal · Reportes**, y **Ajustes** para la directiva.
+
+## 7. Registro del día (Asistencia)
+
+Lista de todo el personal que trabaja ese día, con su estado: **por llegar, presente, tarde, falta, permiso o sin salida**, y cómo marcó (teléfono, secretaría o a mano).
+
+- **Marcar entrada / Marcar salida:** registra a la persona con la hora actual del servidor.
+- **Escribir otra hora (contingencia):** si se cayó el internet o alguien olvidó marcar, escriba la hora y el **motivo** (obligatorio). Queda señalada para revisión.
+- **Días anteriores:** con las flechas o la fecha. Para un día pasado siempre se escribe la hora y el motivo.
+- **Permiso:** desde la fila, carga un permiso para esa persona.
+- Una **falta** puesta por el cierre diario se corrige marcando la entrada.
+- Filtros: **Mostrar** (por llegar, llegaron, sin salida, faltas, permisos, marcan en secretaría), categoría y búsqueda.
+
+## 8. Por revisar
+
+Marcaciones con advertencia: GPS impreciso, hora escrita a mano o ubicación de prueba. Muestra el motivo, la distancia y un enlace al mapa. Verifique y toque **Revisada** (o «Marcar las … como revisadas»).
+
+## 9. Permisos
+
+**Asistencia › Permisos** → **Nuevo permiso**: persona, fechas, motivo y observación. Las faltas de esas fechas pasan a permiso; si lo elimina, vuelven a falta. No se permiten dos permisos que se crucen. También están en la ficha de cada persona.
+
+## 10. Teléfonos y cuentas (ficha de la persona)
+
+- **Cambiar de teléfono:** quita el teléfono actual; el próximo con el que la persona marque queda aprobado solo.
+- **Aprobar / Revocar:** para un teléfono pendiente o uno que ya no se debe usar.
+- **No tiene teléfono: marca en secretaría:** la persona aparece primero en el registro del día y no marca desde la app.
+- **Restablecer a 0000:** si olvidó su contraseña. Al entrar crea una nueva.
+
+**Crear cuentas (directiva):** **Personal › Cuentas** → elija las personas → **Crear cuentas con contraseña 0000** → **Imprimir** la hoja de claves y entregue cada tira. En «Sin activar» ve quién no ha creado su contraseña y puede reimprimir su tira.
+
+> **Cuándo crear las cuentas**
+> Mientras alguien no entra por primera vez, cualquiera que conozca su cédula podría hacerlo con 0000. Créelas cerca de la capacitación.
+
+## 11. Reportes
+
+- **Planilla diaria:** el formato oficial del día (docentes o personal), en **PDF** o **Excel**, con la firma de la dirección.
+- **Resumen del período:** elija las fechas (o «Este mes», «Mes anterior», «Últimos 30 días») y la categoría. Por persona: días laborables, presente, tarde, faltas, permisos, días sin registro, % de asistencia, horas y marcaciones en secretaría. Ordene por columna y descargue en **PDF** o **Excel**.
+
+## 12. Panel y avisos
+
+El **Panel** muestra el día de hoy, los indicadores del período, lo que **requiere atención** (por revisar, teléfonos por aprobar, personas con muchas faltas) y el análisis en secciones plegables.
+
+La **campana** muestra los avisos: faltas y salidas sin marcar del cierre diario, teléfonos nuevos y el QR por vencer. Al abrir un aviso, lleva a la pantalla correspondiente.
+
+## 13. Ajustes (directiva)
+
+- **Puesta en marcha:** lista de lo que falta para empezar el uso real.
+- **Marcación:** ubicación del colegio y radio, ubicaciones de prueba, franjas horarias y **cierre diario** (fecha de inicio del control).
+- **Código QR:** generar, imprimir y desactivar. El anterior deja de funcionar al instante. Recomendado: renovarlo cada lapso o si circula una foto.
+- **Jornadas y feriados**, **Categorías**, **Usuarios** (cuentas de directiva y secretaría), **Importar personal**, **Institución** (datos de la planilla) y **Datos de demostración**.
+
+## 14. Cierre diario
+
+Todos los días a las 18:00 el sistema cierra las jornadas terminadas: quien no marcó queda con **falta** (o **permiso** si tiene uno), y quien no marcó la salida queda **sin salida** para que secretaría la complete. Solo funciona desde la **fecha de inicio del control** (Ajustes › Marcación).
+
+---
+
+*Manual v2 · 19/10/2026 · sin kiosco ni PIN (D-37); cuentas por cédula (D-42).*
 
 ---
 
@@ -2120,11 +2203,12 @@ Presentes hoy, tardanzas y faltas del mes, marcaciones por revisar, teléfonos p
 | # | Paso | Esperado |
 |---|---|---|
 | F21 | Secretaría marca a una persona | `metodo = asistido`, `registrado_por` correcto |
-| F22 | Kiosco con cédula + PIN correctos | Marca `metodo = kiosco` |
-| F23 | 5 PIN erróneos | Bloqueo 15 min |
-| F24 | Abrir `/kiosco` en un equipo no autorizado | Acceso denegado |
+| F22 | Hora escrita a mano con motivo (contingencia) | `metodo = manual`, queda en «Por revisar» |
+| F23 | Hora manual futura o salida antes de la entrada | Rechazada con mensaje claro |
+| F24 | «Cambiar de teléfono» y marcar desde otro teléfono | El nuevo queda aprobado; el anterior, revocado |
 | F25 | Cargar permiso | Día = `permiso`, no cuenta como falta |
-| F26 | Contingencia "falla de conexión" | Registro manual con observación |
+| F26 | Corregir una falta del cierre marcando la entrada | El día pasa a presente o tarde |
+| F26b | Persona «marca en secretaría» intenta marcar con el teléfono | Rechazado: «Su asistencia la registra secretaría» |
 
 ### Reportes, dashboard y cierre
 
@@ -2145,7 +2229,11 @@ Presentes hoy, tardanzas y faltas del mes, marcaciones por revisar, teléfonos p
 |---|---|---|
 | F35 | Instalar en Chrome Android | Ícono, abre standalone |
 | F36 | Agregar a inicio en iPhone | Funciona; cámara y GPS operan en la app |
-| F37 | Lighthouse | Performance, A11y, Best practices ≥ 90; PWA instalable |
+| F37 | Lighthouse | Performance, A11y, Best practices ≥ 90; PWA instalable — ✅ 19/10 (ver Informe-de-auditoria) |
+| F38 | Primer ingreso con cédula y 0000 | Obliga a crear contraseña propia antes de usar la app |
+| F39 | 5 contraseñas erróneas seguidas | Espera de 15 min; «Restablecer a 0000» la libera |
+| F40 | Crear cuentas en lote e imprimir la hoja de claves | Una tira por persona con cédula y 0000 |
+| F41 | Publicar una versión nueva con la app abierta | Aparece «Hay una versión nueva»; al tocar «Actualizar» recarga |
 
 ## 2b. Pruebas en navegador (automatizadas)
 
@@ -2182,6 +2270,10 @@ Presentes hoy, tardanzas y faltas del mes, marcaciones por revisar, teléfonos p
 ---
 
 # 🎤 Presentación del Proyecto (estructura de exposición)
+
+> **Actualización 19/10/2026**
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
 
 Estructura sugerida para exponer ante el docente y el equipo (10-12 minutos + demo).
 
@@ -2954,6 +3046,10 @@ Datos que debemos confirmar con la institución antes de cerrar el diseño. Marc
 ---
 
 # 📖 Glosario
+
+> **Actualización 19/10/2026**
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
 
 Términos técnicos usados en la documentación.
 

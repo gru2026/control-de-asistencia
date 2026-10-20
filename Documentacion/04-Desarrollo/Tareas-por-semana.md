@@ -84,17 +84,20 @@ fecha: 2026-10-06
 
 ## Semana 4 — PWA, pulido y despliegue
 
-- [ ] `manifest.webmanifest` + iconos (192, 512, maskable, apple-touch)
-- [ ] `sw.js` (app shell + network first en HTML; API sin caché) + aviso de actualización
-- [ ] Prueba en celulares reales: cámara, GPS, instalación (Android + iPhone)
-- [ ] Auditoría: seguridad (checklist RNF), rendimiento, accesibilidad
-- [ ] Deploy a Vercel + variables de entorno + cron
-- [ ] Cargar datos reales (personal, jornadas, coordenadas) + imprimir QR
-- [ ] `README.md` del repo
-- [ ] [[05-Entregables/Manual-de-usuario|Manual de usuario]] final
+- [x] `manifest.webmanifest` + iconos (192, 512, maskable, apple-touch) + acceso directo «Marcar»
+- [x] `sw.js` (app shell + red primero en HTML; API sin caché) + aviso de actualización (D-45)
+- [x] Cuentas por cédula, contraseña inicial 0000 con cambio obligatorio y creación en lote (D-42)
+- [x] Auditoría: seguridad (checklist RNF), rendimiento, accesibilidad → [[05-Entregables/Informe-de-auditoria]]
+- [x] Deploy a Vercel + variables de entorno + cron
+- [x] Lista de puesta en marcha en Ajustes + respaldo `npm run db:respaldo` (D-44)
+- [x] `README.md` del repo
+- [x] [[05-Entregables/Manual-de-usuario|Manual de usuario]] final + guías rápidas (personal y secretaría)
+- [ ] Prueba en celulares reales: cámara, GPS, instalación (Android + iPhone) — Hector, F13–F20 y F35–F41
+- [ ] Puesta en marcha: borrar demostración, QR definitivo, cuentas del personal, inicio del control — **lo decide la coordinación**
 - [ ] Capacitación + entrega de la cuenta `directiva`
+- [ ] Logo del colegio y escudo para el encabezado (pendiente del colegio)
 
-**🏁 Hito:** app en línea e instalada.
+**🏁 Hito:** desarrollo listo (2026-10-19); falta la prueba en teléfonos reales, la puesta en marcha y la capacitación.
 
 ---
 
@@ -104,9 +107,9 @@ fecha: 2026-10-06
 |---|---|---|
 | Jornada y tolerancia concretas | 🟡 Configurable, valores pendientes | [[00-Inicio/Preguntas-para-el-colegio]] #1-2 |
 | Coordenadas del colegio | 🟢 Cargadas | #14 |
-| Administrador inicial | 🟡 Falta nombre/correo | #12 |
+| Administrador inicial | 🟡 Falta nombre/correo (paso 4 de la puesta en marcha) | #12 |
 | Canal de notificaciones | ⬜ Pendiente | #6 |
-| Formato de reportes | ⬜ Pendiente | #7 |
+| Formato de reportes | 🟡 Planilla oficial + resumen del período; se ajusta si el colegio entrega otro formato | #7 |
 | Política de salida no registrada | 🟢 Sin horas + aviso a secretaría (D-35) | [[03-Diseno/Reglas-de-negocio]] R3 |
 
 ## Semáforo general
@@ -117,4 +120,4 @@ fecha: 2026-10-06
 | 1 | 🟢 Terminada |
 | 2 | 🟢 Terminada (falta prueba en celulares reales) |
 | 3 | 🟢 Terminada |
-| 4 | ⬜ No iniciada |
+| 4 | 🟡 Desarrollo terminado; faltan pruebas reales, puesta en marcha y capacitación |

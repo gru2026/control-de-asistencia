@@ -225,6 +225,10 @@ const sinActivar = personas.filter((x) => x.usuarios?.debe_cambiar_clave);
     gap: var(--esp-4);
     max-width: 52rem;
   }
+  /* Aviso legible: líneas de menos de 80 caracteres */
+  .pila > :global(.aviso) {
+    max-width: 36rem;
+  }
   .nota,
   .tenue {
     color: var(--color-texto-suave);

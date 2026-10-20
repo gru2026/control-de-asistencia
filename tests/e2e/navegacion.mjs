@@ -273,6 +273,30 @@ try {
   await pag.goto(`${B}/historial`);
   r.ok("historial con calendario", (await pag.locator("table.calendario .dia").count()) >= 28);
 
+  r.seccion("Semana 4: cuentas, puesta en marcha y seguridad");
+  await pag.goto(`${B}/personal/cuentas`);
+  r.ok(
+    "cuentas del personal: aviso de la contraseña 0000",
+    (await pag.locator(".aviso", { hasText: "0000" }).count()) > 0,
+  );
+  await pag.goto(`${B}/configuracion/puesta-en-marcha`);
+  r.ok("puesta en marcha con sus pasos", (await pag.locator("ol.pasos li").count()) === 9);
+  await pag.goto(`${B}/cambiar-clave`);
+  r.ok(
+    "cambiar contraseña pide la actual fuera del primer ingreso",
+    (await pag.locator("#campo-actual").count()) === 1,
+  );
+  const anonimo = await navegador.newPage();
+  await anonimo.goto(`${B}/login`);
+  await anonimo.fill("#campo-usuario", "abc");
+  await anonimo.fill("#campo-password", "x");
+  await Promise.all([anonimo.waitForLoadState("load"), anonimo.click("button[type=submit]")]);
+  r.ok(
+    "el inicio de sesión explica cómo escribir la cédula",
+    (await anonimo.locator(".aviso").innerText()).includes("cédula"),
+  );
+  await anonimo.close();
+
   r.seccion("Errores");
   await pag.goto(`${B}/personal`);
   await pag.context().clearCookies();

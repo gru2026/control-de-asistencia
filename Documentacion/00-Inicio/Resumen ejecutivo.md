@@ -8,6 +8,10 @@ fecha: 2026-10-06
 
 # Resumen ejecutivo
 
+> [!note] Actualización 19/10/2026
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, [[03-Diseno/Registro-de-decisiones|D-37]]): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
+
 ## Problema
 
 En la U.E.E. General Rafael Urdaneta el registro y control de asistencia del personal docente y administrativo se realiza de forma **manual** (libros de actas y formatos físicos). Esto provoca:

@@ -104,11 +104,12 @@ fecha: 2026-10-06
 | # | Paso | Esperado |
 |---|---|---|
 | F21 | Secretaría marca a una persona | `metodo = asistido`, `registrado_por` correcto |
-| F22 | Kiosco con cédula + PIN correctos | Marca `metodo = kiosco` |
-| F23 | 5 PIN erróneos | Bloqueo 15 min |
-| F24 | Abrir `/kiosco` en un equipo no autorizado | Acceso denegado |
+| F22 | Hora escrita a mano con motivo (contingencia) | `metodo = manual`, queda en «Por revisar» |
+| F23 | Hora manual futura o salida antes de la entrada | Rechazada con mensaje claro |
+| F24 | «Cambiar de teléfono» y marcar desde otro teléfono | El nuevo queda aprobado; el anterior, revocado |
 | F25 | Cargar permiso | Día = `permiso`, no cuenta como falta |
-| F26 | Contingencia "falla de conexión" | Registro manual con observación |
+| F26 | Corregir una falta del cierre marcando la entrada | El día pasa a presente o tarde |
+| F26b | Persona «marca en secretaría» intenta marcar con el teléfono | Rechazado: «Su asistencia la registra secretaría» |
 
 ### Reportes, dashboard y cierre
 
@@ -129,7 +130,11 @@ fecha: 2026-10-06
 |---|---|---|
 | F35 | Instalar en Chrome Android | Ícono, abre standalone |
 | F36 | Agregar a inicio en iPhone | Funciona; cámara y GPS operan en la app |
-| F37 | Lighthouse | Performance, A11y, Best practices ≥ 90; PWA instalable |
+| F37 | Lighthouse | Performance, A11y, Best practices ≥ 90; PWA instalable — ✅ 19/10 (ver [[05-Entregables/Informe-de-auditoria]]) |
+| F38 | Primer ingreso con cédula y 0000 | Obliga a crear contraseña propia antes de usar la app |
+| F39 | 5 contraseñas erróneas seguidas | Espera de 15 min; «Restablecer a 0000» la libera |
+| F40 | Crear cuentas en lote e imprimir la hoja de claves | Una tira por persona con cédula y 0000 |
+| F41 | Publicar una versión nueva con la app abierta | Aparece «Hay una versión nueva»; al tocar «Actualizar» recarga |
 
 ## 2b. Pruebas en navegador (automatizadas)
 

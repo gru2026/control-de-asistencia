@@ -34,6 +34,9 @@ const RUTAS = [
   "/reportes/resumen",
   "/notificaciones",
   "/historial",
+  "/personal/cuentas",
+  "/configuracion/puesta-en-marcha",
+  "/cambiar-clave",
   "/asistencia",
 ];
 const PUERTO = 4399;

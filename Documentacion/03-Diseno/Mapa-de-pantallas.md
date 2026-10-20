@@ -8,6 +8,10 @@ fecha: 2026-10-06
 
 # Mapa de Pantallas
 
+> [!note] Actualización 19/10/2026
+> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, [[03-Diseno/Registro-de-decisiones|D-37]]): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
+
+
 Dos contextos de uso:
 - 📱 **Celular** del personal → marcar y ver su historial (mobile-first).
 - 🖥️ **PC del colegio** → administración y respaldo de marcación (escritorio).
@@ -42,6 +46,9 @@ Dos contextos de uso:
 /reportes/resumen               Resumen del período (PDF/Excel)
 /notificaciones                 Avisos
 /historial                      Historial personal del mes
+/cambiar-clave                  Crear la contraseña propia (obligatorio en el primer ingreso)
+/personal/cuentas               [directiva] Crear cuentas en lote + hoja de claves
+/configuracion/puesta-en-marcha [directiva] Lista para empezar el uso real
 
 (El kiosco con cédula + PIN se descartó: D-37.)
 ```

@@ -3,7 +3,7 @@ titulo: Inicio — Mapa de Contenidos
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: MOC
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, MOC]
 ---
 
@@ -47,6 +47,7 @@ Documentación del proyecto **Biblioteca Pública Emma Soler**: sitio institucio
 - [[Biblioteca Emma Soler/04-Desarrollo/API|API]]: endpoints JSON
 - [[Biblioteca Emma Soler/04-Desarrollo/Flujo-de-digitalizacion|Flujo de digitalización]]: de las fotos al PDF con OCR
 - [[Biblioteca Emma Soler/04-Desarrollo/Busqueda|Búsqueda]]: texto completo, tildes, errores de escritura
+- [[Biblioteca Emma Soler/04-Desarrollo/Historial-de-cambios|Historial de cambios]]: auditoría de quién cambió qué
 - [[Biblioteca Emma Soler/04-Desarrollo/Pruebas|Pruebas]]: qué se probó y cómo repetirlo
 
 ## 05 · Algoritmos en C++

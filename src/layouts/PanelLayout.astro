@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "./BaseLayout.astro";
+import "@/styles/ventanas.css";
 import { fade } from "astro:transitions";
 import Mensaje from "@/components/ui/Mensaje.astro";
 import PanelAvisos from "@/components/avisos/PanelAvisos.astro";
@@ -174,6 +175,23 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
         </div>
       </div>
       {flash && <Mensaje flash={flash} />}
+      <!-- Ventanas: panel lateral, formularios rápidos y confirmaciones (scripts/ventanas.ts) -->
+      <dialog id="ventana" class="ventana cajon">
+        <div class="ventana-cuerpo" data-ventana-contenido></div>
+      </dialog>
+      <dialog id="confirmacion" class="ventana centro" aria-labelledby="confirmacion-pregunta">
+        <form method="dialog" class="v-confirmacion">
+          <p id="confirmacion-pregunta" data-pregunta></p>
+          <div class="v-acciones">
+            <button class="v-boton v-secundario" value="no">
+              Cancelar
+            </button>
+            <button class="v-boton v-primario" value="si">
+              Sí, continuar
+            </button>
+          </div>
+        </form>
+      </dialog>
       <slot />
     </main>
   </div>

@@ -624,6 +624,8 @@ const valorExc = (k: string, porDefecto: string) =>
       <Boton
         slot="acciones"
         href={`/permisos/nuevo?persona=${ficha.id}&volver=/personal/${ficha.id}`}
+        data-ventana={`/ventanas/permiso?persona=${ficha.id}`}
+        data-ventana-modo="centro"
         variante="secundario"
         tamano="pequeno"
       >

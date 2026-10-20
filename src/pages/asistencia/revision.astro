@@ -201,7 +201,7 @@ const hoy = hoyEnZona();
           return (
             <tr>
               <td class="principal">
-                <a href={`/personal/${f.personal.id}`} class="nombre">
+                <a href={`/personal/${f.personal.id}`} class="nombre" data-persona={f.personal.id}>
                   {f.personal.apellido}, {f.personal.nombre}
                 </a>
                 <span class="suave">

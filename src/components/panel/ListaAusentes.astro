@@ -44,7 +44,9 @@ const iniciales = (n: string) =>
           {iniciales(a.nombre)}
         </span>
         <span class="quien">
-          <a href={`/personal/${a.personalId}`}>{a.nombre}</a>
+          <a href={`/personal/${a.personalId}`} data-persona={a.personalId}>
+            {a.nombre}
+          </a>
           <small>
             {a.motivo} · {cuando(a)}
           </small>

@@ -3,7 +3,7 @@ titulo: Roles y permisos
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: requisitos
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, requisitos]
 ---
 
@@ -17,6 +17,8 @@ tags: [emma-soler, requisitos]
 | Leer PDF, guardar progreso, favoritos y reseñas | ❌ | ✅ | ✅ | ✅ |
 | Digitalizar, editar el catálogo y ver estadísticas | ❌ | ❌ | ✅ | ✅ |
 | Verificar la integridad y leer los mensajes | ❌ | ❌ | ✅ | ✅ |
+| Consultar el historial de cambios | ❌ | ❌ | ✅ | ✅ |
+| Modificar o borrar el historial | ❌ | ❌ | ❌ | ❌ |
 | Cambiar los roles de los usuarios | ❌ | ❌ | ❌ | ✅ |
 
 ## Cómo se aplica

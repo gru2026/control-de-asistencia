@@ -55,7 +55,13 @@ if (Astro.request.method === "POST") {
       ok ? "info" : "error",
       ok ? "Marcación deshecha." : "Ya no se puede deshacer: corríjala con otra hora.",
     );
-    return Astro.redirect(Astro.url.pathname + Astro.url.search, 303);
+    // Si el «Deshacer» vino de otra pantalla (panel de la persona), se vuelve a ella.
+    const volver = texto(f, "volver");
+    const destino =
+      volver.startsWith("/") && !volver.startsWith("//")
+        ? volver
+        : Astro.url.pathname + Astro.url.search;
+    return Astro.redirect(destino, 303);
   } else {
     try {
       const r = await marcarAsistido({
@@ -379,7 +385,7 @@ const volver = encodeURIComponent("/asistencia/registro");
             return (
               <tr>
                 <td class="principal">
-                  <a href={`/personal/${f.persona.id}`} class="nombre">
+                  <a href={`/personal/${f.persona.id}`} class="nombre" data-persona={f.persona.id}>
                     {f.persona.apellido}, {f.persona.nombre}
                   </a>
                   <span class="etiquetas">
@@ -435,6 +441,8 @@ const volver = encodeURIComponent("/asistencia/registro");
                     <a
                       class="enlace-permiso"
                       href={`/permisos/nuevo?persona=${f.persona.id}&desde=${fecha}&volver=${volver}`}
+                      data-ventana={`/ventanas/permiso?persona=${f.persona.id}&desde=${fecha}`}
+                      data-ventana-modo="centro"
                     >
                       Permiso
                     </a>

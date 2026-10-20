@@ -3,7 +3,7 @@ titulo: Uso de JSON
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: diseno
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, diseno]
 ---
 
@@ -16,6 +16,7 @@ JSON se usa solo donde aporta algo, no en todos lados.
 | **API REST** (`src/pages/api/**`) | `GET /api/buscar?q=…` → `{ total, resultados, sugerencias }` | Es el formato estándar entre el navegador y el servidor |
 | **Datos del sitio** (`src/content/datos/*.json`) | `servicios.json`, `faq.json`, `citas.json`, `sitio.json`, `creditos-fotos.json` | Se edita el texto sin tocar el HTML. Astro lo valida con Zod |
 | **Columna `libros.metadatos`** (JSONB) | `{ "edicion": "Primera", "traductor": "…" }` | Cada libro tiene datos distintos y no hace falta una columna por cada uno |
+| **Columna `auditoria.cambios`** (JSONB) | `{ "estado": { "antes": "revision", "despues": "publicado" } }` | Cada edición cambia campos distintos. Se exporta desde el panel |
 | **Columna `lecturas.marcadores`** (JSONB) | `[{ "pagina": 3, "nota": "…", "fecha": "…" }]` | Lista variable por lector |
 | **Funciones SQL** | `estadisticas()`, `contadores_publicos()` | Todo el panel en una sola consulta |
 | **Exportación** | `/api/admin/estadisticas?formato=json` | Reporte descargable |

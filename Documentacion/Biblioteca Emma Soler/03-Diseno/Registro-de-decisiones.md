@@ -3,7 +3,7 @@ titulo: Registro de decisiones
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: diseno
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, diseno]
 ---
 
@@ -25,6 +25,7 @@ tags: [emma-soler, diseno]
 | D-12 | Algoritmos C++: enderezar, Levenshtein, TF-IDF y SHA-256 | Son reales, aportan algo al sitio y se pueden explicar. |
 | D-13 | nlohmann/json para leer JSON en C++ | El código propio se dedica a los algoritmos y no a escribir un lector de JSON. |
 | D-14 | Documentación en Obsidian, carpeta «Biblioteca Emma Soler» | Mantenerla ordenada y separada de otros proyectos del vault. |
+| D-15 | Auditoría con un disparador genérico en la base de datos, no en Node | Registra los cambios vengan de donde vengan; el historial es de solo agregar |
 
 > [!note] Python
 > El proyecto no tiene código Python. Solo se usó como herramienta auxiliar durante el desarrollo, por ejemplo para descargar los textos y las fotos y recortar capturas.

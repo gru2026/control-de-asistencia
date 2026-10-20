@@ -3,7 +3,7 @@ titulo: Contexto y objetivos
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: proyecto
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, proyecto]
 ---
 
@@ -44,7 +44,7 @@ Ofrecer a la comunidad de Cúa una biblioteca digital que permita **digitalizar 
 | 4 | Usuarios y roles | ✅ Hecha |
 | 5 | Derechos y préstamo digital (marca de agua) | ⏳ Pendiente |
 | 6 | Estadísticas y reportes | ✅ Hecha |
-| 7 | Flujo de trabajo e historial de cambios | 🟡 Los estados están hechos; falta la auditoría |
+| 7 | Flujo de trabajo e historial de cambios | ✅ Hecha (20/10/2026) |
 | 8 | Respaldos e integridad | 🟡 La integridad SHA-256 está hecha; faltan los respaldos |
 
 Detalle en [[Biblioteca Emma Soler/07-Pendientes/Proximas-etapas|Próximas etapas]].

@@ -3,7 +3,7 @@ titulo: API
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: desarrollo
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, desarrollo]
 ---
 
@@ -36,3 +36,4 @@ Todos los endpoints responden JSON. En caso de error devuelven `{ "error": "mens
 | POST | `/api/admin/integridad` | `{ ids? }` | `{ verificados, ok, danados, faltantes, resultados }` |
 | GET | `/api/admin/estadisticas` | `dias`, `formato=json\|csv` | Archivo descargable |
 | POST | `/api/admin/usuarios/:id` | `{ rol }` | Solo administración |
+| GET | `/api/admin/auditoria` | `tabla`, `accion`, `usuario`, `registro`, `desde`, `hasta`, `pagina`, `formato=json` | `{ entradas, total, pagina, paginas }`, o un archivo descargable |

@@ -19,6 +19,7 @@ const REGLAS: ReadonlyArray<readonly [string, Rol[]]> = [
   ["/personal/cuentas", ["directiva"]],
   ["/personal", ADMIN],
   ["/permisos", ADMIN],
+  ["/ventanas", ADMIN],
   ["/panel", ADMIN],
   ["/asistencia/registro", ADMIN],
   ["/asistencia/revision", ADMIN],

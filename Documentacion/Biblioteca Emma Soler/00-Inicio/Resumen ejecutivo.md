@@ -3,7 +3,7 @@ titulo: Resumen ejecutivo
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: resumen
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, resumen]
 ---
 
@@ -14,7 +14,7 @@ tags: [emma-soler, resumen]
 **Problema que resuelve:** la biblioteca tiene libros físicos que solo se pueden consultar en sala. El sistema permite:
 1. **Digitalizarlos.** El personal sube las fotos de las páginas y el sistema las limpia, las endereza, reconoce el texto (OCR) y genera un PDF buscable con su portada.
 2. **Publicarlos.** Los lectores los buscan (incluso por palabras que están *dentro* del texto) y los leen en el navegador, con su progreso y sus marcadores guardados.
-3. **Gestionarlos.** El personal tiene un panel con el catálogo, las estadísticas, la integridad de los archivos y los roles.
+3. **Gestionarlos.** El personal tiene un panel con el catálogo, las estadísticas, la integridad de los archivos, el **historial de cambios** y los roles.
 
 ## Cifras actuales
 | Elemento | Cantidad |
@@ -23,9 +23,9 @@ tags: [emma-soler, resumen]
 | Libros de ejemplo (dominio público, de Wikisource) | 16 |
 | Fotos de Cúa (Wikimedia Commons, con créditos) | 14 |
 | Eventos y noticias | 7 y 4 |
-| Tablas en la base de datos | 17 |
+| Tablas en la base de datos | 18 |
 | Algoritmos propios en C++ | 4 |
-| Endpoints de la API JSON | 14 |
+| Endpoints de la API JSON | 15 |
 
 ## Tecnologías en una línea
 Astro 7 (Node) + Supabase local (PostgreSQL, Auth, Storage) en Docker + sharp, tesseract.js y pdf-lib para la digitalización + PDF.js para el lector + **C++17** para los algoritmos propios. Ver [[Biblioteca Emma Soler/03-Diseno/Arquitectura-y-stack|Arquitectura y stack]].
@@ -39,4 +39,4 @@ Astro 7 (Node) + Supabase local (PostgreSQL, Auth, Storage) en Docker + sharp, t
 | Página institucional (al menos 6 secciones) | Tiene 9 secciones. Ver [[Biblioteca Emma Soler/02-Requisitos/Funcionalidades|Funcionalidades]]. |
 
 ## Estado
-Ya están terminados los puntos 1, 2, 3, 4 y 6 de las mejoras propuestas, más la parte de integridad del punto 8. Lo que falta está en [[Biblioteca Emma Soler/07-Pendientes/Proximas-etapas|Próximas etapas]].
+Ya están terminados los puntos 1, 2, 3, 4, 6 y 7 de las mejoras propuestas, más la parte de integridad del punto 8. Lo que falta está en [[Biblioteca Emma Soler/07-Pendientes/Proximas-etapas|Próximas etapas]].

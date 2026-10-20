@@ -3,7 +3,7 @@ titulo: Manual de usuario
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: entregable
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, entregable]
 ---
 
@@ -37,6 +37,7 @@ tags: [emma-soler, entregable]
 | Saber qué buscan los lectores y no encuentran | Resumen → «Búsquedas sin resultados» → «Digitalizar» |
 | Exportar las estadísticas | Resumen → botones JSON o CSV |
 | Comprobar que los PDF no estén dañados | Integridad → «Verificar todos» |
+| Saber quién cambió un libro y qué cambió | Historial, o al final de la edición del libro |
 | Responder mensajes | Mensajes → enlace al correo → «Marcar leído» |
 
 ## Para la administración

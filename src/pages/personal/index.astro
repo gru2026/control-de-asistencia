@@ -197,7 +197,7 @@ const hayFiltros = Boolean(q || categoria || vinculo || jornada || cuenta || est
           return (
             <tr>
               <td class="principal">
-                <a href={`/personal/${f.id}`} class="nombre">
+                <a href={`/personal/${f.id}`} class="nombre" data-persona={f.id}>
                   {f.apellido}, {f.nombre}
                 </a>
               </td>

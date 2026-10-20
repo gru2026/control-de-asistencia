@@ -1,0 +1,393 @@
+---
+/**
+ * Panel lateral de una persona (D-49): lo esencial de un vistazo y las acciones
+ * rápidas, sin salir de la pantalla. Fragmento: se carga dentro de #ventana.
+ */
+import Icono from "@/components/ui/Icono.astro";
+import { esUuid } from "@/lib/validacion";
+import { listarCategorias } from "@/lib/datos/categorias";
+import {
+  aExcepcion,
+  aJornada,
+  COLUMNAS_JORNADA,
+  type FilaHorario,
+  type FilaJornada,
+} from "@/lib/datos/jornadas";
+import { resolverJornada } from "@/lib/reglas/jornada";
+import { construirResumen } from "@/lib/reportes/resumen";
+import { diasDelMes } from "@/lib/reglas/historial";
+import { horaEnZona } from "@/lib/reglas/tiempo";
+import { fechaCorta, hoyEnZona } from "@/lib/fecha";
+import { CLAVE_INICIAL, usuarioVisible } from "@/lib/auth/cedula";
+import {
+  NOMBRE_ESTADO,
+  NOMBRE_ROL,
+  ROLES,
+  type EstadoAsistencia,
+  type MetodoMarcacion,
+  type Rol,
+} from "@/types";
+
+export const partial = true;
+
+const { id = "" } = Astro.params;
+if (!esUuid(id)) return new Response("No encontrado", { status: 404 });
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+const esDirectiva = perfil.rol === "directiva";
+const hoy = hoyEnZona();
+const mes = diasDelMes(hoy.slice(0, 7));
+
+interface Ficha {
+  id: string;
+  nombre: string;
+  apellido: string;
+  cedula: string;
+  estado: string;
+  categoria_id: string;
+  marca_en_pc: boolean;
+  cambio_telefono: boolean;
+  fecha_ingreso: string | null;
+  jornadas: FilaJornada | null;
+  horarios: FilaHorario[];
+  usuarios: {
+    id: string;
+    email: string;
+    estado: string;
+    rol: Rol;
+    debe_cambiar_clave: boolean;
+  } | null;
+}
+const { data: ficha } = await sb
+  .from("personal")
+  .select(
+    `id, nombre, apellido, cedula, estado, categoria_id, marca_en_pc, cambio_telefono, fecha_ingreso, jornadas(${COLUMNAS_JORNADA}), horarios(dia_semana, hora_entrada, hora_salida, tolerancia_min, libre), usuarios(id, email, estado, rol, debe_cambiar_clave)`,
+  )
+  .eq("id", id)
+  .maybeSingle<Ficha>();
+if (!ficha) return new Response("No encontrado", { status: 404 });
+
+interface Reg {
+  fecha: string;
+  estado: EstadoAsistencia;
+  hora_entrada: string | null;
+  hora_salida: string | null;
+  horas_trabajadas: number | string | null;
+  entrada_metodo: MetodoMarcacion | null;
+  es_demo: boolean;
+}
+const [categorias, { data: regs }, { data: fers }, { data: disps }, { data: perms }] =
+  await Promise.all([
+    listarCategorias(sb),
+    sb
+      .from("registros_asistencia")
+      .select("fecha, estado, hora_entrada, hora_salida, horas_trabajadas, entrada_metodo, es_demo")
+      .eq("personal_id", id)
+      .gte("fecha", mes.desde)
+      .lte("fecha", hoy),
+    sb.from("feriados").select("fecha").gte("fecha", mes.desde).lte("fecha", mes.hasta),
+    ficha.usuarios
+      ? sb
+          .from("dispositivos")
+          .select("id, descripcion, estado, ultimo_uso")
+          .eq("usuario_id", ficha.usuarios.id)
+          .eq("tipo", "celular")
+          .in("estado", ["aprobado", "pendiente"])
+      : Promise.resolve({ data: [] }),
+    sb
+      .from("permisos")
+      .select("fecha_desde, fecha_hasta, motivo")
+      .eq("personal_id", id)
+      .gte("fecha_hasta", hoy)
+      .order("fecha_desde")
+      .limit(3),
+  ]);
+const registros = (regs ?? []) as Reg[];
+const feriados = (fers ?? []).map((f) => f.fecha as string);
+const categoria = categorias.find((c) => c.id === ficha.categoria_id);
+const jornada = ficha.jornadas ? aJornada(ficha.jornadas) : null;
+const excepciones = ficha.horarios.map(aExcepcion);
+const reglaHoy = resolverJornada({ fecha: hoy, jornada, excepciones, feriados });
+const regHoy = registros.find((r) => r.fecha === hoy && !r.es_demo) ?? null;
+const resumen = construirResumen({
+  desde: mes.desde,
+  hasta: mes.hasta,
+  hoy,
+  feriados,
+  personas: [
+    {
+      id,
+      nombre: ficha.nombre,
+      apellido: ficha.apellido,
+      cedula: ficha.cedula,
+      categoriaId: ficha.categoria_id,
+      fechaIngreso: ficha.fecha_ingreso,
+      jornada,
+      excepciones,
+    },
+  ],
+  registros: registros.map((r) => ({
+    personalId: id,
+    fecha: r.fecha,
+    estado: r.estado,
+    horasTrabajadas: r.horas_trabajadas === null ? null : Number(r.horas_trabajadas),
+    entradaMetodo: r.entrada_metodo,
+  })),
+}).filas[0]!;
+const telefonos = (disps ?? []) as {
+  id: string;
+  descripcion: string | null;
+  estado: string;
+  ultimo_uso: string | null;
+}[];
+const aprobado = telefonos.find((t) => t.estado === "aprobado");
+const pendiente = telefonos.find((t) => t.estado === "pendiente");
+const permisos = (perms ?? []) as { fecha_desde: string; fecha_hasta: string; motivo: string }[];
+const accionHoy =
+  !reglaHoy || ficha.estado !== "activo"
+    ? null
+    : !regHoy?.hora_entrada
+      ? "entrada"
+      : !regHoy.hora_salida
+        ? "salida"
+        : null;
+const tituloId = `ventana-titulo-${id.slice(0, 8)}`;
+const cuenta = ficha.usuarios;
+---
+
+<header class="v-cabecera" tabindex="-1">
+  <div>
+    <h2 class="v-titulo" id={tituloId} data-ventana-titulo>
+      {ficha.nombre} {ficha.apellido}
+    </h2>
+    <p class="v-sub">
+      {ficha.cedula}
+      {categoria && ` · ${categoria.nombre}`}
+      {ficha.estado !== "activo" && " · Inactiva"}
+    </p>
+  </div>
+  <button type="button" class="v-cerrar" aria-label="Cerrar" data-cerrar-ventana>
+    <Icono nombre="error" tamano={22} />
+  </button>
+</header>
+
+<div class="v-contenido">
+  <section class="v-bloque">
+    <h3>Hoy</h3>
+    {!reglaHoy ? (
+      <p class="v-texto">Sin jornada hoy.</p>
+    ) : (
+      <>
+        <div class="v-fila">
+          {regHoy ? (
+            <span class:list={["v-etiqueta", regHoy.estado]}>{NOMBRE_ESTADO[regHoy.estado]}</span>
+          ) : (
+            <span class="v-etiqueta info">Por llegar</span>
+          )}
+          <span class="v-texto">
+            {regHoy?.hora_entrada
+              ? `Entrada ${horaEnZona(regHoy.hora_entrada)}`
+              : `Entra a las ${reglaHoy.horaEntrada}`}
+            {regHoy?.hora_salida && ` · Salida ${horaEnZona(regHoy.hora_salida)}`}
+          </span>
+        </div>
+        {accionHoy && (
+          <form method="post" action="/api/acciones" data-api class="v-acciones">
+            <input type="hidden" name="accion" value="marcar" />
+            <input type="hidden" name="personal_id" value={id} />
+            <input type="hidden" name="tipo" value={accionHoy} />
+            <button type="submit" class="v-boton v-primario" data-texto-cargando="Registrando…">
+              {accionHoy === "entrada" ? "Marcar entrada ahora" : "Marcar salida ahora"}
+            </button>
+          </form>
+        )}
+      </>
+    )}
+  </section>
+
+  <section class="v-bloque">
+    <h3>Este mes</h3>
+    <dl class="v-cifras">
+      <div>
+        <dt>Asistencia</dt>
+        <dd>{resumen.diasLaborables ? `${Math.round(resumen.porcentajeAsistencia)} %` : "—"}</dd>
+      </div>
+      <div>
+        <dt>Tarde</dt>
+        <dd>{resumen.tardanzas}</dd>
+      </div>
+      <div>
+        <dt>Faltas</dt>
+        <dd>{resumen.faltas}</dd>
+      </div>
+      <div>
+        <dt>Permisos</dt>
+        <dd>{resumen.permisos}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="v-bloque">
+    <h3>Permisos</h3>
+    {permisos.length ? (
+      <ul class="v-lista">
+        {permisos.map((x) => (
+          <li>
+            <span>
+              {x.fecha_desde === x.fecha_hasta
+                ? fechaCorta(x.fecha_desde)
+                : `${fechaCorta(x.fecha_desde)} – ${fechaCorta(x.fecha_hasta)}`}
+            </span>
+            <span class="v-nota">{x.motivo}</span>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class="v-texto">Sin permisos vigentes ni próximos.</p>
+    )}
+    <div class="v-acciones">
+      <button
+        type="button"
+        class="v-boton v-secundario"
+        data-ventana={`/ventanas/permiso?persona=${id}`}
+        data-ventana-modo="centro"
+      >
+        Cargar permiso
+      </button>
+    </div>
+  </section>
+
+  <section class="v-bloque">
+    <h3>Teléfono</h3>
+    {ficha.marca_en_pc ? (
+      <>
+        <p class="v-texto">Marca en secretaría (no usa teléfono).</p>
+        <form method="post" action="/api/acciones" data-api class="v-acciones">
+          <input type="hidden" name="accion" value="marca_pc" />
+          <input type="hidden" name="personal_id" value={id} />
+          <input type="hidden" name="valor" value="" />
+          <button type="submit" class="v-boton v-secundario">
+            Volver a marcar con teléfono
+          </button>
+        </form>
+      </>
+    ) : (
+      <>
+        <p class="v-texto">
+          {pendiente
+            ? `Teléfono nuevo esperando aprobación: ${pendiente.descripcion ?? "teléfono"}.`
+            : aprobado
+              ? `${aprobado.descripcion ?? "Teléfono"} aprobado${aprobado.ultimo_uso ? ` · último uso ${fechaCorta(hoyEnZona(undefined, new Date(aprobado.ultimo_uso)))}` : ""}.`
+              : ficha.cambio_telefono
+                ? "Cambio autorizado: el próximo teléfono con que marque quedará aprobado."
+                : cuenta
+                  ? "Todavía no ha marcado con ningún teléfono."
+                  : "Necesita una cuenta para marcar con el teléfono."}
+        </p>
+        <div class="v-acciones">
+          {pendiente && (
+            <form method="post" action="/api/acciones" data-api>
+              <input type="hidden" name="accion" value="disp_aprobar" />
+              <input type="hidden" name="personal_id" value={id} />
+              <input type="hidden" name="dispositivo_id" value={pendiente.id} />
+              <button type="submit" class="v-boton v-primario">
+                Aprobar teléfono nuevo
+              </button>
+            </form>
+          )}
+          {cuenta && aprobado && !pendiente && (
+            <form
+              method="post"
+              action="/api/acciones"
+              data-api
+              data-confirmar={`¿Cambiar el teléfono de ${ficha.nombre}? El actual deja de servir y el próximo con que marque quedará aprobado.`}
+              data-confirmar-si="Sí, cambiar"
+            >
+              <input type="hidden" name="accion" value="tel_cambio" />
+              <input type="hidden" name="personal_id" value={id} />
+              <button type="submit" class="v-boton v-secundario">
+                Cambiar de teléfono
+              </button>
+            </form>
+          )}
+          <form method="post" action="/api/acciones" data-api>
+            <input type="hidden" name="accion" value="marca_pc" />
+            <input type="hidden" name="personal_id" value={id} />
+            <input type="hidden" name="valor" value="si" />
+            <button type="submit" class="v-boton v-fantasma">
+              No tiene teléfono
+            </button>
+          </form>
+        </div>
+      </>
+    )}
+  </section>
+
+  <section class="v-bloque">
+    <h3>Cuenta</h3>
+    {cuenta ? (
+      <>
+        <div class="v-fila">
+          <span class="v-texto">{usuarioVisible(cuenta.email)}</span>
+          {cuenta.estado !== "activo" ? (
+            <span class="v-etiqueta">Desactivada</span>
+          ) : cuenta.debe_cambiar_clave ? (
+            <span class="v-etiqueta pendiente">Sin activar</span>
+          ) : (
+            <span class="v-etiqueta activo">Activa</span>
+          )}
+        </div>
+        <p class="v-nota">{NOMBRE_ROL[cuenta.rol]}</p>
+        <form
+          method="post"
+          action="/api/acciones"
+          data-api
+          data-confirmar={`¿Restablecer la contraseña de ${ficha.nombre} a ${CLAVE_INICIAL}? Al entrar deberá crear una nueva.`}
+          data-confirmar-si="Sí, restablecer"
+          class="v-acciones"
+        >
+          <input type="hidden" name="accion" value="clave_inicial" />
+          <input type="hidden" name="personal_id" value={id} />
+          <button type="submit" class="v-boton v-secundario">
+            Olvidó su contraseña
+          </button>
+        </form>
+      </>
+    ) : esDirectiva ? (
+      <form method="post" action="/api/acciones" data-api class="v-form">
+        <input type="hidden" name="accion" value="crear_cuenta" />
+        <input type="hidden" name="personal_id" value={id} />
+        <p class="v-texto">
+          Sin cuenta. Entrará con su cédula <strong>{ficha.cedula}</strong> y la contraseña{" "}
+          <strong>{CLAVE_INICIAL}</strong>.
+        </p>
+        <div class="v-campo">
+          <span class="v-leyenda" id={`rol-${id}`}>
+            Tipo de cuenta
+          </span>
+          <div class="v-chips" role="radiogroup" aria-labelledby={`rol-${id}`}>
+            {ROLES.map((r) => (
+              <label>
+                <input type="radio" name="rol" value={r} checked={r === "personal"} />
+                {NOMBRE_ROL[r]}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div>
+          <button type="submit" class="v-boton v-primario" data-texto-cargando="Creando…">
+            Crear cuenta
+          </button>
+        </div>
+      </form>
+    ) : (
+      <p class="v-texto">Sin cuenta. La crea la directiva.</p>
+    )}
+  </section>
+</div>
+
+<footer class="v-pie">
+  <a href={`/personal/${id}`} class="v-boton v-secundario v-bloque-ancho">
+    Abrir ficha completa
+  </a>
+</footer>

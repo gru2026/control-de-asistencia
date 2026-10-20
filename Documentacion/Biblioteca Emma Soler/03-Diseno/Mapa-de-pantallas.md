@@ -3,7 +3,7 @@ titulo: Mapa de pantallas
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: diseno
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, diseno]
 ---
 
@@ -31,6 +31,7 @@ tags: [emma-soler, diseno]
 | `/admin/libros`, `/admin/libros/[id]`, `/admin/libros/nuevo` | Personal | Servidor | Gestión de libros |
 | `/admin/catalogo` | Personal | Servidor | Categorías y autores |
 | `/admin/integridad` | Personal | Servidor | Verificación SHA-256 |
+| `/admin/historial` | Personal | Servidor | Historial de cambios (auditoría) |
 | `/admin/mensajes` | Personal | Servidor | Contacto y suscriptores |
 | `/admin/usuarios` | Administración | Servidor | Roles |
 | `/media/portadas/*` | Público | Servidor | Entrega las portadas desde Storage |

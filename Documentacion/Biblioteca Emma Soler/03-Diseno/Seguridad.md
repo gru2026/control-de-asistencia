@@ -3,7 +3,7 @@ titulo: Seguridad
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: diseno
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, diseno]
 ---
 
@@ -17,6 +17,7 @@ tags: [emma-soler, diseno]
   - las estadísticas solo las ve el personal.
 - **Roles:** el disparador `proteger_rol` impide que alguien que no sea administrador cambie roles, y nadie puede cambiar su propio rol.
 - **PDF privados:** el bucket `pdfs` es privado. `/api/libros/[id]/pdf` exige sesión, y la política de Storage verifica que el libro esté publicado.
+- **Historial de solo agregar:** el disparador de auditoría registra todos los cambios del catálogo y de los roles. Nadie puede editar ni borrar ese historial desde la API.
 - **Middleware:** protege `/admin`, `/biblioteca/leer` y `/biblioteca/cuenta`. Las páginas con sesión llevan `Cache-Control: private, no-store`.
 - **Formularios:** se validan en el servidor y en la base de datos (`check`). El formulario de contacto tiene un campo trampa contra bots.
 - **Fragmentos de búsqueda:** el HTML se escapa y solo se permite `<mark>`.

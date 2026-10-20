@@ -3,7 +3,7 @@ titulo: Funcionalidades
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: requisitos
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, requisitos]
 ---
 
@@ -39,5 +39,6 @@ Todas las páginas usan el marco de la referencia `app.webp`: barra lateral cora
 - **Subir un PDF existente:** su texto se extrae y se indexa automáticamente.
 - **Categorías y autores:** crear, editar y borrar.
 - **Integridad:** huella SHA-256 de cada PDF y verificación (C++). Ver [[Biblioteca Emma Soler/05-Algoritmos-C++/5-Integridad-SHA-256|SHA-256]].
+- **Historial:** quién creó, editó o eliminó cada libro, autor, categoría o usuario, con filtros y exportación a JSON. Ver [[Biblioteca Emma Soler/04-Desarrollo/Historial-de-cambios|Historial de cambios]].
 - **Mensajes:** mensajes del formulario de contacto (marcar como leído) y suscriptores del boletín.
 - **Usuarios:** cambio de roles. Solo para administración.

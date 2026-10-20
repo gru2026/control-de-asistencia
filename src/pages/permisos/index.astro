@@ -76,7 +76,7 @@ const TIPO_VIGENCIA = { proximo: "info", vigente: "activo", pasado: "inactivo" }
   subtitulo="Permisos: ausencias justificadas que no cuentan como falta."
 >
   <Fragment slot="acciones">
-    <Boton href="/permisos/nuevo">
+    <Boton href="/permisos/nuevo" data-ventana="/ventanas/permiso" data-ventana-modo="centro">
       <Icono nombre="mas" tamano={18} />
       Nuevo permiso
     </Boton>
@@ -130,7 +130,9 @@ const TIPO_VIGENCIA = { proximo: "info", vigente: "activo", pasado: "inactivo" }
         {hayFiltros ? (
           <a href="/permisos">Limpiar filtros</a>
         ) : (
-          <a href="/permisos/nuevo">Cargar un permiso</a>
+          <a href="/permisos/nuevo" data-ventana="/ventanas/permiso" data-ventana-modo="centro">
+            Cargar un permiso
+          </a>
         )}
       </Fragment>
       <thead>

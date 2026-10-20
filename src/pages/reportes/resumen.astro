@@ -194,7 +194,7 @@ const horas = (n: number) => n.toFixed(1).replace(".", ",");
             return (
               <tr>
                 <td class="principal">
-                  <a href={`/personal/${f.personalId}`} class="nombre">
+                  <a href={`/personal/${f.personalId}`} class="nombre" data-persona={f.personalId}>
                     {f.nombre}
                   </a>
                   {c && <ChipCategoria nombre={c.nombre} color={c.color} />}

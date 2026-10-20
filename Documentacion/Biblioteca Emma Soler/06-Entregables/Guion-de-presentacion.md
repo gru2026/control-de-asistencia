@@ -3,7 +3,7 @@ titulo: Guion de presentación
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: entregable
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, entregable]
 ---
 
@@ -37,7 +37,8 @@ La biblioteca de Cúa tiene libros que solo se pueden consultar en sala. Este si
 ## 5. Integridad y estadísticas (2 min)
 1. **Panel → Integridad → Verificar todos:** todos los PDF salen íntegros. Explicar SHA-256.
 2. En la terminal, ejecutar `npm run prueba:integridad`: cambia 1 bit, lo detecta como «dañado» y lo restaura.
-3. **Panel → Resumen:** gráficos, búsquedas sin resultados y exportación a JSON o CSV.
+3. **Panel → Historial:** la publicación y la integridad dañada quedan registradas con persona, fecha, antes y después. Desplegar una entrada y mostrar el JSON. Explicar que lo hace un disparador y que nadie puede borrarlo.
+4. **Panel → Resumen:** gráficos, búsquedas sin resultados y exportación a JSON o CSV.
 
 ## 6. Preguntas técnicas probables
 | Pregunta | Respuesta corta |

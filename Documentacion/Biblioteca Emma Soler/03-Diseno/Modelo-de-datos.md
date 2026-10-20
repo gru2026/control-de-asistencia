@@ -3,7 +3,7 @@ titulo: Modelo de datos
 proyecto: Biblioteca Pública Emma Soler — Cúa
 tipo: diseno
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-20
 tags: [emma-soler, diseno]
 ---
 
@@ -18,6 +18,7 @@ Las migraciones están en `supabase/migrations/`:
 | `…03_seguridad.sql` | RLS y buckets de almacenamiento |
 | `…04_nombres_publicos.sql` | Nombre visible de quienes escriben reseñas |
 | `…05_algoritmos_cpp.sql` | Integridad (SHA-256) y `libros_similares` |
+| `…06_auditoria.sql` | Tabla `auditoria` y el disparador `registrar_auditoria()` |
 
 ## Tablas
 | Grupo | Tabla | Para qué |
@@ -34,6 +35,7 @@ Las migraciones están en `supabase/migrations/`:
 | Estadísticas | `busquedas` | Término y cuántos resultados dio |
 | | `vistas_libro` | Visitas a la ficha y lecturas |
 | Sitio | `mensajes_contacto`, `suscriptores` | |
+| Control | `auditoria` | Historial de cambios: tabla, registro, acción, persona y `cambios` (JSONB). Ver [[Biblioteca Emma Soler/04-Desarrollo/Historial-de-cambios|Historial de cambios]] |
 
 ## Estados de un libro
 `pendiente` → `escaneando` → `revision` → `publicado`. Solo los libros publicados son visibles para el público, y no se puede publicar un libro que no tenga PDF.
@@ -46,6 +48,7 @@ Las migraciones están en `supabase/migrations/`:
 | `contadores_publicos()` | Devuelve JSON con la cantidad de libros, autores y lectores |
 | `estadisticas(días)` | Devuelve JSON con todo el panel. Solo para el personal |
 | `nombres_publicos(ids)` | Nombre corto de quienes escriben reseñas («José M.») |
+| `registrar_auditoria()` | Disparador en `libros`, `autores`, `categorias` y `perfiles`: guarda los campos que cambiaron |
 | `calcular_busqueda_libro()` | Disparador que arma el `tsvector` con pesos (A: título y autores; B: etiquetas y categoría; C: resumen) |
 
 ## Almacenamiento (buckets)

@@ -2,6 +2,8 @@
  * Mejoras progresivas de interfaz. Todo funciona sin JavaScript;
  * esto solo agrega comodidad. Se activa por atributos data-*.
  */
+// Primero: sus oyentes de envío (confirmación, formularios rápidos) deben correr antes.
+import "./ventanas";
 import { navigate } from "astro:transitions/client";
 import { prefetch } from "astro:prefetch";
 import { activarTransiciones } from "./transiciones";
@@ -103,15 +105,6 @@ document.addEventListener("input", (ev) => {
   }
   const form = (t as HTMLInputElement).form;
   if (form?.hasAttribute("data-avisar-cambios")) form.dataset.sucio = "1";
-});
-
-// Confirmación simple antes de enviar (data-confirmar="¿Eliminar…?")
-document.addEventListener("submit", (ev) => {
-  const pregunta = (ev.target as HTMLFormElement).dataset.confirmar;
-  if (pregunta && !confirm(pregunta)) {
-    ev.preventDefault();
-    ev.stopImmediatePropagation();
-  }
 });
 
 // Envío: validar, evitar doble envío y mostrar "Guardando…"

@@ -1,0 +1,157 @@
+---
+/**
+ * Cargar un permiso en una ventana (D-49, D-50): persona con buscador, fecha con
+ * botones (Hoy · Mañana · Otras fechas) y motivo con botones. Fragmento.
+ */
+import Icono from "@/components/ui/Icono.astro";
+import { esUuid, MOTIVOS_PERMISO } from "@/lib/validacion";
+import { hoyEnZona } from "@/lib/fecha";
+import { sumarDias } from "@/lib/reglas/tiempo";
+
+export const partial = true;
+
+const sb = Astro.locals.supabase;
+const p = Astro.url.searchParams;
+const hoy = hoyEnZona();
+const manana = sumarDias(hoy, 1);
+const personaId = esUuid(p.get("persona") ?? "") ? p.get("persona")! : null;
+const desdeParam = /^\d{4}-\d{2}-\d{2}$/.test(p.get("desde") ?? "") ? p.get("desde")! : null;
+const inicio = desdeParam ?? hoy;
+const cuando = inicio === hoy ? "hoy" : inicio === manana ? "manana" : "otra";
+
+const { data: gente } = await sb
+  .from("personal")
+  .select("id, nombre, apellido, cedula")
+  .eq("estado", "activo")
+  .order("apellido")
+  .order("nombre");
+const personas = (gente ?? []) as {
+  id: string;
+  nombre: string;
+  apellido: string;
+  cedula: string;
+}[];
+const elegida = personaId ? personas.find((x) => x.id === personaId) : undefined;
+const opciones = JSON.stringify(
+  personas.map((x) => ({ v: x.id, t: `${x.apellido}, ${x.nombre}`, c: x.cedula })),
+);
+---
+
+<header class="v-cabecera" tabindex="-1">
+  <div>
+    <h2 class="v-titulo" id="ventana-titulo-permiso" data-ventana-titulo>
+      Cargar permiso
+    </h2>
+    <p class="v-sub">Ese día no cuenta como falta.</p>
+  </div>
+  <button type="button" class="v-cerrar" aria-label="Cerrar" data-cerrar-ventana>
+    <Icono nombre="error" tamano={22} />
+  </button>
+</header>
+
+<form method="post" action="/api/acciones" data-api class="v-form v-contenido" novalidate>
+  <input type="hidden" name="accion" value="permiso" />
+
+  {elegida ? (
+    <div class="v-campo">
+      <span class="v-leyenda">Persona</span>
+      <p class="v-texto">
+        <strong>
+          {elegida.apellido}, {elegida.nombre}
+        </strong>{" "}
+        · {elegida.cedula}
+      </p>
+      <input type="hidden" name="personal_id" value={elegida.id} />
+    </div>
+  ) : (
+    <div class="v-campo v-buscador" data-buscador data-opciones={opciones}>
+      <label for="permiso-persona">Persona</label>
+      <input
+        id="permiso-persona"
+        type="search"
+        placeholder="Escriba nombre o cédula"
+        autocomplete="off"
+        role="combobox"
+        aria-expanded="false"
+        aria-controls="permiso-persona-lista"
+        aria-autocomplete="list"
+        autofocus
+      />
+      <input type="hidden" name="personal_id" required />
+      <ul id="permiso-persona-lista" role="listbox" hidden></ul>
+    </div>
+  )}
+
+  <div class="v-campo">
+    <span class="v-leyenda" id="permiso-cuando">
+      ¿Cuándo?
+    </span>
+    <div class="v-chips" role="radiogroup" aria-labelledby="permiso-cuando">
+      <label>
+        <input type="radio" name="cuando" value="hoy" checked={cuando === "hoy"} data-desde={hoy} />
+        Hoy
+      </label>
+      <label>
+        <input
+          type="radio"
+          name="cuando"
+          value="manana"
+          checked={cuando === "manana"}
+          data-desde={manana}
+        />
+        Mañana
+      </label>
+      <label>
+        <input type="radio" name="cuando" value="otra" checked={cuando === "otra"} />
+        Otras fechas
+      </label>
+    </div>
+    <div class="v-dos" data-fechas hidden={cuando !== "otra"}>
+      <div class="v-campo">
+        <label for="permiso-desde">Desde</label>
+        <input id="permiso-desde" type="date" name="fecha_desde" value={inicio} required />
+      </div>
+      <div class="v-campo">
+        <label for="permiso-hasta">Hasta</label>
+        <input id="permiso-hasta" type="date" name="fecha_hasta" value={inicio} min={inicio} />
+      </div>
+    </div>
+  </div>
+
+  <div class="v-campo">
+    <span class="v-leyenda" id="permiso-motivo">
+      Motivo
+    </span>
+    <div class="v-chips" role="radiogroup" aria-labelledby="permiso-motivo">
+      {MOTIVOS_PERMISO.map((m) => (
+        <label>
+          <input type="radio" name="motivo" value={m} required />
+          {m}
+        </label>
+      ))}
+    </div>
+  </div>
+
+  <div class="v-campo">
+    <label for="permiso-obs">
+      Observación <span class="v-ayuda">(opcional)</span>
+    </label>
+    <textarea
+      id="permiso-obs"
+      name="observacion"
+      maxlength="500"
+      rows="2"
+      placeholder="Por ejemplo, el número del reposo"
+    ></textarea>
+  </div>
+
+  <div class="v-acciones">
+    <button
+      type="submit"
+      class="v-boton v-primario v-bloque-ancho"
+      data-texto-cargando="Guardando…"
+    >
+      Guardar permiso
+    </button>
+  </div>
+</form>

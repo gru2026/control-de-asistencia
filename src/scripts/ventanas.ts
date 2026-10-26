@@ -11,6 +11,9 @@
  *   Si sale bien se cierra la ventana y se actualiza la pantalla (el mensaje
  *   llega por la cookie flash); si no, los errores se muestran junto a cada campo.
  * - `form[data-confirmar="¿…?"]` pide confirmación antes de enviarse.
+ * - `[data-ventana-local="id"]` abre el contenido de un `<template id="id">` de la
+ *   misma pantalla (sin pedir nada al servidor; D-53). Modo "detalle": cajón ancho.
+ * - `input[data-filtrar="id"]` filtra los `li` de la lista con ese id mientras se escribe.
  *
  * Este módulo se importa primero en mejoras.ts: sus oyentes de envío corren
  * antes que los demás y antes que el router.
@@ -25,14 +28,28 @@ function ventana(): HTMLDialogElement | null {
   return document.getElementById("ventana") as HTMLDialogElement | null;
 }
 
-export async function abrirVentana(url: string, modo: "cajon" | "centro" = "cajon") {
+type ModoVentana = "cajon" | "centro" | "detalle";
+
+/** Abre en la ventana el contenido de un <template> de la pantalla. */
+export function abrirVentanaLocal(id: string, modo: ModoVentana = "detalle") {
+  const dialogo = ventana();
+  const contenido = dialogo?.querySelector<HTMLElement>("[data-ventana-contenido]");
+  const plantilla = document.getElementById(id) as HTMLTemplateElement | null;
+  if (!dialogo || !contenido || !plantilla) return;
+  dialogo.className = `ventana ${modo === "detalle" ? "cajon detalle" : modo}`;
+  if (!dialogo.open) dialogo.showModal();
+  contenido.replaceChildren(plantilla.content.cloneNode(true));
+  mostrarContenido(dialogo, contenido, null);
+}
+
+export async function abrirVentana(url: string, modo: ModoVentana = "cajon") {
   const dialogo = ventana();
   const contenido = dialogo?.querySelector<HTMLElement>("[data-ventana-contenido]");
   if (!dialogo || !contenido) {
     location.href = url;
     return;
   }
-  dialogo.className = `ventana ${modo}`;
+  dialogo.className = `ventana ${modo === "detalle" ? "cajon detalle" : modo}`;
   contenido.innerHTML = ESQUELETO;
   contenido.setAttribute("aria-busy", "true");
   if (!dialogo.open) dialogo.showModal();
@@ -61,9 +78,9 @@ export async function abrirVentana(url: string, modo: "cajon" | "centro" = "cajo
   }
 }
 
-function mostrarContenido(dialogo: HTMLDialogElement, contenido: HTMLElement, html: string) {
+function mostrarContenido(dialogo: HTMLDialogElement, contenido: HTMLElement, html: string | null) {
   if (!dialogo.open) return;
-  contenido.innerHTML = html;
+  if (html !== null) contenido.innerHTML = html;
   contenido.removeAttribute("aria-busy");
   const titulo = contenido.querySelector<HTMLElement>("[data-ventana-titulo]");
   if (titulo?.id) dialogo.setAttribute("aria-labelledby", titulo.id);
@@ -87,11 +104,18 @@ document.addEventListener("click", (ev) => {
   )
     return;
   const t = ev.target as HTMLElement;
+  const local = t.closest<HTMLElement>("[data-ventana-local]");
+  if (local) {
+    ev.preventDefault();
+    abrirVentanaLocal(local.dataset.ventanaLocal!);
+    return;
+  }
   const disparador = t.closest<HTMLElement>("[data-ventana], a[data-persona]");
   if (disparador) {
     ev.preventDefault();
     const url = disparador.dataset.ventana ?? `/ventanas/persona/${disparador.dataset.persona}`;
-    const modo = disparador.dataset.ventanaModo === "centro" ? "centro" : "cajon";
+    const m = disparador.dataset.ventanaModo;
+    const modo: ModoVentana = m === "centro" || m === "detalle" ? m : "cajon";
     void abrirVentana(url, modo);
     return;
   }
@@ -354,3 +378,20 @@ function quitarError(ev: Event) {
 }
 document.addEventListener("input", quitarError);
 document.addEventListener("change", quitarError);
+
+// ── Filtro de listas (segunda capa del panel) ───────────────────
+const sinTildes = (t: string) =>
+  t
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+document.addEventListener("input", (ev) => {
+  const input = ev.target as HTMLInputElement;
+  const id = input.dataset?.filtrar;
+  if (!id) return;
+  const q = sinTildes(input.value.trim());
+  const raiz = input.closest("[data-ventana-contenido]") ?? document;
+  raiz.querySelectorAll<HTMLElement>(`[data-filtrable="${id}"] li`).forEach((li) => {
+    li.hidden = q !== "" && !sinTildes(li.textContent ?? "").includes(q);
+  });
+});

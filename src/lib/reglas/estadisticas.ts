@@ -344,6 +344,17 @@ export function conclusiones(
 
 // ── Calendario del período (tarjeta lateral del panel) ──
 
+/** Lectura en palabras para el panel (D-53): bien desde 90 %, atención de 80 a 89 %, bajo debajo de 80 %. */
+export type Lectura = "bien" | "atencion" | "bajo";
+export const NOMBRE_LECTURA: Record<Lectura, string> = {
+  bien: "Bien",
+  atencion: "Atención",
+  bajo: "Bajo",
+};
+export function lecturaPorcentaje(valor: number): Lectura {
+  return valor >= 90 ? "bien" : valor >= 80 ? "atencion" : "bajo";
+}
+
 export type NivelDia = "alto" | "medio" | "bajo" | "sin-datos" | "no-laborable" | "futuro";
 
 export interface CeldaCalendario {

@@ -2,7 +2,7 @@
 
 **Servicio comunitario — Documentación completa del proyecto**
 
-Fecha de generación: 2026-10-20
+Fecha de generación: 2026-10-26
 
 ---
 
@@ -538,6 +538,7 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-53 | 2026-10-25 | Panel en dos vistas: Resumen (módulos con frases y lectura Bien/Atención/Bajo) y Acción rápida (buscador, pendientes con botón); los datos en crudo pasan a una segunda capa | ✅ Vigente |
 | D-52 | 2026-10-20 | Todas las pantallas a todo el ancho: formularios en rejilla de 12 columnas (cada campo según su dato) y columna lateral de apoyo (vista previa, resumen o estado) | ✅ Vigente |
 | D-51 | 2026-10-20 | Botón **Acciones** en la barra (buscar persona, nuevo personal, permiso, cuentas, planillas); alta de personal y gestión de cuentas en ventanas; pantallas de una columna centradas | ✅ Vigente |
 | D-50 | 2026-10-20 | Formularios sin estrés: «Ahora» por defecto, fechas y motivos con botones, buscador de persona, errores junto al campo | ✅ Vigente |
@@ -601,6 +602,14 @@ Motivo: cada acción cargaba una pantalla nueva (1 a 2,6 s desde el colegio) y s
 - **D-48 · Avisos y mensajes.** La campana abre un panel (en el celular, desde abajo) con los avisos sin leer, en la misma consulta que el contador. Los resultados de las acciones aparecen abajo y se cierran solos; los reversibles ofrecen **Deshacer** (marcación asistida de los últimos 15 min, revisión, aviso leído). Las acciones graves siguen pidiendo confirmación.
 - **D-49 · Ventanas.** Tocar un nombre abre el **panel lateral** de la persona (hoy, mes, permisos, teléfono, cuenta) con acciones: marcar, cargar permiso, aprobar o cambiar teléfono, «no tiene teléfono», crear cuenta, restablecer a 0000. Los formularios en ventana van a `/api/acciones` (JSON); si sale bien se cierra y se actualiza la pantalla; si no, los errores quedan junto al campo. Confirmaciones con una ventana propia. El contenido llega como fragmento y usa `ventanas.css` (clases `v-`). La ficha completa queda a un toque, por capas (pestañas).
 - **D-50 · Formularios sin estrés.** Marcar empieza en «Ahora»; «Otra hora» pide hora y motivo con botones. Permiso: buscador de persona (escribir nombre o cédula), fecha con botones (Hoy · Mañana · Otras fechas) y motivo con botones. En el celular, las tablas muestran solo lo esencial. Guía de prueba con personas reales: Prueba-de-usabilidad.
+
+### D-53 · Panel en dos vistas y datos en segunda capa
+- **Motivo:** la administración tenía dificultad para leer cifras sueltas (indicadores con variación en puntos, cinco gráficas a la vez).
+- **Resumen** (por defecto para directiva): seis módulos —Hoy, Pendientes, Este mes, Puntualidad, Ausentes, Por categoría— con una frase en palabras, una mini gráfica sin ejes y una lectura: **Bien** (≥ 90 %), **Atención** (80–89 %), **Bajo** (< 80 %), siempre con texto, no solo color (`lecturaPorcentaje`).
+- **Segunda capa:** cada módulo abre un cajón ancho con las gráficas completas, filtros de período y categoría y listas con buscador. El contenido viaja en `<template>` dentro de la página (`data-ventana-local`): abre al instante y conserva los estilos de las gráficas, que los fragmentos de `/ventanas` no traen. Al cambiar un filtro, `?abrir=` vuelve a abrir el detalle.
+- **Acción rápida** (por defecto para secretaría; la directiva también puede verla): buscador de persona, línea «Hoy:» con enlaces al Registro del día, accesos cortos y pendientes con su botón en la misma fila (aprobar teléfono, cargar permiso por una falta, salida sin marcar, revisión, sin jornada, sin cuenta).
+- La vista elegida se recuerda por equipo (cookie `panel_vista`). El análisis completo y las descargas siguen en Reportes (tercera capa).
+- Recorrido simulado de tareas en `05-Entregables/Resultados-usabilidad.md`; la prueba con personas queda para la visita al colegio.
 
 ### D-52 · Formularios a todo el ancho
 - Se retira el ancho angosto de D-51: todas las pantallas usan el ancho del panel (96 rem).
@@ -2080,6 +2089,7 @@ En el PC se entra con el **correo** de la cuenta (o con la cédula, si la cuenta
 > - **Toque el nombre de una persona** (en Personal, Registro del día, Reportes o el Panel) y se abre a la derecha su resumen: hoy, el mes, permisos, teléfono y cuenta, con botones para marcar, cargar un permiso, aprobar o cambiar el teléfono, crear la cuenta o restablecer la contraseña. «Abrir ficha completa» lleva a todos los datos.
 > - Después de cada acción aparece un mensaje abajo. Si se equivocó, toque **Deshacer**.
 > - La **campana** abre los avisos encima de la pantalla; tóquelos para ir a lo que indican.
+> - El **Panel** tiene dos vistas, arriba a la derecha: **Resumen** (cómo vamos, en palabras; toque un recuadro para ver el detalle) y **Acción rápida** (buscar a alguien, lo pendiente con su botón y los accesos directos). El panel recuerda la última que usó.
 > - El botón **Acciones** (arriba) reúne lo más frecuente: buscar a una persona, registrar personal nuevo, cargar un permiso, crear cuentas y descargar la planilla de hoy o el resumen del mes.
 > - En la PC, los formularios muestran a la derecha una columna de ayuda: por ejemplo, en Ajustes se ve cómo saldrá el encabezado de la planilla mientras se escribe, y en un permiso cuántos días abarca.
 > - En **Ajustes › Usuarios**, «Gestionar» abre una ventana para cambiar el tipo de cuenta, la contraseña o desactivarla.

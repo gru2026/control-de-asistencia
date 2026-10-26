@@ -1,0 +1,120 @@
+---
+/**
+ * Módulo del panel en vista Resumen (D-53): una frase en palabras, una cifra y
+ * una mini gráfica. Todo el módulo se toca para abrir su segunda capa.
+ */
+import Icono, { type NombreIcono } from "@/components/ui/Icono.astro";
+import { NOMBRE_LECTURA, type Lectura } from "@/lib/reglas/estadisticas";
+
+interface Props {
+  titulo: string;
+  icono: NombreIcono;
+  frase: string;
+  detalle?: string;
+  lectura?: Lectura;
+  /** id del <template> con la segunda capa */
+  capa?: string;
+  /** Enlace en lugar de la segunda capa */
+  href?: string;
+}
+const { titulo, icono, frase, detalle, lectura, capa, href } = Astro.props;
+---
+
+<a
+  class="modulo"
+  href={href ?? `#${capa}`}
+  data-ventana-local={capa}
+  aria-label={`${titulo}: ${frase}${detalle ? `. ${detalle}` : ""}. Ver detalle`}
+>
+  <span class="cabeza">
+    <span class="titulo">
+      <Icono nombre={icono} tamano={18} />
+      {titulo}
+    </span>
+    {lectura && <span class:list={["lectura", lectura]}>{NOMBRE_LECTURA[lectura]}</span>}
+  </span>
+  <span class="frase">{frase}</span>
+  {detalle && <span class="detalle">{detalle}</span>}
+  <span class="grafica" aria-hidden="true">
+    <slot />
+  </span>
+  <span class="ver" aria-hidden="true">
+    Ver detalle <Icono nombre="siguiente" tamano={16} />
+  </span>
+</a>
+
+<style>
+  .modulo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-2);
+    min-height: 13rem;
+    padding: var(--esp-5);
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    color: var(--color-texto);
+    text-decoration: none;
+    transition: border-color var(--duracion-rapida) var(--curva);
+  }
+  .modulo:hover {
+    border-color: var(--color-acento);
+  }
+  .cabeza {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--esp-2);
+  }
+  .titulo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+  }
+  .lectura {
+    padding: 2px var(--esp-3);
+    border-radius: 999px;
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-fuerte);
+  }
+  .lectura.bien {
+    background: var(--color-exito-suave);
+    color: var(--color-exito);
+  }
+  .lectura.atencion {
+    background: var(--color-alerta-suave);
+    color: var(--color-alerta);
+  }
+  .lectura.bajo {
+    background: var(--color-error-suave);
+    color: var(--color-error);
+  }
+  .frase {
+    font-size: var(--texto-xl);
+    font-weight: var(--peso-titulo);
+    line-height: 1.25;
+  }
+  .detalle {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .grafica {
+    display: block;
+    margin-top: auto;
+    padding-top: var(--esp-3);
+  }
+  .grafica:empty {
+    display: none;
+  }
+  .ver {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-1);
+    color: var(--color-acento-texto);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+  }
+</style>

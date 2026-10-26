@@ -1,0 +1,34 @@
+---
+/** Línea mínima sin ejes (0–100) para la vista Resumen del panel. */
+interface Props {
+  valores: number[];
+}
+const { valores } = Astro.props;
+const n = valores.length;
+const puntos = valores
+  .map(
+    (v, i) =>
+      `${n > 1 ? (i / (n - 1)) * 100 : 50},${32 - (Math.max(0, Math.min(100, v)) / 100) * 30}`,
+  )
+  .join(" ");
+---
+
+{n > 1 && (
+  <svg viewBox="0 0 100 34" preserveAspectRatio="none" class="mini-linea">
+    <polyline points={puntos} fill="none" vector-effect="non-scaling-stroke" />
+  </svg>
+)}
+
+<style>
+  .mini-linea {
+    display: block;
+    width: 100%;
+    height: 48px;
+  }
+  polyline {
+    stroke: var(--color-acento);
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+</style>

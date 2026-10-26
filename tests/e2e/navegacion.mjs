@@ -94,70 +94,66 @@ try {
     );
   } else r.ok("paginación (hay menos de una página de datos)", true);
 
-  r.seccion("Panel");
-  await pag.goto(`${B}/panel`);
+  r.seccion("Panel: vista Resumen (primera capa)");
+  await pag.goto(`${B}/panel?vista=resumen`);
+  r.ok("seis módulos con frases", (await pag.locator(".modulos .modulo").count()) === 6);
+  r.ok(
+    "la primera capa no muestra tablas ni gráficas completas",
+    (await pag.locator(".modulos table, .modulos figure").count()) === 0,
+  );
+  r.ok(
+    "cada módulo dice su estado en palabras",
+    (await pag.locator(".modulo .frase").allInnerTexts()).every((t) => t.trim().length > 3),
+  );
+
+  r.seccion("Panel: segunda capa");
   await marcarPagina(pag);
-  const t1 = Date.now();
-  await pag.click('.segmentado a:has-text("Mes anterior")');
-  await pag.waitForFunction(() => location.search.includes("periodo=anterior"));
-  await esperarDatos(pag);
-  r.ok("cambiar período sin recarga", await sinRecarga(pag), `${Date.now() - t1} ms`);
-  const catPanel = await pag.$eval("#panel-cat option:nth-child(2)", (o) => o.value);
-  await pag.selectOption("#panel-cat", catPanel);
-  await pag.waitForFunction((c) => location.search.includes(c), catPanel);
-  await esperarDatos(pag);
+  await pag.click('a[data-ventana-local="capa-mes"]');
+  await pag.waitForSelector("#ventana[open] #capa-mes-titulo", { timeout: 15000 });
+  r.ok("tocar un módulo abre su detalle sin salir de la pantalla", await sinRecarga(pag));
   r.ok(
-    "filtrar categoría conservando el período",
-    (await sinRecarga(pag)) && pag.url().includes("periodo=anterior"),
+    "el detalle trae la gráfica y el calendario",
+    (await pag.locator("#ventana .titulo-grafica").count()) >= 1 &&
+      (await pag.locator("#ventana .calendario .dia").count()) > 0,
   );
-
-  r.seccion("Panel: niveles de lectura");
-  r.ok("cuatro indicadores", (await pag.$$(".kpis .kpi")).length === 4);
-  r.ok("sección «Requiere atención» presente", Boolean(await pag.$("#titulo-atencion")));
-  const resumenes = await pag.$$eval("details.seccion .resumen", (e) =>
-    e.map((x) => x.textContent?.trim()),
-  );
-  r.ok(
-    "cada sección muestra su conclusión cerrada",
-    resumenes.length === 5 && resumenes.every(Boolean),
-    resumenes[1],
-  );
-  await pag.click("#seccion-llegadas summary");
-  r.ok("abrir una sección", await pag.$eval("#seccion-llegadas", (d) => d.open));
-  await pag.click('.segmentado a:has-text("Este mes")');
-  await pag.waitForFunction(() => location.search.includes("periodo=mes"));
-  await esperarDatos(pag);
-  r.ok(
-    "la sección sigue abierta tras filtrar",
-    await pag.$eval("#seccion-llegadas", (d) => d.open),
-  );
-  await pag.reload();
-  r.ok("la sección se recuerda al recargar", await pag.$eval("#seccion-llegadas", (d) => d.open));
-  await pag.click("#seccion-llegadas summary");
-
-  r.seccion("Panel: columna lateral");
-  const diasCal = await pag.$$eval("aside.lateral .calendario .dia", (d) => d.length);
-  r.ok("calendario con los días del período", diasCal > 0, `${diasCal} días`);
-  r.ok(
-    "tarjeta de ausentes presente",
-    Boolean(await pag.$('aside.lateral h2:has-text("Ausentes")')),
-  );
-  const enlaceDia = await pag.$("aside.lateral a.dia");
-  if (enlaceDia) {
-    const destino = await enlaceDia.getAttribute("href");
-    r.ok(
-      "un día del calendario lleva a su planilla",
-      /\/reportes\?fecha=\d{4}-\d{2}-\d{2}$/.test(destino ?? ""),
-      destino,
-    );
-  }
-  await pag.click('.segmentado a:has-text("30 días")');
+  await pag.click('#ventana .segmentado a:has-text("Últimos 30 días")');
   await pag.waitForFunction(() => location.search.includes("periodo=30d"));
-  await esperarDatos(pag);
+  await pag.waitForSelector("#ventana[open] #capa-mes-titulo", { timeout: 15000 });
   r.ok(
-    "el calendario se actualiza con el período",
-    (await pag.$$eval("aside.lateral .calendario .dia", (d) => d.length)) === 30,
+    "cambiar el período vuelve a abrir el detalle actualizado",
+    (await pag.locator("#ventana .calendario .dia").count()) === 30,
   );
+  await pag.keyboard.press("Escape");
+  r.ok("se indica el filtro aplicado", await pag.locator(".filtro-activo").isVisible());
+  await pag.click('a[data-ventana-local="capa-hoy"]');
+  await pag.waitForSelector("#ventana[open] #capa-hoy-titulo", { timeout: 15000 });
+  const filasHoy = await pag.locator("#ventana [data-filtrable='hoy'] li").count();
+  if (filasHoy) {
+    await pag.fill("#filtro-hoy", "zzzzzz");
+    r.ok(
+      "buscar dentro del detalle filtra la lista",
+      (await pag.locator("#ventana [data-filtrable='hoy'] li:visible").count()) === 0,
+    );
+  } else r.ok("buscar dentro del detalle (hoy no hay nadie programado)", true);
+  await pag.click("#ventana [data-cerrar-ventana]");
+
+  r.seccion("Panel: vista Acción rápida");
+  await pag.click('.vistas a:has-text("Acción rápida")');
+  await pag.waitForSelector("#panel-buscar", { timeout: 15000 });
+  r.ok(
+    "buscador, accesos y pendientes",
+    (await pag.locator(".accesos li").count()) >= 4 &&
+      (await pag.locator("#titulo-tareas").count()) === 1,
+  );
+  await pag.goto(`${B}/panel`);
+  r.ok("el panel recuerda la vista elegida", (await pag.locator("#panel-buscar").count()) === 1);
+  await pag.fill("#panel-buscar", "daniel");
+  await pag.waitForSelector("#panel-buscar-lista [role=option]", { timeout: 15000 });
+  await pag.keyboard.press("Enter");
+  await pag.waitForSelector("#ventana[open] .v-titulo:has-text('Daniel')", { timeout: 15000 });
+  r.ok("buscar a una persona abre su panel", true);
+  await pag.keyboard.press("Escape");
+  await pag.goto(`${B}/panel?vista=resumen`);
 
   r.seccion("Otras pantallas");
   await marcarPagina(pag);

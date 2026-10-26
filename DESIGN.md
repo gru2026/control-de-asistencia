@@ -74,6 +74,7 @@ Ritmo: dentro de un grupo 6–12 px; entre controles 16 px; entre bloques 32 px 
 - Ficha por capas: pestañas (Resumen · Datos · Horario · Teléfono y cuenta · Estado); la elegida en azul noche.
 - Botón «Acciones» en la barra superior (fondo translúcido, con texto en la PC): abre un mosaico de accesos con buscador de persona.
 - Todas las secciones usan el mismo ancho que el panel (96 rem), también los formularios.
+- Panel (D-53): primera capa en palabras («32 de 45 ya llegaron», «Bien / Atención / Bajo»), nunca cifras sueltas con variaciones. Las gráficas completas, filtros y listas van en la segunda capa (cajón ancho `ventana cajon detalle`, contenido en `<template>`).
 - Formularios: `.dos-zonas` (formulario 2/3 + columna de apoyo 1/3) y `.campos` (rejilla de 12 columnas; cada campo con el ancho de su dato: `c-corto` cédula/fecha/número, `c-medio`, `c-largo` nombre, `c-completo` observaciones). Las opciones cortas van en botones (`v-chips`), no en listas desplegables.
 - Tablas: la categoría va en su propia columna (no pegada al nombre); horas y fechas alineadas a la izquierda como su encabezado; números y sus encabezados (también los ordenables) a la derecha.
 - Avisos dentro de una tarjeta: línea con ícono y texto (ámbar si es advertencia), nunca un recuadro, para no anidar superficies.

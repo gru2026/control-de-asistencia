@@ -1,0 +1,51 @@
+---
+/** Anillo de avance (0–100) con el texto al centro. */
+interface Props {
+  valor: number;
+  texto: string;
+}
+const { valor, texto } = Astro.props;
+const R = 26;
+const C = 2 * Math.PI * R;
+const lleno = (Math.max(0, Math.min(100, valor)) / 100) * C;
+---
+
+<span class="anillo">
+  <svg viewBox="0 0 64 64" width="72" height="72">
+    <circle cx="32" cy="32" r={R} class="fondo" />
+    <circle
+      cx="32"
+      cy="32"
+      r={R}
+      class="avance"
+      stroke-dasharray={`${lleno} ${C}`}
+      transform="rotate(-90 32 32)"
+    />
+  </svg>
+  <span class="texto">{texto}</span>
+</span>
+
+<style>
+  .anillo {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+  }
+  circle {
+    fill: none;
+    stroke-width: 8;
+  }
+  .fondo {
+    stroke: var(--color-borde);
+  }
+  .avance {
+    stroke: var(--color-exito);
+    stroke-linecap: round;
+  }
+  .texto {
+    position: absolute;
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-fuerte);
+    font-variant-numeric: tabular-nums;
+  }
+</style>

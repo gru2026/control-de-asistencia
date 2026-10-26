@@ -44,6 +44,10 @@
     border-radius: 0;
     animation-name: v-entrar;
   }
+  /* Segunda capa del panel: cajón ancho para gráficas y listas */
+  .ventana.cajon.detalle {
+    width: min(44rem, 100vw);
+  }
 }
 @keyframes v-subir {
   from {

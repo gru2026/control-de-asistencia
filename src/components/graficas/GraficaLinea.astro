@@ -40,10 +40,59 @@ const xPct = (p: Punto, i: number) => {
 };
 
 const coords = puntos.map((p, i) => ({ ...p, x: xPct(p, i), y: yPct(p.valor) }));
-const linea = coords.map((c) => `${(c.x * 10).toFixed(1)},${c.y.toFixed(2)}`).join(" ");
-const area = coords.length
-  ? `M0,100 L${(coords[0]!.x * 10).toFixed(1)},${coords[0]!.y.toFixed(2)} L${linea.replaceAll(" ", " L")} L1000,100 Z`
+
+// Curva suave monótona (Fritsch–Carlson): no inventa picos entre dos días
+const P = coords.map((c) => ({ x: c.x * 10, y: c.y }));
+function curvaMonotona(pts: { x: number; y: number }[]): string {
+  const n = pts.length;
+  if (!n) return "";
+  if (n === 1) return `M${pts[0]!.x},${pts[0]!.y}`;
+  const d: number[] = [];
+  const m: number[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    const dx = pts[i + 1]!.x - pts[i]!.x || 1e-6;
+    d.push((pts[i + 1]!.y - pts[i]!.y) / dx);
+  }
+  m.push(d[0]!);
+  for (let i = 1; i < n - 1; i++) m.push(d[i - 1]! * d[i]! <= 0 ? 0 : (d[i - 1]! + d[i]!) / 2);
+  m.push(d[n - 2]!);
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) {
+      m[i] = 0;
+      m[i + 1] = 0;
+      continue;
+    }
+    const a = m[i]! / d[i]!;
+    const b = m[i + 1]! / d[i]!;
+    const h = a * a + b * b;
+    if (h > 9) {
+      const t = 3 / Math.sqrt(h);
+      m[i] = t * a * d[i]!;
+      m[i + 1] = t * b * d[i]!;
+    }
+  }
+  let ruta = `M${pts[0]!.x.toFixed(1)},${pts[0]!.y.toFixed(2)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = pts[i]!;
+    const p1 = pts[i + 1]!;
+    const dx = (p1.x - p0.x) / 3;
+    ruta += ` C${(p0.x + dx).toFixed(1)},${(p0.y + m[i]! * dx).toFixed(2)} ${(p1.x - dx).toFixed(1)},${(p1.y - m[i + 1]! * dx).toFixed(2)} ${p1.x.toFixed(1)},${p1.y.toFixed(2)}`;
+  }
+  return ruta;
+}
+const linea = curvaMonotona(P);
+const area = P.length
+  ? `${linea} L${P[P.length - 1]!.x.toFixed(1)},100 L${P[0]!.x.toFixed(1)},100 Z`
   : "";
+
+// Franjas de lectura (D-53): Bien ≥ 90 %, Atención 80–89 %, Bajo < 80 %; solo las visibles
+const franjas = [
+  { clase: "bien", desde: 90, hasta: 100, texto: "Bien" },
+  { clase: "atencion", desde: 80, hasta: 90, texto: "Atención" },
+  { clase: "bajo", desde: 0, hasta: 80, texto: "Bajo" },
+]
+  .map((f) => ({ ...f, desde: Math.max(f.desde, yMin), hasta: Math.min(f.hasta, yMax) }))
+  .filter((f) => f.hasta > f.desde);
 
 // Etiquetas X: como mucho 6, repartidas; siempre la primera y la última
 const maxEtiquetas = 6;
@@ -53,7 +102,7 @@ const etiquetasX = coords.filter(
     i === 0 || i === coords.length - 1 || (i % paso === 0 && coords.length - 1 - i >= paso / 2),
 );
 const ultimo = coords[coords.length - 1];
-const nivel = (v: number) => (v >= 95 ? "alto" : v >= 85 ? "medio" : "bajo");
+const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
 ---
 
 <div
@@ -68,6 +117,15 @@ const nivel = (v: number) => (v >= 95 ? "alto" : v >= 85 ? "medio" : "bajo");
   </div>
 
   <div class="trazado">
+    {franjas.map((f) => (
+      <span
+        class:list={["franja", f.clase]}
+        style={`top: ${yPct(f.hasta)}%; height: ${yPct(f.desde) - yPct(f.hasta)}%`}
+        aria-hidden="true"
+      >
+        {yPct(f.desde) - yPct(f.hasta) > 12 && <span>{f.texto}</span>}
+      </span>
+    ))}
     {marcas.map((m) => (
       <span class="rejilla" style={`top: ${yPct(m)}%`} aria-hidden="true" />
     ))}
@@ -75,12 +133,12 @@ const nivel = (v: number) => (v >= 95 ? "alto" : v >= 85 ? "medio" : "bajo");
     <svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">
       <defs>
         <linearGradient id="relleno-tendencia" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stop-color="var(--color-acento)" stop-opacity="0.16" />
+          <stop offset="0" stop-color="var(--color-acento)" stop-opacity="0.24" />
           <stop offset="1" stop-color="var(--color-acento)" stop-opacity="0" />
         </linearGradient>
       </defs>
       <path d={area} fill="url(#relleno-tendencia)" />
-      <polyline points={linea} class="trazo" vector-effect="non-scaling-stroke" />
+      <path d={linea} class="trazo" vector-effect="non-scaling-stroke" />
     </svg>
 
     {referencia && (
@@ -95,7 +153,7 @@ const nivel = (v: number) => (v >= 95 ? "alto" : v >= 85 ? "medio" : "bajo");
           i === coords.length - 1 && "ultimo",
           c.x > 70 && "a-la-izquierda",
         ]}
-        style={`left: ${c.x}%; top: ${c.y}%`}
+        style={`left: ${c.x}%; top: ${c.y}%; --y: ${c.y}; --i: ${Math.min(i, 30)}`}
         tabindex="0"
         aria-label={`${c.etiqueta}: ${formato(c.valor)}`}
       >
@@ -120,7 +178,11 @@ const nivel = (v: number) => (v >= 95 ? "alto" : v >= 85 ? "medio" : "bajo");
   <div class="eje-x" aria-hidden="true">
     {etiquetasX.map((c, i) => (
       <span
-        class:list={[i === 0 && "primera", i === etiquetasX.length - 1 && "final"]}
+        class:list={[
+          i === 0 && "primera",
+          i === etiquetasX.length - 1 && "final",
+          i > 0 && i < etiquetasX.length - 1 && (ultimo?.x ?? 100) - c.x < 15 && "cerca-borde",
+        ]}
         style={`left: ${c.x}%`}
       >
         {c.etiqueta}
@@ -156,13 +218,14 @@ const nivel = (v: number) => (v >= 95 ? "alto" : v >= 85 ? "medio" : "bajo");
   /* Área de trazado */
   .trazado {
     position: relative;
+    isolation: isolate;
     margin-inline: 6px; /* los puntos de los extremos no se cortan */
   }
   .rejilla {
     position: absolute;
     left: -6px;
     right: -6px;
-    border-top: 1px solid var(--color-borde);
+    border-top: 1px dashed var(--color-borde);
   }
   .rejilla:last-of-type {
     border-top-color: var(--color-borde-fuerte);
@@ -173,11 +236,40 @@ const nivel = (v: number) => (v >= 95 ? "alto" : v >= 85 ? "medio" : "bajo");
     width: 100%;
     height: 100%;
     overflow: visible;
+    animation: a-revelar var(--mov-grafica) var(--curva) both;
+    animation-delay: 150ms;
+  }
+  /* Franjas de lectura: fondo muy suave con su nombre */
+  .franja {
+    position: absolute;
+    left: 0;
+    right: 0;
+    animation: a-aparecer 500ms var(--curva) both;
+  }
+  .franja span {
+    position: absolute;
+    top: 4px;
+    left: 8px;
+    font-size: var(--texto-xs);
+    font-weight: var(--peso-medio);
+    opacity: 0.85;
+  }
+  .franja.bien {
+    background: color-mix(in srgb, var(--lectura-bien) 6%, transparent);
+    color: var(--lectura-bien);
+  }
+  .franja.atencion {
+    background: color-mix(in srgb, var(--lectura-atencion) 7%, transparent);
+    color: var(--lectura-atencion);
+  }
+  .franja.bajo {
+    background: color-mix(in srgb, var(--lectura-bajo) 6%, transparent);
+    color: var(--lectura-bajo);
   }
   .trazo {
     fill: none;
     stroke: var(--color-acento);
-    stroke-width: 2.5;
+    stroke-width: 3;
     stroke-linejoin: round;
     stroke-linecap: round;
   }
@@ -215,6 +307,26 @@ const nivel = (v: number) => (v >= 95 ? "alto" : v >= 85 ? "medio" : "bajo");
     border-radius: 50%;
     cursor: default;
     outline-offset: -6px;
+    animation: a-surgir 380ms var(--curva-salida) both;
+    animation-delay: calc(500ms + var(--i) * 25ms);
+  }
+  /* Línea guía vertical al pasar el mouse por un día */
+  .punto::after {
+    content: "";
+    position: absolute;
+    left: 13px;
+    top: calc(14px - var(--alto) * var(--y) / 100);
+    width: 2px;
+    height: var(--alto);
+    background: color-mix(in srgb, var(--color-acento) 25%, transparent);
+    opacity: 0;
+    z-index: -1;
+    transition: opacity var(--duracion-rapida) var(--curva);
+    pointer-events: none;
+  }
+  .punto:hover::after,
+  .punto:focus-visible::after {
+    opacity: 1;
   }
   .punto::before {
     content: "";
@@ -225,14 +337,17 @@ const nivel = (v: number) => (v >= 95 ? "alto" : v >= 85 ? "medio" : "bajo");
     border: 2px solid var(--color-acento);
     transition: transform var(--duracion-rapida) var(--curva);
   }
+  .punto.medio::before {
+    border-color: var(--lectura-atencion);
+  }
   .punto.bajo::before {
-    border-color: var(--color-error);
-    background: var(--color-error);
+    border-color: var(--lectura-bajo);
+    background: var(--lectura-bajo);
   }
   .punto.ultimo::before {
-    inset: 8px;
+    inset: 7px;
     background: var(--color-acento);
-    box-shadow: 0 0 0 4px rgb(37 99 235 / 0.15);
+    box-shadow: 0 0 0 5px rgb(37 99 235 / 0.18);
   }
   .punto:hover::before,
   .punto:focus-visible::before {
@@ -294,6 +409,8 @@ const nivel = (v: number) => (v >= 95 ? "alto" : v >= 85 ? "medio" : "bajo");
     font-weight: var(--peso-fuerte);
     white-space: nowrap;
     pointer-events: none;
+    animation: a-subir 400ms var(--curva-salida) both;
+    animation-delay: 1000ms;
   }
   .trazado:has(.punto:hover, .punto:focus-visible) .valor-final {
     opacity: 0;

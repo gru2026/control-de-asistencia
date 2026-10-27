@@ -10,9 +10,9 @@ interface Props {
 const { semanas } = Astro.props;
 const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
 const NOMBRE_NIVEL = {
-  alto: "95 % o más",
-  medio: "85 a 94 %",
-  bajo: "menos de 85 %",
+  alto: "90 % o más (bien)",
+  medio: "80 a 89 % (atención)",
+  bajo: "menos de 80 % (bajo)",
   "sin-datos": "sin registros",
   "no-laborable": "no laborable",
   futuro: "",
@@ -31,9 +31,9 @@ const NOMBRE_NIVEL = {
       </tr>
     </thead>
     <tbody>
-      {semanas.map((s) => (
+      {semanas.map((s, w) => (
         <tr>
-          {s.map((c) =>
+          {s.map((c, d) =>
             !c ? (
               <td />
             ) : (
@@ -42,6 +42,7 @@ const NOMBRE_NIVEL = {
                   <a
                     href={`/reportes?fecha=${c.fecha}`}
                     class:list={["dia", c.nivel]}
+                    style={`--i: ${w * 7 + d}`}
                     title={`${fechaCorta(c.fecha)}: ${porcentaje(c.valor)} de asistencia`}
                   >
                     {c.dia}
@@ -53,6 +54,7 @@ const NOMBRE_NIVEL = {
                 ) : (
                   <span
                     class:list={["dia", c.nivel]}
+                    style={`--i: ${w * 7 + d}`}
                     title={
                       NOMBRE_NIVEL[c.nivel]
                         ? `${fechaCorta(c.fecha)}: ${NOMBRE_NIVEL[c.nivel]}`
@@ -71,13 +73,13 @@ const NOMBRE_NIVEL = {
   </table>
   <ul class="leyenda" aria-label="Leyenda">
     <li>
-      <span class="m alto"></span>≥ 95 %
+      <span class="m alto"></span>Bien (≥ 90 %)
     </li>
     <li>
-      <span class="m medio"></span>85–94 %
+      <span class="m medio"></span>Atención (80–89 %)
     </li>
     <li>
-      <span class="m bajo"></span>&lt; 85 %
+      <span class="m bajo"></span>Bajo (&lt; 80 %)
     </li>
   </ul>
 </div>
@@ -105,6 +107,8 @@ const NOMBRE_NIVEL = {
     padding: 0;
   }
   .dia {
+    animation: a-surgir 360ms var(--curva-salida) both;
+    animation-delay: calc(100ms + var(--i, 0) * 18ms);
     display: grid;
     place-items: center;
     aspect-ratio: 1;

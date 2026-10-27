@@ -366,7 +366,8 @@ export interface CeldaCalendario {
 
 /** Nivel de un día según su % de asistencia: ≥ 95 alto · 85–94 medio · < 85 bajo. */
 export function nivelAsistencia(valor: number): Extract<NivelDia, "alto" | "medio" | "bajo"> {
-  return valor >= 95 ? "alto" : valor >= 85 ? "medio" : "bajo";
+  // Mismos umbrales que la lectura del panel (D-53/D-54): 90 % y 80 %
+  return valor >= 90 ? "alto" : valor >= 80 ? "medio" : "bajo";
 }
 
 /**

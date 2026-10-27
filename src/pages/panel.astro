@@ -32,6 +32,7 @@ import { NOMBRE_DIA, type DiaSemana } from "@/types";
 import Modulo from "@/components/panel/Modulo.astro";
 import MiniLinea from "@/components/panel/MiniLinea.astro";
 import Anillo from "@/components/panel/Anillo.astro";
+import Contador from "@/components/panel/Contador.astro";
 import { lecturaPorcentaje } from "@/lib/reglas/estadisticas";
 import { numero, plural, porcentaje } from "@/lib/formato";
 
@@ -422,6 +423,15 @@ const frasePunt = !hayDatos
         ? "Las tardanzas bajaron"
         : "Las tardanzas subieron";
 const maxLlegada = Math.max(1, ...llegadas.map((l) => l.valor));
+const TONO_TRAMO: Record<string, string> = {
+  antes: "puntual",
+  "0-5": "puntual",
+  "6-15": "tolerancia",
+  "16-30": "tarde",
+  "31-60": "muy-tarde",
+  "60+": "muy-tarde",
+};
+const hayJornadaHoy = mostrarHoy && laborablesHoy > 0 && !feriadoHoy;
 
 const catsOrden = [...cats].sort((a, b) => a.asistencia - b.asistencia);
 const peorCat = catsOrden[0];
@@ -501,14 +511,22 @@ const estadoHoy = [
           <a href="/panel">Quitar filtro</a>
         </p>
       )}
-      <div class="modulos">
-        <Modulo titulo="Hoy" icono="reloj" frase={fraseHoy} detalle={detalleHoy} capa="capa-hoy">
-          {mostrarHoy && laborablesHoy > 0 && !feriadoHoy && (
-            <Anillo
-              valor={(llegaronHoy / laborablesHoy) * 100}
-              texto={porcentaje((llegaronHoy / laborablesHoy) * 100)}
-            />
+      <div class:list={["modulos", p.get("abrir") && "quieto"]}>
+        <Modulo
+          titulo="Hoy"
+          icono="reloj"
+          frase={fraseHoy}
+          detalle={detalleHoy}
+          capa="capa-hoy"
+          tono="azul"
+          orden={0}
+        >
+          {hayJornadaHoy && (
+            <Fragment slot="frase">
+              <Contador valor={llegaronHoy} /> de {numero(laborablesHoy)} ya llegaron
+            </Fragment>
           )}
+          {hayJornadaHoy && <Anillo valor={(llegaronHoy / laborablesHoy) * 100} texto="llegaron" />}
         </Modulo>
 
         <Modulo
@@ -522,11 +540,19 @@ const estadoHoy = [
           detalle={totalTareas ? undefined : "No hay nada pendiente."}
           lectura={totalTareas ? "atencion" : "bien"}
           href="/panel?vista=rapida"
+          tono="ambar"
+          orden={1}
         >
+          {totalTareas > 0 && (
+            <Fragment slot="frase">
+              <Contador valor={totalTareas} />{" "}
+              {totalTareas === 1 ? "cosa por resolver" : "cosas por resolver"}
+            </Fragment>
+          )}
           {tareas.length > 0 && (
             <span class="mini-tareas">
-              {tareas.slice(0, 3).map((t) => (
-                <span>
+              {tareas.slice(0, 3).map((t, i) => (
+                <span style={`--i: ${i}`}>
                   <Icono nombre={t.icono} tamano={16} />
                   {t.texto}
                 </span>
@@ -544,8 +570,18 @@ const estadoHoy = [
           detalle={comparacionMes}
           lectura={hayDatos ? lecturaPorcentaje(resumen.asistencia) : undefined}
           capa="capa-mes"
+          tono="verde"
+          orden={2}
         >
-          <MiniLinea valores={serieTendencia.map((s) => s.valor)} />
+          {hayDatos && (
+            <Fragment slot="frase">
+              <Contador valor={resumen.asistencia} sufijo=" %" /> de asistencia
+            </Fragment>
+          )}
+          <MiniLinea
+            valores={serieTendencia.map((s) => s.valor)}
+            final={hayDatos ? porcentaje(serieTendencia.at(-1)?.valor ?? 0) : undefined}
+          />
         </Modulo>
 
         <Modulo
@@ -555,11 +591,16 @@ const estadoHoy = [
           detalle={hayDatos ? `${porcentaje(resumen.puntualidad)} llegó a tiempo` : undefined}
           lectura={hayDatos ? lecturaPorcentaje(resumen.puntualidad) : undefined}
           capa="capa-puntualidad"
+          tono="violeta"
+          orden={3}
         >
           {hayDatos && (
             <span class="mini-barras">
-              {llegadas.map((l) => (
-                <span style={`height: ${Math.max(4, (l.valor / maxLlegada) * 100)}%`} />
+              {llegadas.map((l, i) => (
+                <span
+                  class={TONO_TRAMO[l.clave] ?? "puntual"}
+                  style={`height: ${Math.max(4, (l.valor / maxLlegada) * 100)}%; --i: ${i}`}
+                />
               ))}
             </span>
           )}
@@ -579,13 +620,25 @@ const estadoHoy = [
               : "Hoy y los próximos 7 días"
           }
           capa="capa-ausentes"
+          tono="rosa"
+          orden={4}
         >
+          {totalAus > 0 && (
+            <Fragment slot="frase">
+              <Contador valor={totalAus} />{" "}
+              {totalAus === 1 ? "persona con permiso" : "personas con permiso"}
+            </Fragment>
+          )}
           {ausentes.length > 0 && (
             <span class="caras">
-              {ausentes.slice(0, 6).map((a) => (
-                <span style={`--c: ${a.color}`}>{iniciales(a.nombre)}</span>
+              {ausentes.slice(0, 6).map((a, i) => (
+                <span style={`--c: ${a.color}; --i: ${i}`}>{iniciales(a.nombre)}</span>
               ))}
-              {totalAus > 6 && <span class="mas">+{totalAus - 6}</span>}
+              {totalAus > 6 && (
+                <span class="mas" style={`--i: ${Math.min(6, ausentes.length)}`}>
+                  +{totalAus - 6}
+                </span>
+              )}
             </span>
           )}
         </Modulo>
@@ -601,15 +654,21 @@ const estadoHoy = [
           }
           lectura={peorCat ? lecturaPorcentaje(peorCat.asistencia) : undefined}
           capa="capa-categorias"
+          tono="cian"
+          orden={5}
         >
           {cats.length > 0 && (
             <span class="mini-cats">
-              {catsOrden.slice(0, 4).map((c) => (
-                <span class="fila-cat">
-                  <span class="nombre-cat">{c.cat?.nombre ?? "—"}</span>
+              {catsOrden.slice(0, 4).map((c, i) => (
+                <span class="fila-cat" style={`--i: ${i}`}>
+                  <span class="nombre-cat">
+                    <span class="punto-cat" style={`background: ${c.cat?.color ?? "#64748b"}`} />
+                    {c.cat?.nombre ?? "—"}
+                  </span>
                   <span class="barra-cat">
                     <span
-                      style={`width: ${Math.max(4, c.asistencia)}%; background: ${c.cat?.color ?? "#64748b"}`}
+                      class={lecturaPorcentaje(c.asistencia)}
+                      style={`width: ${Math.max(4, c.asistencia)}%`}
                     />
                   </span>
                   <span class="pct-cat">{porcentaje(c.asistencia)}</span>
@@ -981,6 +1040,7 @@ const estadoHoy = [
               >
                 <BarrasHorizontales
                   maximo={100}
+                  lectura
                   items={dias.map((d) => ({
                     etiqueta: NOMBRE_DIA[d.dia as DiaSemana],
                     valor: d.asistencia,
@@ -1111,6 +1171,7 @@ const estadoHoy = [
               >
                 <BarrasHorizontales
                   maximo={100}
+                  lectura
                   items={cats.map((c) => ({
                     etiqueta: c.cat?.nombre ?? "—",
                     valor: c.asistencia,
@@ -1345,31 +1406,46 @@ const estadoHoy = [
     display: flex;
     align-items: flex-end;
     gap: 6px;
-    height: 48px;
+    height: 56px;
   }
   .mini-barras span {
     flex: 1;
-    border-radius: 3px 3px 0 0;
-    background: color-mix(in srgb, var(--color-acento) 55%, white);
+    border-radius: 6px 6px 2px 2px;
+    background: var(--c);
+    transform-origin: bottom;
+    animation: a-crecer-y 600ms var(--curva-salida) both;
+    animation-delay: calc(250ms + var(--i) * var(--mov-desfase));
   }
-  .mini-barras span:first-child {
-    background: var(--color-exito);
+  .puntual {
+    --c: var(--color-exito);
+  }
+  .tolerancia {
+    --c: #0f766e;
+  }
+  .tarde {
+    --c: var(--color-alerta);
+  }
+  .muy-tarde {
+    --c: var(--color-error);
   }
   .caras {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    padding-left: 8px;
   }
   .caras span {
     display: grid;
     place-items: center;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
+    margin-left: -8px;
     border-radius: 50%;
-    background: color-mix(in srgb, var(--c, #64748b) 14%, white);
+    background: color-mix(in srgb, var(--c, #64748b) 16%, white);
     color: color-mix(in srgb, var(--c, #64748b) 65%, black);
+    box-shadow: 0 0 0 3px var(--color-superficie);
     font-size: var(--texto-sm);
     font-weight: var(--peso-titulo);
+    animation: a-surgir 420ms var(--curva-salida) both;
+    animation-delay: calc(250ms + var(--i) * var(--mov-desfase));
   }
   .caras .mas {
     background: var(--color-lateral);
@@ -1377,34 +1453,55 @@ const estadoHoy = [
   }
   .mini-cats {
     display: grid;
-    gap: 6px;
+    gap: var(--esp-2);
   }
   .fila-cat {
     display: grid;
-    grid-template-columns: 6.5rem minmax(0, 1fr) 3rem;
+    grid-template-columns: 7rem minmax(0, 1fr) 3rem;
     gap: var(--esp-2);
     align-items: center;
     font-size: var(--texto-sm);
   }
   .nombre-cat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--color-texto-suave);
   }
-  .barra-cat {
+  .punto-cat {
+    flex: none;
+    width: 8px;
     height: 8px;
-    border-radius: 4px;
-    background: var(--color-borde);
+    border-radius: 50%;
+  }
+  .barra-cat {
+    height: 10px;
+    border-radius: 999px;
+    background: var(--color-superficie-hover);
     overflow: hidden;
   }
   .barra-cat > span {
     display: block;
     height: 100%;
     border-radius: inherit;
+    transform-origin: left;
+    animation: a-crecer-x 700ms var(--curva) both;
+    animation-delay: calc(250ms + var(--i) * var(--mov-desfase));
+  }
+  .barra-cat .bien {
+    background: var(--lectura-bien);
+  }
+  .barra-cat .atencion {
+    background: var(--lectura-atencion);
+  }
+  .barra-cat .bajo {
+    background: var(--lectura-bajo);
   }
   .pct-cat {
     text-align: right;
+    font-weight: var(--peso-medio);
     font-variant-numeric: tabular-nums;
   }
   .mini-tareas {
@@ -1417,6 +1514,8 @@ const estadoHoy = [
     display: flex;
     gap: var(--esp-2);
     align-items: flex-start;
+    animation: a-aparecer 400ms var(--curva) both;
+    animation-delay: calc(250ms + var(--i) * var(--mov-desfase));
   }
   .mini-tareas :global(.icono) {
     flex: none;

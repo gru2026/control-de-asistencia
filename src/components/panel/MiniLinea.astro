@@ -1,34 +1,100 @@
 ---
-/** Línea mínima sin ejes (0–100) para la vista Resumen del panel. */
+/**
+ * Línea mínima sin ejes para la vista Resumen (D-54). La escala se ajusta al
+ * rango real para que se vea la forma; el valor exacto va en el punto final.
+ */
 interface Props {
   valores: number[];
+  /** Texto del último valor */
+  final?: string;
 }
-const { valores } = Astro.props;
+const { valores, final } = Astro.props;
 const n = valores.length;
-const puntos = valores
-  .map(
-    (v, i) =>
-      `${n > 1 ? (i / (n - 1)) * 100 : 50},${32 - (Math.max(0, Math.min(100, v)) / 100) * 30}`,
-  )
-  .join(" ");
+const min = Math.max(0, Math.min(...valores) - 3);
+const max = Math.min(100, Math.max(...valores) + 3);
+const rango = Math.max(1, max - min);
+const pts = valores.map((v, i) => ({
+  x: n > 1 ? (i / (n - 1)) * 100 : 50,
+  y: 36 - ((v - min) / rango) * 30,
+}));
+// Curva suave (Catmull-Rom → Bézier), sin pasarse de los puntos en tramos cortos
+const curva = pts.reduce((d, p, i, a) => {
+  if (i === 0) return `M${p.x},${p.y}`;
+  const p0 = a[i - 2] ?? a[i - 1]!;
+  const p1 = a[i - 1]!;
+  const p3 = a[i + 1] ?? p;
+  const c1 = `${p1.x + (p.x - p0.x) / 6},${p1.y + (p.y - p0.y) / 6}`;
+  const c2 = `${p.x - (p3.x - p1.x) / 6},${p.y - (p3.y - p1.y) / 6}`;
+  return `${d} C${c1} ${c2} ${p.x},${p.y}`;
+}, "");
+const ultimo = pts[n - 1];
+const id = `mini-${Math.random().toString(36).slice(2, 8)}`;
 ---
 
 {n > 1 && (
-  <svg viewBox="0 0 100 34" preserveAspectRatio="none" class="mini-linea">
-    <polyline points={puntos} fill="none" vector-effect="non-scaling-stroke" />
-  </svg>
+  <span class="mini">
+    <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stop-color="var(--color-exito)" stop-opacity="0.22" />
+          <stop offset="1" stop-color="var(--color-exito)" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={`${curva} L100,40 L0,40 Z`} fill={`url(#${id})`} />
+      <path d={curva} class="trazo" vector-effect="non-scaling-stroke" />
+    </svg>
+    {ultimo && (
+      <span class="fin" style={`top: ${(ultimo.y / 40) * 100}%`}>
+        {final && <span class="valor">{final}</span>}
+      </span>
+    )}
+  </span>
 )}
 
 <style>
-  .mini-linea {
+  .mini {
+    position: relative;
+    display: block;
+    height: 60px;
+    margin-right: 6px;
+  }
+  svg {
     display: block;
     width: 100%;
-    height: 48px;
+    height: 100%;
+    overflow: visible;
+    animation: a-revelar var(--mov-grafica) var(--curva) both;
+    animation-delay: 200ms;
   }
-  polyline {
-    stroke: var(--color-acento);
+  .trazo {
+    fill: none;
+    stroke: var(--color-exito);
     stroke-width: 2.5;
     stroke-linejoin: round;
     stroke-linecap: round;
+  }
+  .fin {
+    position: absolute;
+    right: -6px;
+    width: 12px;
+    height: 12px;
+    margin-top: -6px;
+    border-radius: 50%;
+    background: var(--color-exito);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-exito) 20%, transparent);
+    animation: a-surgir 400ms var(--curva-salida) both;
+    animation-delay: 1000ms;
+  }
+  .valor {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 6px);
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--color-exito);
+    color: #fff;
+    font-size: var(--texto-xs);
+    font-weight: var(--peso-fuerte);
+    white-space: nowrap;
   }
 </style>

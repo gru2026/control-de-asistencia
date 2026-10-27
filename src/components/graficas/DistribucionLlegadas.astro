@@ -64,7 +64,7 @@ const max = Math.max(1, ...tramos.map((t) => t.valor));
     {tramos.map((t) => {
       const d = DETALLE[t.clave] ?? { etiqueta: t.clave, clase: "puntual" };
       return (
-        <li class={d.clase}>
+        <li class={d.clase} style={`--i: ${tramos.indexOf(t)}`}>
           <span class="etiqueta">{d.etiqueta}</span>
           <span class="pista" aria-hidden="true">
             <span
@@ -160,15 +160,16 @@ const max = Math.max(1, ...tramos.map((t) => t.valor));
   /* Proporción total */
   .proporcion {
     display: flex;
-    gap: 2px;
-    height: 10px;
-    border-radius: 999px;
-    overflow: hidden;
-    background: var(--color-superficie-hover);
+    gap: 4px;
+    height: 14px;
   }
   .seg {
-    min-width: 4px;
+    min-width: 6px;
+    border-radius: 999px;
     background: var(--c);
+    transform-origin: left;
+    animation: a-crecer-x 700ms var(--curva) both;
+    animation-delay: 150ms;
   }
 
   /* Detalle por tramo */
@@ -203,6 +204,9 @@ const max = Math.max(1, ...tramos.map((t) => t.valor));
     height: 100%;
     border-radius: 999px;
     background: var(--c);
+    transform-origin: left;
+    animation: a-crecer-x 700ms var(--curva) both;
+    animation-delay: calc(250ms + var(--i) * var(--mov-desfase));
   }
   /* Muy tarde: rayado, para no depender solo del color */
   .muy-tarde .relleno {

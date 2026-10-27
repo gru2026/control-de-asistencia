@@ -42,6 +42,7 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-54 | 2026-10-27 | Animaciones de intensidad media (entrada escalonada, cifras que cuentan, gráficas que se dibujan) y gráficas con color por lectura y franjas Bien/Atención/Bajo | ✅ Vigente |
 | D-53 | 2026-10-25 | Panel en dos vistas: Resumen (módulos con frases y lectura Bien/Atención/Bajo) y Acción rápida (buscador, pendientes con botón); los datos en crudo pasan a una segunda capa | ✅ Vigente |
 | D-52 | 2026-10-20 | Todas las pantallas a todo el ancho: formularios en rejilla de 12 columnas (cada campo según su dato) y columna lateral de apoyo (vista previa, resumen o estado) | ✅ Vigente |
 | D-51 | 2026-10-20 | Botón **Acciones** en la barra (buscar persona, nuevo personal, permiso, cuentas, planillas); alta de personal y gestión de cuentas en ventanas; pantallas de una columna centradas | ✅ Vigente |
@@ -106,6 +107,13 @@ Motivo: cada acción cargaba una pantalla nueva (1 a 2,6 s desde el colegio) y s
 - **D-48 · Avisos y mensajes.** La campana abre un panel (en el celular, desde abajo) con los avisos sin leer, en la misma consulta que el contador. Los resultados de las acciones aparecen abajo y se cierran solos; los reversibles ofrecen **Deshacer** (marcación asistida de los últimos 15 min, revisión, aviso leído). Las acciones graves siguen pidiendo confirmación.
 - **D-49 · Ventanas.** Tocar un nombre abre el **panel lateral** de la persona (hoy, mes, permisos, teléfono, cuenta) con acciones: marcar, cargar permiso, aprobar o cambiar teléfono, «no tiene teléfono», crear cuenta, restablecer a 0000. Los formularios en ventana van a `/api/acciones` (JSON); si sale bien se cierra y se actualiza la pantalla; si no, los errores quedan junto al campo. Confirmaciones con una ventana propia. El contenido llega como fragmento y usa `ventanas.css` (clases `v-`). La ficha completa queda a un toque, por capas (pestañas).
 - **D-50 · Formularios sin estrés.** Marcar empieza en «Ahora»; «Otra hora» pide hora y motivo con botones. Permiso: buscador de persona (escribir nombre o cédula), fecha con botones (Hoy · Mañana · Otras fechas) y motivo con botones. En el celular, las tablas muestran solo lo esencial. Guía de prueba con personas reales: [[05-Entregables/Prueba-de-usabilidad]].
+
+### D-54 · Animaciones y acabado de las gráficas
+- **Intensidad media** (entre sutil y vistosa): recuadros que entran escalonados (460 ms, 60 ms entre uno y otro), la cifra principal de cada recuadro cuenta desde 0 (800 ms), el anillo se llena, las líneas se dibujan de izquierda a derecha y las barras crecen. Al pasar el mouse el recuadro sube 3 px, la pastilla del ícono gira un poco y la flecha avanza.
+- **Sin rebote:** se probó una curva con sobrepaso, pero el detector de diseño la marca como *bounce* (prohibido en `DESIGN.md`); se usa una salida rápida `cubic-bezier(0.22, 1, 0.36, 1)` con más recorrido y escala.
+- Solo `transform`, `opacity` y `clip-path`; sin librerías. Con «reducir movimiento» todo aparece al instante (también se anulan los retrasos). Al volver tras cambiar un filtro (`?abrir=`) los recuadros no se repiten (`.quieto`). Las gráficas del detalle se animan cada vez que se abre.
+- **Gráficas:** tendencia con curva monótona (no inventa picos), franjas de fondo Bien/Atención/Bajo, línea guía al pasar el mouse y puntos coloreados por lectura; barras por categoría y por día coloreadas por lectura con el color de la categoría como punto; segmentos de llegadas redondeados; anillo con degradado; mini línea con escala ajustada y valor final; avatares superpuestos.
+- **Umbrales unificados:** el calendario pasa de 95/85 % a 90/80 %, igual que la lectura del panel, y su leyenda dice «Bien / Atención / Bajo».
 
 ### D-53 · Panel en dos vistas y datos en segunda capa
 - **Motivo:** la administración tenía dificultad para leer cifras sueltas (indicadores con variación en puntos, cinco gráficas a la vez).

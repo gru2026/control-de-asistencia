@@ -16,30 +16,57 @@ interface Props {
   capa?: string;
   /** Enlace en lugar de la segunda capa */
   href?: string;
+  /** Color de la pastilla del ícono */
+  tono?: "azul" | "verde" | "ambar" | "violeta" | "rosa" | "cian";
+  /** Posición en la cuadrícula (escalona la entrada) */
+  orden?: number;
 }
-const { titulo, icono, frase, detalle, lectura, capa, href } = Astro.props;
+const {
+  titulo,
+  icono,
+  frase,
+  detalle,
+  lectura,
+  capa,
+  href,
+  tono = "azul",
+  orden = 0,
+} = Astro.props;
+// La frase puede venir con cifras animadas (slot "frase"); si el slot queda vacío, se usa el texto
+const fraseHtml = Astro.slots.has("frase") ? (await Astro.slots.render("frase")).trim() : "";
 ---
 
 <a
-  class="modulo"
+  class:list={["modulo", tono]}
+  style={`--i: ${orden}`}
   href={href ?? `#${capa}`}
   data-ventana-local={capa}
   aria-label={`${titulo}: ${frase}${detalle ? `. ${detalle}` : ""}. Ver detalle`}
 >
   <span class="cabeza">
     <span class="titulo">
-      <Icono nombre={icono} tamano={18} />
+      <span class="pastilla" aria-hidden="true">
+        <Icono nombre={icono} tamano={18} />
+      </span>
       {titulo}
     </span>
-    {lectura && <span class:list={["lectura", lectura]}>{NOMBRE_LECTURA[lectura]}</span>}
+    {lectura && (
+      <span class:list={["lectura", lectura]}>
+        <span class="punto" aria-hidden="true" />
+        {NOMBRE_LECTURA[lectura]}
+      </span>
+    )}
   </span>
-  <span class="frase">{frase}</span>
+  <span class="frase">{fraseHtml ? <Fragment set:html={fraseHtml} /> : frase}</span>
   {detalle && <span class="detalle">{detalle}</span>}
   <span class="grafica" aria-hidden="true">
     <slot />
   </span>
   <span class="ver" aria-hidden="true">
-    Ver detalle <Icono nombre="siguiente" tamano={16} />
+    Ver detalle{" "}
+    <span class="flecha">
+      <Icono nombre="siguiente" tamano={16} />
+    </span>
   </span>
 </a>
 
@@ -55,10 +82,50 @@ const { titulo, icono, frase, detalle, lectura, capa, href } = Astro.props;
     border-radius: var(--radio);
     color: var(--color-texto);
     text-decoration: none;
-    transition: border-color var(--duracion-rapida) var(--curva);
+    animation: a-subir var(--mov-entrada) var(--curva-salida) both;
+    animation-delay: calc(var(--i) * var(--mov-desfase));
+    transition:
+      border-color var(--duracion-rapida) var(--curva),
+      transform var(--duracion) var(--curva);
   }
-  .modulo:hover {
+  .modulo:hover,
+  .modulo:focus-visible {
     border-color: var(--color-acento);
+    transform: translateY(-3px);
+  }
+  .modulo:active {
+    transform: translateY(-1px);
+  }
+  .modulo {
+    --tono: var(--color-acento);
+  }
+  .verde {
+    --tono: var(--color-exito);
+  }
+  .ambar {
+    --tono: var(--color-alerta);
+  }
+  .violeta {
+    --tono: #7c3aed;
+  }
+  .rosa {
+    --tono: #db2777;
+  }
+  .cian {
+    --tono: #0e7490;
+  }
+  .pastilla {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--tono) 12%, white);
+    color: var(--tono);
+    transition: transform var(--duracion) var(--curva-salida);
+  }
+  .modulo:hover .pastilla {
+    transform: rotate(-6deg) scale(1.08);
   }
   .cabeza {
     display: flex;
@@ -75,10 +142,19 @@ const { titulo, icono, frase, detalle, lectura, capa, href } = Astro.props;
     font-weight: var(--peso-medio);
   }
   .lectura {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     padding: 2px var(--esp-3);
     border-radius: 999px;
     font-size: var(--texto-sm);
     font-weight: var(--peso-fuerte);
+  }
+  .lectura .punto {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
   }
   .lectura.bien {
     background: var(--color-exito-suave);
@@ -92,8 +168,15 @@ const { titulo, icono, frase, detalle, lectura, capa, href } = Astro.props;
     background: var(--color-error-suave);
     color: var(--color-error);
   }
+  /* La cifra que cuenta se destaca dentro de la frase */
+  .frase :global(.contador) {
+    font-size: var(--texto-3xl);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
   .frase {
     font-size: var(--texto-xl);
+    letter-spacing: -0.01em;
     font-weight: var(--peso-titulo);
     line-height: 1.25;
   }
@@ -108,6 +191,13 @@ const { titulo, icono, frase, detalle, lectura, capa, href } = Astro.props;
   }
   .grafica:empty {
     display: none;
+  }
+  .flecha {
+    display: inline-flex;
+    transition: transform var(--duracion) var(--curva);
+  }
+  .modulo:hover .flecha {
+    transform: translateX(4px);
   }
   .ver {
     display: inline-flex;

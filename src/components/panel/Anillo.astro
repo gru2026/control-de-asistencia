@@ -1,28 +1,43 @@
 ---
-/** Anillo de avance (0–100) con el texto al centro. */
+/** Anillo de avance (0–100) con el porcentaje al centro; se llena al aparecer (D-54). */
 interface Props {
   valor: number;
-  texto: string;
+  /** Texto bajo el porcentaje */
+  texto?: string;
 }
 const { valor, texto } = Astro.props;
-const R = 26;
+const R = 40;
 const C = 2 * Math.PI * R;
-const lleno = (Math.max(0, Math.min(100, valor)) / 100) * C;
+const v = Math.max(0, Math.min(100, valor));
+const lleno = (v / 100) * C;
+const id = `anillo-${Math.random().toString(36).slice(2, 8)}`;
 ---
 
-<span class="anillo">
-  <svg viewBox="0 0 64 64" width="72" height="72">
-    <circle cx="32" cy="32" r={R} class="fondo" />
-    <circle
-      cx="32"
-      cy="32"
-      r={R}
-      class="avance"
-      stroke-dasharray={`${lleno} ${C}`}
-      transform="rotate(-90 32 32)"
-    />
+<span class="anillo" style={`--circ: ${C.toFixed(1)}`}>
+  <svg viewBox="0 0 100 100" width="104" height="104" aria-hidden="true">
+    <defs>
+      <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#22c55e" />
+        <stop offset="1" stop-color="var(--color-exito)" />
+      </linearGradient>
+    </defs>
+    <circle cx="50" cy="50" r={R} class="fondo" />
+    {v > 0 && (
+      <circle
+        cx="50"
+        cy="50"
+        r={R}
+        class="avance"
+        stroke={`url(#${id})`}
+        stroke-dasharray={`${lleno.toFixed(1)} ${C.toFixed(1)}`}
+        transform="rotate(-90 50 50)"
+      />
+    )}
   </svg>
-  <span class="texto">{texto}</span>
+  <span class="centro">
+    <strong>{Math.round(v)} %</strong>
+    {texto && <small>{texto}</small>}
+  </span>
 </span>
 
 <style>
@@ -33,19 +48,31 @@ const lleno = (Math.max(0, Math.min(100, valor)) / 100) * C;
   }
   circle {
     fill: none;
-    stroke-width: 8;
+    stroke-width: 11;
   }
   .fondo {
-    stroke: var(--color-borde);
+    stroke: var(--color-superficie-hover);
   }
   .avance {
-    stroke: var(--color-exito);
     stroke-linecap: round;
+    animation: a-anillo 1000ms var(--curva) both;
+    animation-delay: 200ms;
   }
-  .texto {
+  .centro {
     position: absolute;
-    font-size: var(--texto-sm);
-    font-weight: var(--peso-fuerte);
+    display: grid;
+    justify-items: center;
+    line-height: 1.1;
+    animation: a-aparecer 500ms var(--curva) both;
+    animation-delay: 300ms;
+  }
+  .centro strong {
+    font-size: var(--texto-lg);
+    font-weight: var(--peso-titulo);
     font-variant-numeric: tabular-nums;
+  }
+  .centro small {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-xs);
   }
 </style>

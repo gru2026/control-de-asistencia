@@ -38,10 +38,10 @@ describe("calendario del período", () => {
     );
     expect(n).toMatchObject({
       1: "alto",
-      2: "medio",
+      2: "alto",
       3: "no-laborable",
       4: "no-laborable",
-      5: "bajo",
+      5: "medio",
       6: "no-laborable",
       7: "sin-datos",
       8: "futuro",
@@ -49,10 +49,10 @@ describe("calendario del período", () => {
   });
   it("umbrales", () => {
     expect([
-      nivelAsistencia(95),
-      nivelAsistencia(94.9),
-      nivelAsistencia(85),
-      nivelAsistencia(84.9),
+      nivelAsistencia(90),
+      nivelAsistencia(89.9),
+      nivelAsistencia(80),
+      nivelAsistencia(79.9),
     ]).toEqual(["alto", "medio", "medio", "bajo"]);
   });
 });

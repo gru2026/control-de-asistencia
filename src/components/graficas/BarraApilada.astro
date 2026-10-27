@@ -56,6 +56,9 @@ const pct = (v: number) => (total ? Math.round((v / total) * 100) : 0);
   .seg {
     min-width: 14px;
     border-radius: 999px;
+    transform-origin: left;
+    animation: a-crecer-x 700ms var(--curva) both;
+    animation-delay: 150ms;
   }
   .presente {
     background: var(--color-exito);

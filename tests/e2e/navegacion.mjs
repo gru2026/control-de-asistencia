@@ -106,6 +106,31 @@ try {
     (await pag.locator(".modulo .frase").allInnerTexts()).every((t) => t.trim().length > 3),
   );
 
+  r.seccion("Panel: animaciones y gráficas (D-54)");
+  await pag.emulateMedia({ reducedMotion: "reduce" });
+  await pag.goto(`${B}/panel?vista=resumen`, { waitUntil: "commit" });
+  await pag.waitForSelector(".modulos .modulo");
+  await pag.waitForTimeout(60);
+  r.ok(
+    "con «reducir movimiento» todo se ve al instante",
+    (await pag.$$eval(".modulo", (m) => m.map((x) => getComputedStyle(x).opacity))).every(
+      (o) => o === "1",
+    ),
+  );
+  await pag.emulateMedia({ reducedMotion: "no-preference" });
+  await pag.goto(`${B}/panel?vista=resumen`);
+  await pag.click('a[data-ventana-local="capa-categorias"]');
+  await pag.waitForSelector("#ventana[open] #capa-cat-titulo", { timeout: 15000 });
+  r.ok(
+    "las barras por categoría se colorean por su lectura",
+    (
+      await pag.$$eval("#ventana .barras li", (l) =>
+        l.map((x) => /\b(bien|atencion|bajo)\b/.test(x.className)),
+      )
+    ).every(Boolean),
+  );
+  await pag.click("#ventana [data-cerrar-ventana]");
+
   r.seccion("Panel: segunda capa");
   await marcarPagina(pag);
   await pag.click('a[data-ventana-local="capa-mes"]');

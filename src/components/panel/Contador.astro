@@ -1,0 +1,22 @@
+---
+/** Cifra que cuenta desde 0 al aparecer (D-54). Sin JavaScript se ve el valor final. */
+import { numero } from "@/lib/formato";
+
+interface Props {
+  valor: number;
+  sufijo?: string;
+}
+const { valor, sufijo = "" } = Astro.props;
+const v = Math.round(valor);
+---
+
+<span class="contador" data-contar={v} data-sufijo={sufijo}>
+  {numero(v)}
+  {sufijo}
+</span>
+
+<style>
+  .contador {
+    font-variant-numeric: tabular-nums;
+  }
+</style>

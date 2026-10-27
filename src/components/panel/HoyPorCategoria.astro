@@ -76,7 +76,9 @@ const { filas } = Astro.props;
     height: 100%;
     border-radius: 999px;
     background: var(--c);
-    transition: width var(--duracion) var(--curva);
+    transform-origin: left;
+    animation: a-crecer-x 700ms var(--curva) both;
+    animation-delay: 150ms;
   }
   .vacio {
     margin: 0;

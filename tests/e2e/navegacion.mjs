@@ -106,8 +106,8 @@ try {
     (await pag.locator("nav.nav .sub a").count()) === 6,
   );
   await pag.emulateMedia({ reducedMotion: "reduce" });
-  await pag.goto(`${B}/panel`, { waitUntil: "commit" });
-  await pag.waitForSelector(".modulos .modulo");
+  // Tras cargar los estilos (la entrada completa dura ~0,8 s; aquí debe verse ya todo)
+  await pag.goto(`${B}/panel`, { waitUntil: "load" });
   await pag.waitForTimeout(60);
   r.ok(
     "con «reducir movimiento» todo se ve al instante",

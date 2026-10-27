@@ -538,6 +538,7 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-55 | 2026-10-27 | Panel de control en tres niveles: resumen (recuadros), vistazo (panel lateral con datos rápidos y «Ver todo») y seis secciones propias en el menú; el Registro del día pasa a ser Panel › Hoy; la secretaría entra a Pendientes | ✅ Vigente |
 | D-54 | 2026-10-27 | Animaciones de intensidad media (entrada escalonada, cifras que cuentan, gráficas que se dibujan) y gráficas con color por lectura y franjas Bien/Atención/Bajo | ✅ Vigente |
 | D-53 | 2026-10-25 | Panel en dos vistas: Resumen (módulos con frases y lectura Bien/Atención/Bajo) y Acción rápida (buscador, pendientes con botón); los datos en crudo pasan a una segunda capa | ✅ Vigente |
 | D-52 | 2026-10-20 | Todas las pantallas a todo el ancho: formularios en rejilla de 12 columnas (cada campo según su dato) y columna lateral de apoyo (vista previa, resumen o estado) | ✅ Vigente |
@@ -603,6 +604,15 @@ Motivo: cada acción cargaba una pantalla nueva (1 a 2,6 s desde el colegio) y s
 - **D-48 · Avisos y mensajes.** La campana abre un panel (en el celular, desde abajo) con los avisos sin leer, en la misma consulta que el contador. Los resultados de las acciones aparecen abajo y se cierran solos; los reversibles ofrecen **Deshacer** (marcación asistida de los últimos 15 min, revisión, aviso leído). Las acciones graves siguen pidiendo confirmación.
 - **D-49 · Ventanas.** Tocar un nombre abre el **panel lateral** de la persona (hoy, mes, permisos, teléfono, cuenta) con acciones: marcar, cargar permiso, aprobar o cambiar teléfono, «no tiene teléfono», crear cuenta, restablecer a 0000. Los formularios en ventana van a `/api/acciones` (JSON); si sale bien se cierra y se actualiza la pantalla; si no, los errores quedan junto al campo. Confirmaciones con una ventana propia. El contenido llega como fragmento y usa `ventanas.css` (clases `v-`). La ficha completa queda a un toque, por capas (pestañas).
 - **D-50 · Formularios sin estrés.** Marcar empieza en «Ahora»; «Otra hora» pide hora y motivo con botones. Permiso: buscador de persona (escribir nombre o cédula), fecha con botones (Hoy · Mañana · Otras fechas) y motivo con botones. En el celular, las tablas muestran solo lo esencial. Guía de prueba con personas reales: Prueba-de-usabilidad.
+
+### D-55 · Panel de control en tres niveles
+- **Nivel 1 · Resumen** (`/panel`): los seis recuadros (D-53). **Nivel 2 · Vistazo:** al tocar un recuadro se abre el panel lateral con la misma estructura siempre: frase con su lectura, tres cifras (cada una lleva a la sección ya filtrada), una gráfica, lo más importante (hasta 5, con «Ver los N»), una o dos acciones y el botón fijo **«Ver todo en …»**. Al abrirlo se precarga la sección. **Nivel 3 · Sección:** `/panel/hoy`, `/panel/asistencia`, `/panel/puntualidad`, `/panel/ausencias`, `/panel/categorias`, `/panel/pendientes`, con filtros, cifras, gráfica completa, tabla ordenable con buscador y acciones (exportar, cargar permiso…).
+- **Menú:** «Panel de control» con sus seis secciones en la PC; en el celular, pestañas deslizables dentro del panel. **Filtros** (período y categoría) en la URL: se conservan al cambiar de sección y desde el menú.
+- **Período nuevo «Esta semana»** (lunes a hoy), comparado con los mismos días de la semana anterior.
+- **Registro del día → Panel › Hoy:** `/asistencia/registro` redirige (301) con su consulta. El ítem del menú «Asistencia» pasa a ser **«Permisos»** (Permisos y Por revisar).
+- **Sin selector de vistas:** «Acción rápida» pasa a ser la sección *Pendientes* (buscador, pendientes por tipo con su botón, estado de hoy y accesos). La secretaría entra ahí; la directiva al resumen.
+- Datos en `src/lib/datos/panel.ts` (`cargarPanel`): un solo cargador para los tres niveles; «Hoy» siempre es el día de hoy, sin depender del período.
+- **Corrección de paso:** la clase global `.campos` (D-52) chocaba con la barra de filtros y ponía cada filtro en una fila; la barra usa ahora `.filtros-campos`.
 
 ### D-54 · Animaciones y acabado de las gráficas
 - **Intensidad media** (entre sutil y vistosa): recuadros que entran escalonados (460 ms, 60 ms entre uno y otro), la cifra principal de cada recuadro cuenta desde 0 (800 ms), el anillo se llena, las líneas se dibujan de izquierda a derecha y las barras crecen. Al pasar el mouse el recuadro sube 3 px, la pastilla del ícono gira un poco y la flecha avanza.
@@ -2094,15 +2104,17 @@ La campana de arriba muestra sus **avisos**.
 En el PC se entra con el **correo** de la cuenta (o con la cédula, si la cuenta se creó así). Menú: **Panel · Asistencia · Personal · Reportes**, y **Ajustes** para la directiva.
 
 > **Todo sin salir de la pantalla**
-> - **Toque el nombre de una persona** (en Personal, Registro del día, Reportes o el Panel) y se abre a la derecha su resumen: hoy, el mes, permisos, teléfono y cuenta, con botones para marcar, cargar un permiso, aprobar o cambiar el teléfono, crear la cuenta o restablecer la contraseña. «Abrir ficha completa» lleva a todos los datos.
+> - **Toque el nombre de una persona** (en Personal, Panel de control › Hoy, Reportes o el Panel) y se abre a la derecha su resumen: hoy, el mes, permisos, teléfono y cuenta, con botones para marcar, cargar un permiso, aprobar o cambiar el teléfono, crear la cuenta o restablecer la contraseña. «Abrir ficha completa» lleva a todos los datos.
 > - Después de cada acción aparece un mensaje abajo. Si se equivocó, toque **Deshacer**.
 > - La **campana** abre los avisos encima de la pantalla; tóquelos para ir a lo que indican.
-> - El **Panel** tiene dos vistas, arriba a la derecha: **Resumen** (cómo vamos, en palabras; toque un recuadro para ver el detalle) y **Acción rápida** (buscar a alguien, lo pendiente con su botón y los accesos directos). El panel recuerda la última que usó.
+> - El **Panel de control** se lee en tres pasos: los **recuadros** dicen cómo vamos; al tocar uno se abre a la derecha un **vistazo** con las cifras principales y lo más importante; y el botón **«Ver todo en …»** abre la **sección completa**, con filtros, tablas y descargas. Las secciones (Hoy, Asistencia, Puntualidad, Ausencias y permisos, Por categoría, Pendientes) también están en el menú, dentro de *Panel de control*.
+> - **Hoy** es el antiguo Registro del día: ahí se marcan entradas y salidas. **Pendientes** reúne lo que espera una acción, con su botón, y el buscador de personas; la secretaría entra directamente ahí.
+> - El período elegido (Esta semana, Este mes, Últimos 30 días, Mes anterior) y la categoría se mantienen al pasar de una sección a otra.
 > - El botón **Acciones** (arriba) reúne lo más frecuente: buscar a una persona, registrar personal nuevo, cargar un permiso, crear cuentas y descargar la planilla de hoy o el resumen del mes.
 > - En la PC, los formularios muestran a la derecha una columna de ayuda: por ejemplo, en Ajustes se ve cómo saldrá el encabezado de la planilla mientras se escribe, y en un permiso cuántos días abarca.
 > - En **Ajustes › Usuarios**, «Gestionar» abre una ventana para cambiar el tipo de cuenta, la contraseña o desactivarla.
 
-## 7. Registro del día (Asistencia)
+## 7. Hoy (Panel de control › Hoy, antes «Registro del día»)
 
 Lista de todo el personal que trabaja ese día, con su estado: **por llegar, presente, tarde, falta, permiso o sin salida**, y cómo marcó (teléfono, secretaría o a mano).
 

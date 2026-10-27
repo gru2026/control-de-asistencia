@@ -1,0 +1,272 @@
+---
+/** Panel de control › Ausencias y permisos (D-55): faltas del período y permisos de la semana. */
+import PanelSeccionLayout from "@/layouts/PanelSeccionLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Tabla from "@/components/ui/Tabla.astro";
+import Icono from "@/components/ui/Icono.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Figura from "@/components/graficas/Figura.astro";
+import BarrasHorizontales from "@/components/graficas/BarrasHorizontales.astro";
+import ListaAusentes from "@/components/panel/ListaAusentes.astro";
+import Contador from "@/components/panel/Contador.astro";
+import { fechaCorta, hoyEnZona } from "@/lib/fecha";
+import { listarCategorias } from "@/lib/datos/categorias";
+import { cargarPanel, dd, diaTexto, iniciales, leerFiltros } from "@/lib/datos/panel";
+import { plural } from "@/lib/formato";
+
+const sb = Astro.locals.supabase;
+const hoy = hoyEnZona();
+const categorias = await listarCategorias(sb);
+const filtros = leerFiltros(Astro.url, categorias);
+const d = await cargarPanel(sb, {
+  hoy,
+  filtros,
+  categorias,
+  esDirectiva: Astro.locals.perfil!.rol === "directiva",
+});
+const faltas = d.faltasPeriodo.length;
+const conVarias = d.masFaltas.filter((c) => c.faltas >= d.UMBRAL_FALTAS).length;
+const proximos = Math.max(0, d.totalAus - d.permisosHoy);
+---
+
+<PanelSeccionLayout
+  titulo="Ausencias y permisos"
+  frase={
+    faltas
+      ? `${plural(faltas, "falta sin justificar", "faltas sin justificar")} en el período`
+      : "Sin faltas en el período"
+  }
+  lectura={faltas ? (conVarias ? "bajo" : "atencion") : "bien"}
+  filtros={filtros}
+  categorias={categorias}
+  rango={`${fechaCorta(d.rango.desde)} – ${fechaCorta(d.rango.hasta)}`}
+  esDemo={d.esDemo}
+>
+  <Fragment slot="acciones">
+    <Boton data-ventana="/ventanas/permiso" data-ventana-modo="centro">
+      <Icono nombre="permiso" tamano={18} /> Cargar permiso
+    </Boton>
+  </Fragment>
+
+  <Tarjeta datos>
+    <dl class="cifras-seccion">
+      <div class:list={[faltas && "atencion"]} style="--i: 0">
+        <dt>Faltas sin justificar</dt>
+        <dd class="valor">
+          <Contador valor={faltas} />
+        </dd>
+      </div>
+      <div class:list={[conVarias && "bajo"]} style="--i: 1">
+        <dt>Con {d.UMBRAL_FALTAS} o más faltas</dt>
+        <dd class="valor">
+          <Contador valor={conVarias} />
+        </dd>
+        <dd class="nota-cifra">personas</dd>
+      </div>
+      <div style="--i: 2">
+        <dt>De permiso hoy</dt>
+        <dd class="valor">
+          <Contador valor={d.permisosHoy} />
+        </dd>
+      </div>
+      <div style="--i: 3">
+        <dt>Permisos próximos</dt>
+        <dd class="valor">
+          <Contador valor={proximos} />
+        </dd>
+        <dd class="nota-cifra">en los próximos 7 días</dd>
+      </div>
+    </dl>
+  </Tarjeta>
+
+  {d.semanasFaltas.length > 0 && (
+    <Figura
+      titulo="Faltas por semana"
+      descripcion="Cada barra es una semana, desde su lunes."
+      columnas={["Semana", "Faltas"]}
+      filas={d.semanasFaltas.map(([s, n]) => [`Semana del ${dd(s)}`, n])}
+    >
+      <BarrasHorizontales
+        items={d.semanasFaltas.map(([s, n]) => ({
+          etiqueta: `Semana del ${dd(s)}`,
+          valor: n,
+          texto: plural(n, "falta", "faltas"),
+          color: "var(--color-error)",
+        }))}
+      />
+    </Figura>
+  )}
+
+  <Tarjeta
+    titulo="Faltas del período"
+    descripcion="Si alguien tenía un motivo, cárguele el permiso: la falta pasa a permiso."
+  >
+    <label class="buscar-en">
+      Buscar
+      <input
+        type="search"
+        data-filtrar="faltas"
+        placeholder="Nombre, categoría o día"
+        autocomplete="off"
+      />
+    </label>
+    <div data-filtrable="faltas" data-limitada>
+      <Tabla
+        titulo="Faltas del período"
+        hayFilas={faltas > 0}
+        vacio="No hay faltas en este período."
+        tarjetas
+      >
+        <thead>
+          <tr>
+            <th scope="col" aria-sort="descending">
+              <button type="button" class="ordenar">
+                Día
+              </button>
+            </th>
+            <th scope="col">
+              <button type="button" class="ordenar">
+                Persona
+              </button>
+            </th>
+            <th scope="col">
+              <button type="button" class="ordenar">
+                Categoría
+              </button>
+            </th>
+            <th scope="col">
+              <span class="visualmente-oculto">Acción</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {d.faltasPeriodo.map((r, n) => {
+            const x = d.personaPorId.get(r.personalId);
+            const cat = x ? d.catPorId.get(x.categoria_id) : undefined;
+            return (
+              <tr class:list={[n >= 15 && "extra"]}>
+                <td data-etiqueta="Día" data-valor={r.fecha}>
+                  {diaTexto(r.fecha)}
+                </td>
+                <td data-etiqueta="Persona" data-valor={x ? `${x.apellido} ${x.nombre}` : ""}>
+                  <span class="persona-celda">
+                    <span class="ini" style={`--c: ${cat?.color ?? "#64748b"}`} aria-hidden="true">
+                      {x ? iniciales(`${x.nombre} ${x.apellido}`) : ""}
+                    </span>
+                    {x ? (
+                      <a href={`/personal/${x.id}`} data-persona={x.id}>
+                        {x.apellido}, {x.nombre}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </span>
+                </td>
+                <td data-etiqueta="Categoría" class="texto-suave">
+                  {cat?.nombre ?? "—"}
+                </td>
+                <td class="accion">
+                  <button
+                    type="button"
+                    class="v-boton v-secundario"
+                    data-ventana={`/ventanas/permiso?persona=${r.personalId}&desde=${r.fecha}`}
+                    data-ventana-modo="centro"
+                  >
+                    Cargar permiso
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </Tabla>
+    </div>
+    {d.faltasPeriodo.length > 15 && (
+      <button type="button" class="ver-todos">
+        Ver todos ({d.faltasPeriodo.length} faltas)
+      </button>
+    )}
+  </Tarjeta>
+
+  <Fragment slot="lateral">
+    <Tarjeta titulo="De permiso esta semana" descripcion="Hoy y los próximos 7 días">
+      <ListaAusentes
+        ausentes={d.ausentes}
+        total={d.totalAus}
+        hoy={hoy}
+        feriado={d.proximoFeriado}
+      />
+    </Tarjeta>
+    {d.masFaltas.length > 0 && (
+      <Tarjeta titulo="Quiénes faltan más">
+        <ol class="ranking">
+          {d.masFaltas.slice(0, 6).map((c) => {
+            const x = d.personaPorId.get(c.personalId);
+            return (
+              <li>
+                {x ? (
+                  <a href={`/personal/${x.id}`} data-persona={x.id}>
+                    {x.nombre} {x.apellido}
+                  </a>
+                ) : (
+                  "—"
+                )}
+                <span class:list={[c.faltas >= d.UMBRAL_FALTAS && "alto"]}>
+                  {plural(c.faltas, "falta", "faltas")}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </Tarjeta>
+    )}
+    <Tarjeta titulo="Acciones">
+      <ul class="acciones-seccion">
+        <li>
+          <button type="button" data-ventana="/ventanas/permiso" data-ventana-modo="centro">
+            <Icono nombre="permiso" tamano={18} /> Cargar un permiso
+          </button>
+        </li>
+        <li>
+          <a href="/permisos">
+            <Icono nombre="calendario" tamano={18} /> Ver todos los permisos
+          </a>
+        </li>
+      </ul>
+    </Tarjeta>
+  </Fragment>
+</PanelSeccionLayout>
+
+<style>
+  .accion {
+    text-align: right;
+  }
+  .ranking {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ranking li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--esp-3);
+    min-height: 44px;
+    border-top: 1px solid var(--color-borde);
+    font-size: var(--texto-sm);
+  }
+  .ranking li:first-child {
+    border-top: 0;
+  }
+  .ranking a {
+    color: var(--color-texto);
+    font-weight: var(--peso-medio);
+  }
+  .ranking span {
+    color: var(--color-texto-suave);
+  }
+  .ranking .alto {
+    color: var(--lectura-bajo);
+    font-weight: var(--peso-fuerte);
+  }
+</style>

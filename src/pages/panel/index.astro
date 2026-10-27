@@ -1,0 +1,1021 @@
+---
+/**
+ * Panel de control · Resumen (D-53, D-55). Tres niveles:
+ * 1) recuadros en palabras; 2) vistazo en el panel lateral (datos rápidos y
+ * acciones); 3) la sección completa (/panel/…), por el botón «Ver todo» o el menú.
+ */
+import PanelSeccionLayout from "@/layouts/PanelSeccionLayout.astro";
+import Icono from "@/components/ui/Icono.astro";
+import Modulo from "@/components/panel/Modulo.astro";
+import MiniLinea from "@/components/panel/MiniLinea.astro";
+import Anillo from "@/components/panel/Anillo.astro";
+import Contador from "@/components/panel/Contador.astro";
+import BarraApilada from "@/components/graficas/BarraApilada.astro";
+import BarrasHorizontales from "@/components/graficas/BarrasHorizontales.astro";
+import GraficaLinea from "@/components/graficas/GraficaLinea.astro";
+import { fechaCorta, fechaLarga, hoyEnZona } from "@/lib/fecha";
+import { listarCategorias } from "@/lib/datos/categorias";
+import {
+  cargarPanel,
+  dd,
+  diaTexto,
+  enlacePanel,
+  iniciales,
+  leerFiltros,
+  NOMBRE_PERIODO,
+} from "@/lib/datos/panel";
+import { lecturaPorcentaje, NOMBRE_LECTURA } from "@/lib/reglas/estadisticas";
+import { numero, plural, porcentaje } from "@/lib/formato";
+
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+const hoy = hoyEnZona();
+const categorias = await listarCategorias(sb);
+const filtros = leerFiltros(Astro.url, categorias);
+const esDirectiva = perfil.rol === "directiva";
+const d = await cargarPanel(sb, { hoy, filtros, categorias, esDirectiva });
+const ir = (ruta: string, extra: Record<string, string | null> = {}) =>
+  enlacePanel(ruta, filtros, extra);
+
+const { resumen, hayDatos } = d;
+const lecturaMes = hayDatos ? lecturaPorcentaje(resumen.asistencia) : undefined;
+const lecturaPunt = hayDatos ? lecturaPorcentaje(resumen.puntualidad) : undefined;
+const maxLlegada = Math.max(1, ...d.llegadas.map((l) => l.valor));
+const TONO_TRAMO: Record<string, string> = {
+  antes: "puntual",
+  "0-5": "puntual",
+  "6-15": "tolerancia",
+  "16-30": "tarde",
+  "31-60": "muy-tarde",
+  "60+": "muy-tarde",
+};
+const grupo = (...claves: string[]) =>
+  d.llegadas.filter((l) => claves.includes(l.clave)).reduce((s, l) => s + l.valor, 0);
+const llegadasGrupos = [
+  { clase: "puntual", texto: "A tiempo", valor: grupo("antes", "0-5") },
+  { clase: "tolerancia", texto: "En tolerancia", valor: grupo("6-15") },
+  { clase: "tarde", texto: "Tarde", valor: grupo("16-30", "31-60", "60+") },
+];
+const pct = (v: number) => porcentaje(d.totalLlegadas ? (v / d.totalLlegadas) * 100 : 0);
+const diasBajos = [...d.serieTendencia].sort((a, b) => a.valor - b.valor).slice(0, 3);
+const enAtencion = d.cats.filter((c) => lecturaPorcentaje(c.asistencia) !== "bien").length;
+const contarTipo = (t: string) => d.tareas.filter((x) => x.tipo === t).length;
+const proximos = Math.max(0, d.totalAus - d.permisosHoy);
+const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=pdf&ver=1`;
+---
+
+<PanelSeccionLayout
+  titulo="Panel de control"
+  subtitulo={fechaLarga(hoy)}
+  resumen
+  filtros={filtros}
+  categorias={categorias}
+  esDemo={d.esDemo}
+  rango={`${fechaCorta(d.rango.desde)} – ${fechaCorta(d.rango.hasta)}`}
+>
+  <div class:list={["modulos", Astro.url.searchParams.get("abrir") && "quieto"]}>
+    <Modulo
+      titulo="Hoy"
+      icono="reloj"
+      frase={d.fraseHoy}
+      detalle={d.detalleHoy}
+      capa="capa-hoy"
+      tono="azul"
+      orden={0}
+    >
+      {d.hayJornadaHoy && (
+        <Fragment slot="frase">
+          <Contador valor={d.llegaronHoy} /> de {numero(d.laborablesHoy)} ya llegaron
+        </Fragment>
+      )}
+      {d.hayJornadaHoy && (
+        <Anillo valor={(d.llegaronHoy / d.laborablesHoy) * 100} texto="llegaron" />
+      )}
+    </Modulo>
+
+    <Modulo
+      titulo="Pendientes"
+      icono="campana"
+      frase={
+        d.tareas.length
+          ? plural(d.tareas.length, "cosa por resolver", "cosas por resolver")
+          : "Todo al día"
+      }
+      detalle={d.tareas.length ? undefined : "No hay nada pendiente."}
+      lectura={d.tareas.length ? "atencion" : "bien"}
+      capa="capa-pendientes"
+      tono="ambar"
+      orden={1}
+    >
+      {d.tareas.length > 0 && (
+        <Fragment slot="frase">
+          <Contador valor={d.tareas.length} />{" "}
+          {d.tareas.length === 1 ? "cosa por resolver" : "cosas por resolver"}
+        </Fragment>
+      )}
+      {d.tareas.length > 0 && (
+        <span class="mini-tareas">
+          {d.tareas.slice(0, 3).map((t, i) => (
+            <span style={`--i: ${i}`}>
+              <Icono nombre={t.icono} tamano={16} />
+              {t.texto}
+            </span>
+          ))}
+        </span>
+      )}
+    </Modulo>
+
+    <Modulo
+      titulo={NOMBRE_PERIODO[filtros.periodo]}
+      icono="tendencia"
+      frase={hayDatos ? `${porcentaje(resumen.asistencia)} de asistencia` : "Sin registros todavía"}
+      detalle={d.comparacionAsistencia}
+      lectura={lecturaMes}
+      capa="capa-asistencia"
+      tono="verde"
+      orden={2}
+    >
+      {hayDatos && (
+        <Fragment slot="frase">
+          <Contador valor={resumen.asistencia} sufijo=" %" /> de asistencia
+        </Fragment>
+      )}
+      <MiniLinea
+        valores={d.serieTendencia.map((s) => s.valor)}
+        final={hayDatos ? porcentaje(d.serieTendencia.at(-1)?.valor ?? 0) : undefined}
+      />
+    </Modulo>
+
+    <Modulo
+      titulo="Puntualidad"
+      icono="reloj"
+      frase={d.frasePuntualidad}
+      detalle={hayDatos ? `${porcentaje(resumen.puntualidad)} llegó a tiempo` : undefined}
+      lectura={lecturaPunt}
+      capa="capa-puntualidad"
+      tono="violeta"
+      orden={3}
+    >
+      {hayDatos && (
+        <span class="mini-barras">
+          {d.llegadas.map((l, i) => (
+            <span
+              class={TONO_TRAMO[l.clave] ?? "puntual"}
+              style={`height: ${Math.max(4, (l.valor / maxLlegada) * 100)}%; --i: ${i}`}
+            />
+          ))}
+        </span>
+      )}
+    </Modulo>
+
+    <Modulo
+      titulo="Ausencias y permisos"
+      icono="permiso"
+      frase={
+        d.totalAus
+          ? plural(d.totalAus, "persona con permiso", "personas con permiso")
+          : "Nadie tiene permiso"
+      }
+      detalle={
+        d.proximoFeriado
+          ? `Próximo feriado: ${diaTexto(d.proximoFeriado.fecha)}`
+          : "Hoy y los próximos 7 días"
+      }
+      capa="capa-ausencias"
+      tono="rosa"
+      orden={4}
+    >
+      {d.totalAus > 0 && (
+        <Fragment slot="frase">
+          <Contador valor={d.totalAus} />{" "}
+          {d.totalAus === 1 ? "persona con permiso" : "personas con permiso"}
+        </Fragment>
+      )}
+      {d.ausentes.length > 0 && (
+        <span class="caras">
+          {d.ausentes.slice(0, 6).map((a, i) => (
+            <span style={`--c: ${a.color}; --i: ${i}`}>{iniciales(a.nombre)}</span>
+          ))}
+          {d.totalAus > 6 && (
+            <span class="mas" style={`--i: ${Math.min(6, d.ausentes.length)}`}>
+              +{d.totalAus - 6}
+            </span>
+          )}
+        </span>
+      )}
+    </Modulo>
+
+    <Modulo
+      titulo="Por categoría"
+      icono="usuarios"
+      frase={d.fraseCategoria}
+      detalle={
+        d.peorCat && d.cats.length > 1
+          ? `${d.peorCat.cat?.nombre}: ${porcentaje(d.peorCat.asistencia)} de asistencia`
+          : undefined
+      }
+      lectura={d.peorCat ? lecturaPorcentaje(d.peorCat.asistencia) : undefined}
+      capa="capa-categorias"
+      tono="cian"
+      orden={5}
+    >
+      {d.cats.length > 0 && (
+        <span class="mini-cats">
+          {d.catsOrden.slice(0, 4).map((c, i) => (
+            <span class="fila-cat" style={`--i: ${i}`}>
+              <span class="nombre-cat">
+                <span class="punto-cat" style={`background: ${c.cat?.color ?? "#64748b"}`} />
+                {c.cat?.nombre ?? "—"}
+              </span>
+              <span class="barra-cat">
+                <span
+                  class={lecturaPorcentaje(c.asistencia)}
+                  style={`width: ${Math.max(4, c.asistencia)}%`}
+                />
+              </span>
+              <span class="pct-cat">{porcentaje(c.asistencia)}</span>
+            </span>
+          ))}
+        </span>
+      )}
+    </Modulo>
+  </div>
+  <p class="pie-panel">
+    Toque un recuadro para ver un vistazo; desde ahí, «Ver todo» abre la sección completa. También
+    están en el menú, dentro de <strong>Panel de control</strong>.
+  </p>
+
+  <!-- ── Vistazos (segundo nivel): mismo orden siempre ── -->
+  <template id="capa-hoy">
+    <header class="v-cabecera" tabindex="-1">
+      <div>
+        <h2 class="v-titulo" id="capa-hoy-titulo" data-ventana-titulo>
+          Hoy
+        </h2>
+        <p class="v-sub">{fechaLarga(hoy)}</p>
+      </div>
+      <button type="button" class="v-cerrar" aria-label="Cerrar" data-cerrar-ventana>
+        <Icono nombre="error" tamano={22} />
+      </button>
+    </header>
+    <div class="v-contenido vistazo">
+      <p class="frase-vistazo">{d.fraseHoy}</p>
+      {d.hayJornadaHoy && (
+        <>
+          <dl class="tres">
+            <div>
+              <dt>Llegaron</dt>
+              <dd>
+                <a href={ir("/panel/hoy", { ver: "llegaron" })}>{numero(d.llegaronHoy)}</a>
+              </dd>
+            </div>
+            <div class:list={[d.hoyConteo.tarde && "atencion"]}>
+              <dt>Tarde</dt>
+              <dd>
+                <a href={ir("/panel/hoy", { ver: "llegaron" })}>{numero(d.hoyConteo.tarde)}</a>
+              </dd>
+            </div>
+            <div class:list={[d.pendientesHoy && "atencion"]}>
+              <dt>Sin marcar</dt>
+              <dd>
+                <a href={ir("/panel/hoy", { ver: "pendientes" })}>{numero(d.pendientesHoy)}</a>
+              </dd>
+            </div>
+          </dl>
+          <BarraApilada segmentos={d.hoySegmentos} soloConValor />
+        </>
+      )}
+      {d.sinMarcarHoy.length > 0 && (
+        <section class="corta">
+          <h3>Aún sin marcar</h3>
+          <ul>
+            {d.sinMarcarHoy.slice(0, 5).map((x) => (
+              <li>
+                <a href={`/personal/${x.id}`} data-persona={x.id}>
+                  {x.apellido}, {x.nombre}
+                </a>
+                <span>{d.catPorId.get(x.categoria_id)?.nombre}</span>
+              </li>
+            ))}
+          </ul>
+          {d.sinMarcarHoy.length > 5 && (
+            <a class="ver-mas" href={ir("/panel/hoy", { ver: "pendientes" })}>
+              Ver los {d.sinMarcarHoy.length} sin marcar <Icono nombre="siguiente" tamano={16} />
+            </a>
+          )}
+        </section>
+      )}
+      <div class="acciones-vistazo">
+        <a
+          href={planillaHoy}
+          target="_blank"
+          rel="noopener"
+          data-astro-reload
+          class="v-boton v-secundario"
+        >
+          <Icono nombre="descargar" tamano={18} /> Planilla de hoy
+        </a>
+      </div>
+    </div>
+    <footer class="v-pie">
+      <a href={ir("/panel/hoy")} data-seccion class="v-boton v-primario v-bloque-ancho">
+        Ver todo en Hoy <Icono nombre="siguiente" tamano={18} />
+      </a>
+    </footer>
+  </template>
+
+  <template id="capa-pendientes">
+    <header class="v-cabecera" tabindex="-1">
+      <div>
+        <h2 class="v-titulo" id="capa-pendientes-titulo" data-ventana-titulo>
+          Pendientes
+        </h2>
+        <p class="v-sub">Lo que espera una acción</p>
+      </div>
+      <button type="button" class="v-cerrar" aria-label="Cerrar" data-cerrar-ventana>
+        <Icono nombre="error" tamano={22} />
+      </button>
+    </header>
+    <div class="v-contenido vistazo">
+      <p class="frase-vistazo">
+        {d.tareas.length
+          ? plural(d.tareas.length, "cosa por resolver", "cosas por resolver")
+          : "Todo al día"}
+      </p>
+      <dl class="tres">
+        <div class:list={[contarTipo("telefono") && "atencion"]}>
+          <dt>Teléfonos</dt>
+          <dd>
+            <a href={ir("/panel/pendientes", { tipo: "telefono" })}>{contarTipo("telefono")}</a>
+          </dd>
+        </div>
+        <div class:list={[contarTipo("falta") && "atencion"]}>
+          <dt>Faltas</dt>
+          <dd>
+            <a href={ir("/panel/pendientes", { tipo: "falta" })}>{contarTipo("falta")}</a>
+          </dd>
+        </div>
+        <div class:list={[contarTipo("salida") && "atencion"]}>
+          <dt>Salidas</dt>
+          <dd>
+            <a href={ir("/panel/pendientes", { tipo: "salida" })}>{contarTipo("salida")}</a>
+          </dd>
+        </div>
+      </dl>
+      {d.tareas.length > 0 && (
+        <section class="corta">
+          <h3>Lo primero</h3>
+          <ul class="tareas-vistazo">
+            {d.tareas.slice(0, 5).map((t) => (
+              <li>
+                <span>{t.texto}</span>
+                {t.aprobar ? (
+                  <form method="post" action="/api/acciones" data-api>
+                    <input type="hidden" name="accion" value="disp_aprobar" />
+                    <input type="hidden" name="personal_id" value={t.aprobar.personalId} />
+                    <input type="hidden" name="dispositivo_id" value={t.aprobar.dispositivoId} />
+                    <button
+                      type="submit"
+                      class="v-boton v-secundario"
+                      data-texto-cargando="Aprobando…"
+                    >
+                      {t.boton}
+                    </button>
+                  </form>
+                ) : t.ventana ? (
+                  <button
+                    type="button"
+                    class="v-boton v-secundario"
+                    data-ventana={t.ventana}
+                    data-ventana-modo="centro"
+                  >
+                    {t.boton}
+                  </button>
+                ) : t.persona ? (
+                  <a
+                    class="v-boton v-secundario"
+                    href={`/personal/${t.persona}`}
+                    data-persona={t.persona}
+                  >
+                    {t.boton}
+                  </a>
+                ) : (
+                  <a class="v-boton v-secundario" href={t.href}>
+                    {t.boton}
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+          {d.tareas.length > 5 && (
+            <a class="ver-mas" href={ir("/panel/pendientes")}>
+              Ver los {d.tareas.length} pendientes <Icono nombre="siguiente" tamano={16} />
+            </a>
+          )}
+        </section>
+      )}
+    </div>
+    <footer class="v-pie">
+      <a href={ir("/panel/pendientes")} data-seccion class="v-boton v-primario v-bloque-ancho">
+        Ver todo en Pendientes <Icono nombre="siguiente" tamano={18} />
+      </a>
+    </footer>
+  </template>
+
+  <template id="capa-asistencia">
+    <header class="v-cabecera" tabindex="-1">
+      <div>
+        <h2 class="v-titulo" id="capa-asistencia-titulo" data-ventana-titulo>
+          Asistencia
+        </h2>
+        <p class="v-sub">
+          {NOMBRE_PERIODO[filtros.periodo]} · {fechaCorta(d.rango.desde)} –{" "}
+          {fechaCorta(d.rango.hasta)}
+        </p>
+      </div>
+      <button type="button" class="v-cerrar" aria-label="Cerrar" data-cerrar-ventana>
+        <Icono nombre="error" tamano={22} />
+      </button>
+    </header>
+    <div class="v-contenido vistazo">
+      <p class="frase-vistazo">
+        {lecturaMes && <span class:list={["chip", lecturaMes]}>{NOMBRE_LECTURA[lecturaMes]}</span>}
+        {hayDatos ? `${porcentaje(resumen.asistencia)} de asistencia` : "Sin registros todavía"}
+        {d.comparacionAsistencia && <small>{d.comparacionAsistencia}</small>}
+      </p>
+      <dl class="tres">
+        <div>
+          <dt>Asistencia</dt>
+          <dd>
+            <a href={ir("/panel/asistencia")}>{hayDatos ? porcentaje(resumen.asistencia) : "—"}</a>
+          </dd>
+        </div>
+        <div class:list={[resumen.conteo.falta && "atencion"]}>
+          <dt>Faltas</dt>
+          <dd>
+            <a href={ir("/panel/ausencias")}>{numero(resumen.conteo.falta)}</a>
+          </dd>
+        </div>
+        <div>
+          <dt>Permisos</dt>
+          <dd>
+            <a href={ir("/panel/ausencias")}>{numero(resumen.conteo.permiso)}</a>
+          </dd>
+        </div>
+      </dl>
+      {d.serieTendencia.length > 1 && (
+        <GraficaLinea
+          puntos={d.serieTendencia.map((s) => ({
+            etiqueta: dd(s.clave),
+            fecha: s.clave,
+            valor: s.valor,
+            detalle: `${diaTexto(s.clave)} · ${plural(s.conteo.falta, "falta", "faltas")}, ${s.conteo.tarde} tarde`,
+          }))}
+          referencia={{
+            valor: resumen.asistencia,
+            etiqueta: `Prom. ${porcentaje(resumen.asistencia)}`,
+          }}
+        />
+      )}
+      {diasBajos.length > 0 && (
+        <section class="corta">
+          <h3>Los días más bajos</h3>
+          <ul>
+            {diasBajos.map((s) => (
+              <li>
+                <a href={`/reportes?fecha=${s.clave}`}>{diaTexto(s.clave)}</a>
+                <span class:list={["pct", lecturaPorcentaje(s.valor)]}>{porcentaje(s.valor)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+    <footer class="v-pie">
+      <a href={ir("/panel/asistencia")} data-seccion class="v-boton v-primario v-bloque-ancho">
+        Ver todo en Asistencia <Icono nombre="siguiente" tamano={18} />
+      </a>
+    </footer>
+  </template>
+
+  <template id="capa-puntualidad">
+    <header class="v-cabecera" tabindex="-1">
+      <div>
+        <h2 class="v-titulo" id="capa-puntualidad-titulo" data-ventana-titulo>
+          Puntualidad
+        </h2>
+        <p class="v-sub">{NOMBRE_PERIODO[filtros.periodo]}</p>
+      </div>
+      <button type="button" class="v-cerrar" aria-label="Cerrar" data-cerrar-ventana>
+        <Icono nombre="error" tamano={22} />
+      </button>
+    </header>
+    <div class="v-contenido vistazo">
+      <p class="frase-vistazo">
+        {lecturaPunt && (
+          <span class:list={["chip", lecturaPunt]}>{NOMBRE_LECTURA[lecturaPunt]}</span>
+        )}
+        {d.frasePuntualidad}
+      </p>
+      <dl class="tres">
+        {llegadasGrupos.map((g) => (
+          <div class={g.clase}>
+            <dt>{g.texto}</dt>
+            <dd>
+              <a href={ir("/panel/puntualidad")}>{pct(g.valor)}</a>
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {d.totalLlegadas > 0 && (
+        <div class="proporcion" aria-hidden="true">
+          {llegadasGrupos
+            .filter((g) => g.valor)
+            .map((g) => (
+              <span class={g.clase} style={`flex: ${g.valor}`} />
+            ))}
+        </div>
+      )}
+      {d.masTarde.length > 0 && (
+        <section class="corta">
+          <h3>Quiénes llegan tarde más seguido</h3>
+          <ul>
+            {d.masTarde.slice(0, 5).map((c) => {
+              const x = d.personaPorId.get(c.personalId);
+              return (
+                <li>
+                  {x ? (
+                    <a href={`/personal/${x.id}`} data-persona={x.id}>
+                      {x.nombre} {x.apellido}
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                  <span>{plural(c.tardanzas, "vez", "veces")}</span>
+                </li>
+              );
+            })}
+          </ul>
+          {d.masTarde.length > 5 && (
+            <a class="ver-mas" href={ir("/panel/puntualidad")}>
+              Ver las {d.masTarde.length} personas <Icono nombre="siguiente" tamano={16} />
+            </a>
+          )}
+        </section>
+      )}
+    </div>
+    <footer class="v-pie">
+      <a href={ir("/panel/puntualidad")} data-seccion class="v-boton v-primario v-bloque-ancho">
+        Ver todo en Puntualidad <Icono nombre="siguiente" tamano={18} />
+      </a>
+    </footer>
+  </template>
+
+  <template id="capa-ausencias">
+    <header class="v-cabecera" tabindex="-1">
+      <div>
+        <h2 class="v-titulo" id="capa-ausencias-titulo" data-ventana-titulo>
+          Ausencias y permisos
+        </h2>
+        <p class="v-sub">Faltas del período y permisos de esta semana</p>
+      </div>
+      <button type="button" class="v-cerrar" aria-label="Cerrar" data-cerrar-ventana>
+        <Icono nombre="error" tamano={22} />
+      </button>
+    </header>
+    <div class="v-contenido vistazo">
+      <dl class="tres">
+        <div class:list={[d.faltasPeriodo.length && "atencion"]}>
+          <dt>Faltas</dt>
+          <dd>
+            <a href={ir("/panel/ausencias")}>{numero(d.faltasPeriodo.length)}</a>
+          </dd>
+        </div>
+        <div>
+          <dt>De permiso hoy</dt>
+          <dd>
+            <a href={ir("/panel/ausencias")}>{numero(d.permisosHoy)}</a>
+          </dd>
+        </div>
+        <div>
+          <dt>Próximos 7 días</dt>
+          <dd>
+            <a href={ir("/panel/ausencias")}>{numero(proximos)}</a>
+          </dd>
+        </div>
+      </dl>
+      {d.faltasPeriodo.length > 0 && (
+        <section class="corta">
+          <h3>Faltas más recientes</h3>
+          <ul class="tareas-vistazo">
+            {d.faltasPeriodo.slice(0, 5).map((r) => (
+              <li>
+                <span>
+                  <strong>{d.nombreDe(r.personalId)}</strong> · {diaTexto(r.fecha)}
+                </span>
+                <button
+                  type="button"
+                  class="v-boton v-secundario"
+                  data-ventana={`/ventanas/permiso?persona=${r.personalId}&desde=${r.fecha}`}
+                  data-ventana-modo="centro"
+                >
+                  Cargar permiso
+                </button>
+              </li>
+            ))}
+          </ul>
+          {d.faltasPeriodo.length > 5 && (
+            <a class="ver-mas" href={ir("/panel/ausencias")}>
+              Ver las {d.faltasPeriodo.length} faltas <Icono nombre="siguiente" tamano={16} />
+            </a>
+          )}
+        </section>
+      )}
+      <div class="acciones-vistazo">
+        <button
+          type="button"
+          class="v-boton v-secundario"
+          data-ventana="/ventanas/permiso"
+          data-ventana-modo="centro"
+        >
+          <Icono nombre="permiso" tamano={18} /> Cargar un permiso
+        </button>
+      </div>
+    </div>
+    <footer class="v-pie">
+      <a href={ir("/panel/ausencias")} data-seccion class="v-boton v-primario v-bloque-ancho">
+        Ver todo en Ausencias <Icono nombre="siguiente" tamano={18} />
+      </a>
+    </footer>
+  </template>
+
+  <template id="capa-categorias">
+    <header class="v-cabecera" tabindex="-1">
+      <div>
+        <h2 class="v-titulo" id="capa-categorias-titulo" data-ventana-titulo>
+          Por categoría
+        </h2>
+        <p class="v-sub">{NOMBRE_PERIODO[filtros.periodo]}</p>
+      </div>
+      <button type="button" class="v-cerrar" aria-label="Cerrar" data-cerrar-ventana>
+        <Icono nombre="error" tamano={22} />
+      </button>
+    </header>
+    <div class="v-contenido vistazo">
+      {d.mejorCat && d.peorCat && (
+        <dl class="tres">
+          <div class={lecturaPorcentaje(d.mejorCat.asistencia)}>
+            <dt>La mejor</dt>
+            <dd>
+              <a href={ir("/panel/asistencia", { categoria: d.mejorCat.categoriaId })}>
+                {porcentaje(d.mejorCat.asistencia)}
+              </a>
+              <small>{d.mejorCat.cat?.nombre}</small>
+            </dd>
+          </div>
+          <div class={lecturaPorcentaje(d.peorCat.asistencia)}>
+            <dt>La más baja</dt>
+            <dd>
+              <a href={ir("/panel/asistencia", { categoria: d.peorCat.categoriaId })}>
+                {porcentaje(d.peorCat.asistencia)}
+              </a>
+              <small>{d.peorCat.cat?.nombre}</small>
+            </dd>
+          </div>
+          <div class:list={[enAtencion && "atencion"]}>
+            <dt>Por debajo de 90 %</dt>
+            <dd>
+              <a href={ir("/panel/categorias")}>{enAtencion}</a>
+            </dd>
+          </div>
+        </dl>
+      )}
+      {d.cats.length > 0 && (
+        <BarrasHorizontales
+          maximo={100}
+          lectura
+          items={d.cats.map((c) => ({
+            etiqueta: c.cat?.nombre ?? "—",
+            valor: c.asistencia,
+            texto: porcentaje(c.asistencia),
+            color: c.cat?.color,
+            detalle: `${c.personas} pers.`,
+          }))}
+        />
+      )}
+    </div>
+    <footer class="v-pie">
+      <a href={ir("/panel/categorias")} data-seccion class="v-boton v-primario v-bloque-ancho">
+        Ver todo en Por categoría <Icono nombre="siguiente" tamano={18} />
+      </a>
+    </footer>
+  </template>
+</PanelSeccionLayout>
+
+<style>
+  .modulos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+    gap: var(--esp-4);
+  }
+  .pie-panel {
+    margin: var(--esp-6) 0 0;
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+
+  /* Mini gráficas de los recuadros */
+  .mini-barras {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 56px;
+  }
+  .mini-barras span {
+    flex: 1;
+    border-radius: 6px 6px 2px 2px;
+    background: var(--c);
+    transform-origin: bottom;
+    animation: a-crecer-y 600ms var(--curva-salida) both;
+    animation-delay: calc(250ms + var(--i) * var(--mov-desfase));
+  }
+  .puntual {
+    --c: var(--color-exito);
+  }
+  .tolerancia {
+    --c: #0f766e;
+  }
+  .tarde {
+    --c: var(--color-alerta);
+  }
+  .muy-tarde {
+    --c: var(--color-error);
+  }
+  .caras {
+    display: flex;
+    padding-left: 8px;
+  }
+  .caras span {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin-left: -8px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--c, #64748b) 16%, white);
+    color: color-mix(in srgb, var(--c, #64748b) 65%, black);
+    box-shadow: 0 0 0 3px var(--color-superficie);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-titulo);
+    animation: a-surgir 420ms var(--curva-salida) both;
+    animation-delay: calc(250ms + var(--i) * var(--mov-desfase));
+  }
+  .caras .mas {
+    background: var(--color-lateral);
+    color: var(--color-texto-suave);
+  }
+  .mini-cats {
+    display: grid;
+    gap: var(--esp-2);
+  }
+  .fila-cat {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr) 3rem;
+    gap: var(--esp-2);
+    align-items: center;
+    font-size: var(--texto-sm);
+  }
+  .nombre-cat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    white-space: nowrap;
+    color: var(--color-texto-suave);
+  }
+  .punto-cat {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .barra-cat {
+    height: 10px;
+    border-radius: 999px;
+    background: var(--color-superficie-hover);
+    overflow: hidden;
+  }
+  .barra-cat > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    transform-origin: left;
+    animation: a-crecer-x 700ms var(--curva) both;
+    animation-delay: calc(250ms + var(--i) * var(--mov-desfase));
+  }
+  .barra-cat .bien {
+    background: var(--lectura-bien);
+  }
+  .barra-cat .atencion {
+    background: var(--lectura-atencion);
+  }
+  .barra-cat .bajo {
+    background: var(--lectura-bajo);
+  }
+  .pct-cat {
+    text-align: right;
+    font-weight: var(--peso-medio);
+    font-variant-numeric: tabular-nums;
+  }
+  .mini-tareas {
+    display: grid;
+    gap: var(--esp-2);
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .mini-tareas > span {
+    display: flex;
+    gap: var(--esp-2);
+    align-items: flex-start;
+    animation: a-aparecer 400ms var(--curva) both;
+    animation-delay: calc(250ms + var(--i) * var(--mov-desfase));
+  }
+  .mini-tareas :global(.icono) {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  /* ── Vistazo (panel lateral): frase · tres cifras · gráfica · lista corta · acciones ── */
+  .vistazo {
+    display: grid;
+    gap: var(--esp-5);
+    align-content: start;
+  }
+  .frase-vistazo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-2) var(--esp-3);
+    margin: 0;
+    font-size: var(--texto-xl);
+    font-weight: var(--peso-titulo);
+    line-height: 1.25;
+  }
+  .frase-vistazo small {
+    flex-basis: 100%;
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+  }
+  .chip {
+    padding: 5px var(--esp-3);
+    border-radius: 999px;
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-fuerte);
+  }
+  .chip.bien {
+    background: var(--color-exito-suave);
+    color: var(--color-exito);
+  }
+  .chip.atencion {
+    background: var(--color-alerta-suave);
+    color: var(--color-alerta);
+  }
+  .chip.bajo {
+    background: var(--color-error-suave);
+    color: var(--color-error);
+  }
+  .tres {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--esp-2);
+    margin: 0;
+  }
+  .tres > div {
+    padding: var(--esp-3) var(--esp-4);
+    border-radius: var(--radio-sm);
+    background: var(--color-fondo);
+    animation: a-subir var(--mov-entrada) var(--curva-salida) both;
+  }
+  .tres > div:nth-child(2) {
+    animation-delay: var(--mov-desfase);
+  }
+  .tres > div:nth-child(3) {
+    animation-delay: calc(2 * var(--mov-desfase));
+  }
+  .tres dt {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .tres dd {
+    display: grid;
+    margin: 0;
+  }
+  .tres dd a {
+    color: var(--color-texto);
+    font-size: var(--texto-2xl);
+    font-weight: var(--peso-titulo);
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+  }
+  .tres dd a:hover {
+    color: var(--color-acento-texto);
+    text-decoration: underline;
+  }
+  .tres dd small {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .tres .atencion dd a {
+    color: var(--lectura-atencion);
+  }
+  .tres .bien dd a,
+  .tres .puntual dd a {
+    color: var(--lectura-bien);
+  }
+  .tres .bajo dd a {
+    color: var(--lectura-bajo);
+  }
+  .tres .tarde dd a {
+    color: var(--color-alerta);
+  }
+  .tres .tolerancia dd a {
+    color: #0f766e;
+  }
+  .proporcion {
+    display: flex;
+    gap: 4px;
+    height: 14px;
+  }
+  .proporcion span {
+    min-width: 6px;
+    border-radius: 999px;
+    background: var(--c);
+    transform-origin: left;
+    animation: a-crecer-x 700ms var(--curva) both;
+  }
+  .corta h3 {
+    margin: 0 0 var(--esp-2);
+    font-size: var(--texto-base);
+  }
+  .corta ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .corta li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--esp-3);
+    min-height: 48px;
+    border-top: 1px solid var(--color-borde);
+    font-size: var(--texto-sm);
+  }
+  .corta li > a {
+    color: var(--color-texto);
+    font-weight: var(--peso-medio);
+  }
+  .corta li > span:last-child:not(:first-child) {
+    color: var(--color-texto-suave);
+  }
+  .tareas-vistazo li {
+    padding: var(--esp-2) 0;
+  }
+  .pct {
+    font-weight: var(--peso-fuerte);
+    font-variant-numeric: tabular-nums;
+  }
+  .pct.bien {
+    color: var(--lectura-bien);
+  }
+  .pct.atencion {
+    color: var(--lectura-atencion);
+  }
+  .pct.bajo {
+    color: var(--lectura-bajo);
+  }
+  .ver-mas {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-1);
+    margin-top: var(--esp-2);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+  }
+  .acciones-vistazo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2);
+  }
+</style>
+
+<script>
+  import { enCadaPantalla } from "@/scripts/pantalla";
+  import { abrirVentanaLocal } from "@/scripts/ventanas";
+  // `?abrir=hoy` abre ese vistazo al llegar (enlaces desde avisos o al volver de un filtro)
+  enCadaPantalla(() => {
+    const abrir = new URL(location.href).searchParams.get("abrir");
+    if (abrir && document.getElementById(`capa-${abrir}`)) abrirVentanaLocal(`capa-${abrir}`);
+  });
+</script>

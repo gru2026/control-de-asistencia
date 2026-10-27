@@ -94,21 +94,19 @@ try {
     );
   } else r.ok("paginación (hay menos de una página de datos)", true);
 
-  r.seccion("Panel: vista Resumen (primera capa)");
-  await pag.goto(`${B}/panel?vista=resumen`);
-  r.ok("seis módulos con frases", (await pag.locator(".modulos .modulo").count()) === 6);
+  r.seccion("Panel de control: resumen (nivel 1)");
+  await pag.goto(`${B}/panel`);
+  r.ok("seis recuadros con frases", (await pag.locator(".modulos .modulo").count()) === 6);
   r.ok(
-    "la primera capa no muestra tablas ni gráficas completas",
+    "el resumen no muestra tablas ni gráficas completas",
     (await pag.locator(".modulos table, .modulos figure").count()) === 0,
   );
   r.ok(
-    "cada módulo dice su estado en palabras",
-    (await pag.locator(".modulo .frase").allInnerTexts()).every((t) => t.trim().length > 3),
+    "el menú lateral muestra las seis secciones del panel",
+    (await pag.locator("nav.nav .sub a").count()) === 6,
   );
-
-  r.seccion("Panel: animaciones y gráficas (D-54)");
   await pag.emulateMedia({ reducedMotion: "reduce" });
-  await pag.goto(`${B}/panel?vista=resumen`, { waitUntil: "commit" });
+  await pag.goto(`${B}/panel`, { waitUntil: "commit" });
   await pag.waitForSelector(".modulos .modulo");
   await pag.waitForTimeout(60);
   r.ok(
@@ -118,67 +116,88 @@ try {
     ),
   );
   await pag.emulateMedia({ reducedMotion: "no-preference" });
-  await pag.goto(`${B}/panel?vista=resumen`);
-  await pag.click('a[data-ventana-local="capa-categorias"]');
-  await pag.waitForSelector("#ventana[open] #capa-cat-titulo", { timeout: 15000 });
-  r.ok(
-    "las barras por categoría se colorean por su lectura",
-    (
-      await pag.$$eval("#ventana .barras li", (l) =>
-        l.map((x) => /\b(bien|atencion|bajo)\b/.test(x.className)),
-      )
-    ).every(Boolean),
-  );
-  await pag.click("#ventana [data-cerrar-ventana]");
-
-  r.seccion("Panel: segunda capa");
-  await marcarPagina(pag);
-  await pag.click('a[data-ventana-local="capa-mes"]');
-  await pag.waitForSelector("#ventana[open] #capa-mes-titulo", { timeout: 15000 });
-  r.ok("tocar un módulo abre su detalle sin salir de la pantalla", await sinRecarga(pag));
-  r.ok(
-    "el detalle trae la gráfica y el calendario",
-    (await pag.locator("#ventana .titulo-grafica").count()) >= 1 &&
-      (await pag.locator("#ventana .calendario .dia").count()) > 0,
-  );
-  await pag.click('#ventana .segmentado a:has-text("Últimos 30 días")');
-  await pag.waitForFunction(() => location.search.includes("periodo=30d"));
-  await pag.waitForSelector("#ventana[open] #capa-mes-titulo", { timeout: 15000 });
-  r.ok(
-    "cambiar el período vuelve a abrir el detalle actualizado",
-    (await pag.locator("#ventana .calendario .dia").count()) === 30,
-  );
-  await pag.keyboard.press("Escape");
-  r.ok("se indica el filtro aplicado", await pag.locator(".filtro-activo").isVisible());
-  await pag.click('a[data-ventana-local="capa-hoy"]');
-  await pag.waitForSelector("#ventana[open] #capa-hoy-titulo", { timeout: 15000 });
-  const filasHoy = await pag.locator("#ventana [data-filtrable='hoy'] li").count();
-  if (filasHoy) {
-    await pag.fill("#filtro-hoy", "zzzzzz");
-    r.ok(
-      "buscar dentro del detalle filtra la lista",
-      (await pag.locator("#ventana [data-filtrable='hoy'] li:visible").count()) === 0,
-    );
-  } else r.ok("buscar dentro del detalle (hoy no hay nadie programado)", true);
-  await pag.click("#ventana [data-cerrar-ventana]");
-
-  r.seccion("Panel: vista Acción rápida");
-  await pag.click('.vistas a:has-text("Acción rápida")');
-  await pag.waitForSelector("#panel-buscar", { timeout: 15000 });
-  r.ok(
-    "buscador, accesos y pendientes",
-    (await pag.locator(".accesos li").count()) >= 4 &&
-      (await pag.locator("#titulo-tareas").count()) === 1,
-  );
   await pag.goto(`${B}/panel`);
-  r.ok("el panel recuerda la vista elegida", (await pag.locator("#panel-buscar").count()) === 1);
+
+  r.seccion("Panel de control: vistazo (nivel 2)");
+  await marcarPagina(pag);
+  await pag.click('a[data-ventana-local="capa-asistencia"]');
+  await pag.waitForSelector("#ventana[open] #capa-asistencia-titulo", { timeout: 15000 });
+  r.ok("tocar un recuadro abre su vistazo sin salir de la pantalla", await sinRecarga(pag));
+  r.ok(
+    "el vistazo trae tres cifras enlazadas y el botón «Ver todo»",
+    (await pag.locator("#ventana .tres dd a").count()) === 3 &&
+      (await pag.locator("#ventana a[data-seccion]").count()) === 1,
+  );
+  await pag.click("#ventana a[data-seccion]");
+  await pag.waitForURL("**/panel/asistencia**", { timeout: 15000 });
+  r.ok("«Ver todo» lleva a la sección sin recargar", await sinRecarga(pag));
+  r.ok("al llegar, el vistazo está cerrado", (await pag.locator("#ventana[open]").count()) === 0);
+
+  r.seccion("Panel de control: secciones (nivel 3)");
+  await pag.click('.filtros-seccion .segmentado a:has-text("Últimos 30 días")');
+  await pag.waitForFunction(() => location.search.includes("periodo=30d"));
+  await esperarDatos(pag);
+  r.ok(
+    "el calendario se actualiza con el período",
+    (await pag.locator(".calendario .dia").count()) === 30,
+  );
+  await pag.click('nav.nav .sub a:has-text("Puntualidad")');
+  await pag.waitForURL("**/panel/puntualidad**", { timeout: 15000 });
+  r.ok("el período se conserva al cambiar de sección", pag.url().includes("periodo=30d"));
+  const filasTarde = await pag.locator("[data-filtrable='tarde'] tbody tr").count();
+  if (filasTarde > 1) {
+    const antes = await pag
+      .locator("[data-filtrable='tarde'] tbody tr td:nth-child(3)")
+      .allInnerTexts();
+    await pag.click("th:has-text('Veces tarde') .ordenar");
+    const despues = await pag
+      .locator("[data-filtrable='tarde'] tbody tr td:nth-child(3)")
+      .allInnerTexts();
+    r.ok(
+      "la tabla se ordena al tocar el encabezado",
+      antes.join() !== despues.join() || new Set(antes).size === 1,
+    );
+    await pag.fill("input[data-filtrar='tarde']", "zzzzzz");
+    r.ok(
+      "buscar en la tabla filtra las filas",
+      (await pag.locator("[data-filtrable='tarde'] tbody tr:visible").count()) === 0,
+    );
+  } else r.ok("tabla de tardanzas (sin datos suficientes)", true);
+  for (const [ruta, texto] of [
+    ["/panel/ausencias", "Ausencias y permisos"],
+    ["/panel/categorias", "Por categoría"],
+    ["/panel/pendientes", "Pendientes"],
+  ]) {
+    await pag.goto(`${B}${ruta}`);
+    r.ok(
+      `${texto}: abre con su lectura y acciones`,
+      (await pag.locator(".lectura-seccion").count()) === 1 &&
+        (await pag.locator("main h1").innerText()).includes(texto),
+    );
+  }
   await pag.fill("#panel-buscar", "daniel");
   await pag.waitForSelector("#panel-buscar-lista [role=option]", { timeout: 15000 });
   await pag.keyboard.press("Enter");
   await pag.waitForSelector("#ventana[open] .v-titulo:has-text('Daniel')", { timeout: 15000 });
-  r.ok("buscar a una persona abre su panel", true);
+  r.ok("Pendientes: buscar a una persona abre su panel", true);
   await pag.keyboard.press("Escape");
-  await pag.goto(`${B}/panel?vista=resumen`);
+  await pag.goto(`${B}/panel/categorias`);
+  r.ok(
+    "las barras por categoría se colorean por su lectura",
+    (
+      await pag.$$eval(".barras li", (l) =>
+        l.map((x) => /\b(bien|atencion|bajo)\b/.test(x.className)),
+      )
+    ).every(Boolean),
+  );
+  const viejo = await pag.goto(`${B}/asistencia/registro?ver=pendientes`);
+  r.ok(
+    "el antiguo Registro del día lleva a Panel › Hoy",
+    new URL(pag.url()).pathname === "/panel/hoy" &&
+      pag.url().includes("ver=pendientes") &&
+      viejo?.ok(),
+  );
+  await pag.goto(`${B}/panel`);
 
   r.seccion("Otras pantallas");
   await marcarPagina(pag);
@@ -261,7 +280,7 @@ try {
   r.ok("cierre diario exige la clave del cron", api.cron === 401);
 
   r.seccion("Semana 3: registro del día, revisión, resumen y avisos");
-  await pag.goto(`${B}/asistencia/registro`);
+  await pag.goto(`${B}/panel/hoy`);
   await marcarPagina(pag);
   r.ok("registro del día con personal programado", (await pag.locator("tbody tr").count()) > 0);
   await pag.selectOption("#filtro-ver", "pendientes");

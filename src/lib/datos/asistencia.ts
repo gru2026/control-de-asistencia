@@ -6,7 +6,7 @@ import { diferenciaMin } from "@/lib/reglas/estados";
 import { horaEnZona, sumarDias, fechaUTC } from "@/lib/reglas/tiempo";
 import { traerTodo } from "./categorias";
 
-export type Periodo = "mes" | "anterior" | "30d";
+export type Periodo = "semana" | "mes" | "anterior" | "30d";
 
 export interface Rango {
   desde: string;
@@ -39,6 +39,11 @@ export function rangoPeriodo(periodo: Periodo, hoy: string): Rango {
     hasta = sumarDias(inicioMes, -1);
     desde = hasta.slice(0, 8) + "01";
     etiqueta = `${MESES[Number(hasta.slice(5, 7)) - 1]} ${hasta.slice(0, 4)}`;
+  } else if (periodo === "semana") {
+    // Desde el lunes de esta semana hasta hoy
+    desde = sumarDias(hoy, -((fechaUTC(hoy).getUTCDay() + 6) % 7));
+    hasta = hoy;
+    etiqueta = "esta semana";
   } else if (periodo === "30d") {
     desde = sumarDias(hoy, -29);
     hasta = hoy;
@@ -49,12 +54,12 @@ export function rangoPeriodo(periodo: Periodo, hoy: string): Rango {
     etiqueta = `${MESES[m - 1]} ${a}`;
   }
   const dias = Math.round((fechaUTC(hasta).getTime() - fechaUTC(desde).getTime()) / 86_400_000) + 1;
-  return {
-    desde,
-    hasta,
-    etiqueta,
-    anterior: { desde: sumarDias(desde, -dias), hasta: sumarDias(desde, -1) },
-  };
+  // La semana se compara con los mismos días de la semana anterior (lunes con lunes)
+  const anterior =
+    periodo === "semana"
+      ? { desde: sumarDias(desde, -7), hasta: sumarDias(hasta, -7) }
+      : { desde: sumarDias(desde, -dias), hasta: sumarDias(desde, -1) };
+  return { desde, hasta, etiqueta, anterior };
 }
 
 interface FilaRegistro {

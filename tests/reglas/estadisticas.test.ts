@@ -109,6 +109,19 @@ describe("hallazgos", () => {
 });
 
 describe("rangoPeriodo", () => {
+  it("esta semana: del lunes a hoy, comparada con los mismos días de la semana anterior", () => {
+    // 2026-10-08 es jueves
+    expect(rangoPeriodo("semana", "2026-10-08")).toMatchObject({
+      desde: "2026-10-05",
+      hasta: "2026-10-08",
+      anterior: { desde: "2026-09-28", hasta: "2026-10-01" },
+    });
+    // el lunes la semana es solo ese día
+    expect(rangoPeriodo("semana", "2026-10-05")).toMatchObject({
+      desde: "2026-10-05",
+      hasta: "2026-10-05",
+    });
+  });
   it("mes actual, mes anterior y 30 días con su período de comparación", () => {
     expect(rangoPeriodo("mes", "2026-10-08")).toMatchObject({
       desde: "2026-10-01",

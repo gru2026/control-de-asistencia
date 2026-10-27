@@ -99,15 +99,17 @@ La campana de arriba muestra sus **avisos**.
 En el PC se entra con el **correo** de la cuenta (o con la cédula, si la cuenta se creó así). Menú: **Panel · Asistencia · Personal · Reportes**, y **Ajustes** para la directiva.
 
 > [!tip] Todo sin salir de la pantalla
-> - **Toque el nombre de una persona** (en Personal, Registro del día, Reportes o el Panel) y se abre a la derecha su resumen: hoy, el mes, permisos, teléfono y cuenta, con botones para marcar, cargar un permiso, aprobar o cambiar el teléfono, crear la cuenta o restablecer la contraseña. «Abrir ficha completa» lleva a todos los datos.
+> - **Toque el nombre de una persona** (en Personal, Panel de control › Hoy, Reportes o el Panel) y se abre a la derecha su resumen: hoy, el mes, permisos, teléfono y cuenta, con botones para marcar, cargar un permiso, aprobar o cambiar el teléfono, crear la cuenta o restablecer la contraseña. «Abrir ficha completa» lleva a todos los datos.
 > - Después de cada acción aparece un mensaje abajo. Si se equivocó, toque **Deshacer**.
 > - La **campana** abre los avisos encima de la pantalla; tóquelos para ir a lo que indican.
-> - El **Panel** tiene dos vistas, arriba a la derecha: **Resumen** (cómo vamos, en palabras; toque un recuadro para ver el detalle) y **Acción rápida** (buscar a alguien, lo pendiente con su botón y los accesos directos). El panel recuerda la última que usó.
+> - El **Panel de control** se lee en tres pasos: los **recuadros** dicen cómo vamos; al tocar uno se abre a la derecha un **vistazo** con las cifras principales y lo más importante; y el botón **«Ver todo en …»** abre la **sección completa**, con filtros, tablas y descargas. Las secciones (Hoy, Asistencia, Puntualidad, Ausencias y permisos, Por categoría, Pendientes) también están en el menú, dentro de *Panel de control*.
+> - **Hoy** es el antiguo Registro del día: ahí se marcan entradas y salidas. **Pendientes** reúne lo que espera una acción, con su botón, y el buscador de personas; la secretaría entra directamente ahí.
+> - El período elegido (Esta semana, Este mes, Últimos 30 días, Mes anterior) y la categoría se mantienen al pasar de una sección a otra.
 > - El botón **Acciones** (arriba) reúne lo más frecuente: buscar a una persona, registrar personal nuevo, cargar un permiso, crear cuentas y descargar la planilla de hoy o el resumen del mes.
 > - En la PC, los formularios muestran a la derecha una columna de ayuda: por ejemplo, en Ajustes se ve cómo saldrá el encabezado de la planilla mientras se escribe, y en un permiso cuántos días abarca.
 > - En **Ajustes › Usuarios**, «Gestionar» abre una ventana para cambiar el tipo de cuenta, la contraseña o desactivarla.
 
-## 7. Registro del día (Asistencia)
+## 7. Hoy (Panel de control › Hoy, antes «Registro del día»)
 
 Lista de todo el personal que trabaja ese día, con su estado: **por llegar, presente, tarde, falta, permiso o sin salida**, y cómo marcó (teléfono, secretaría o a mano).
 

@@ -122,9 +122,7 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
         class:list={["franja", f.clase]}
         style={`top: ${yPct(f.hasta)}%; height: ${yPct(f.desde) - yPct(f.hasta)}%`}
         aria-hidden="true"
-      >
-        {yPct(f.desde) - yPct(f.hasta) > 12 && <span>{f.texto}</span>}
-      </span>
+      ></span>
     ))}
     {marcas.map((m) => (
       <span class="rejilla" style={`top: ${yPct(m)}%`} aria-hidden="true" />
@@ -189,6 +187,17 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
       </span>
     ))}
   </div>
+  {franjas.length > 0 && (
+    <p class="leyenda-franjas">
+      Fondo:{" "}
+      {franjas.map((f, i) => (
+        <span class={f.clase}>
+          {i > 0 && " · "}
+          {f.texto.toLowerCase()}
+        </span>
+      ))}
+    </p>
+  )}
 </div>
 
 <style>
@@ -246,17 +255,23 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
     right: 0;
     animation: a-aparecer 500ms var(--curva) both;
   }
-  .franja span {
-    position: absolute;
-    top: 4px;
-    left: 8px;
+  .leyenda-franjas {
+    grid-column: 2;
+    margin: var(--esp-2) 0 0;
     font-size: var(--texto-xs);
-    font-weight: var(--peso-medio);
-    opacity: 0.85;
+  }
+  .leyenda-franjas .bien {
+    color: #166534;
+  }
+  .leyenda-franjas .atencion {
+    color: #92400e;
+  }
+  .leyenda-franjas .bajo {
+    color: #991b1b;
   }
   .franja.bien {
     background: color-mix(in srgb, var(--lectura-bien) 6%, transparent);
-    color: var(--lectura-bien);
+    color: #166534;
   }
   .franja.atencion {
     background: color-mix(in srgb, var(--lectura-atencion) 7%, transparent);
@@ -290,7 +305,7 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
     position: absolute;
     left: 0;
     transform: translateY(-50%);
-    padding: 2px 8px;
+    padding: 4px 10px;
     border-radius: 999px;
     background: var(--color-superficie-hover);
     color: var(--color-texto-suave);
@@ -402,8 +417,8 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
   .valor-final {
     position: absolute;
     transform: translate(-50%, calc(-100% - 12px));
-    padding: 1px 6px;
-    border-radius: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
     background: var(--color-acento);
     color: #fff;
     font-weight: var(--peso-fuerte);

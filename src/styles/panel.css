@@ -1,0 +1,183 @@
+/* ── Secciones del Panel de control (D-55) ─────────────────────── */
+
+/* Cifras clave de una sección */
+.cifras-seccion {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+  gap: var(--esp-4);
+  margin: 0;
+}
+.cifras-seccion > div {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  animation: a-subir var(--mov-entrada) var(--curva-salida) both;
+  animation-delay: calc(var(--i, 0) * var(--mov-desfase));
+}
+.cifras-seccion dt {
+  color: var(--color-texto-suave);
+  font-size: var(--texto-sm);
+}
+.cifras-seccion dd {
+  margin: 0;
+}
+.cifras-seccion .valor {
+  font-size: var(--texto-3xl);
+  font-weight: var(--peso-titulo);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.cifras-seccion a.valor {
+  color: inherit;
+  text-decoration: none;
+}
+.cifras-seccion a.valor:hover {
+  color: var(--color-acento-texto);
+}
+.cifras-seccion .bien .valor {
+  color: var(--lectura-bien);
+}
+.cifras-seccion .atencion .valor {
+  color: var(--lectura-atencion);
+}
+.cifras-seccion .bajo .valor {
+  color: var(--lectura-bajo);
+}
+.cifras-seccion .nota-cifra {
+  color: var(--color-texto-suave);
+  font-size: var(--texto-sm);
+}
+
+/* Buscador sobre una tabla o lista */
+.buscar-en {
+  display: grid;
+  gap: 6px;
+  margin-bottom: var(--esp-4);
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-medio);
+}
+.buscar-en input {
+  min-height: 44px;
+  padding: 0 var(--esp-3);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-sm);
+  font: inherit;
+  font-weight: normal;
+}
+
+/* Encabezado ordenable (tablas de las secciones) */
+th .ordenar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+th .ordenar::after {
+  content: "↕";
+  opacity: 0.45;
+  font-size: 0.85em;
+}
+th[aria-sort="ascending"] .ordenar::after {
+  content: "↑";
+  opacity: 1;
+}
+th[aria-sort="descending"] .ordenar::after {
+  content: "↓";
+  opacity: 1;
+}
+
+/* Acciones de la zona lateral: botones apilados a todo el ancho */
+.acciones-seccion {
+  display: grid;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.acciones-seccion a,
+.acciones-seccion button {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  width: 100%;
+  min-height: 48px;
+  padding: var(--esp-2) var(--esp-4);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-sm);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  font: inherit;
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-medio);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color var(--duracion-rapida) var(--curva);
+}
+.acciones-seccion a:hover,
+.acciones-seccion button:hover {
+  border-color: var(--color-acento);
+}
+.acciones-seccion :is(a, button) > .icono {
+  color: var(--color-acento-texto);
+}
+
+/* Persona en una celda: iniciales + nombre + categoría */
+.persona-celda {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+.persona-celda .ini {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--c, #64748b) 14%, white);
+  color: color-mix(in srgb, var(--c, #64748b) 65%, black);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-titulo);
+}
+.persona-celda a {
+  color: var(--color-texto);
+  font-weight: var(--peso-medio);
+}
+.texto-suave {
+  color: var(--color-texto-suave);
+}
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Listas largas: primero 15 filas y «Ver todos» (al buscar se ven todas las que coinciden) */
+[data-limitada]:not(.ver-todo):not(.buscando) .extra {
+  display: none;
+}
+.ver-todos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  margin-top: var(--esp-3);
+  border: 1px dashed var(--color-borde-fuerte);
+  border-radius: var(--radio-sm);
+  background: none;
+  color: var(--color-acento-texto);
+  font: inherit;
+  font-weight: var(--peso-medio);
+  cursor: pointer;
+}
+[data-limitada].ver-todo + .ver-todos {
+  display: none;
+}

@@ -56,7 +56,7 @@ const chips = [
 <div class="barra-filtros">
   <form
     method="get"
-    class:list={["campos", filtros.length > 2 && "plegable"]}
+    class:list={["filtros-campos", filtros.length > 2 && "plegable"]}
     role="search"
     data-autoenviar
   >
@@ -158,7 +158,7 @@ const chips = [
     gap: var(--esp-4);
     margin-bottom: var(--esp-5);
   }
-  .campos {
+  .filtros-campos {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
     gap: var(--esp-3);

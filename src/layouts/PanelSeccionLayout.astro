@@ -1,0 +1,244 @@
+---
+/**
+ * Plantilla de las secciones del Panel de control (D-55): ruta, pestañas en el
+ * celular, frase de lectura, filtros que se conservan entre secciones y dos zonas
+ * (datos a la izquierda; resumen y acciones a la derecha).
+ */
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import "@/styles/panel.css";
+import SubnavPanel from "@/components/panel/SubnavPanel.astro";
+import Icono from "@/components/ui/Icono.astro";
+import { NOMBRE_LECTURA, type Lectura } from "@/lib/reglas/estadisticas";
+import { enlacePanel, NOMBRE_PERIODO, PERIODOS, type FiltrosPanel } from "@/lib/datos/panel";
+import type { Categoria } from "@/types";
+
+interface Props {
+  titulo: string;
+  /** Frase de lectura bajo el título */
+  frase?: string;
+  lectura?: Lectura;
+  filtros: FiltrosPanel;
+  categorias: Categoria[];
+  /** Rango visible, p. ej. "01/10/2026 – 27/10/2026" */
+  rango?: string;
+  /** Sin barra de período (Hoy, Pendientes) */
+  sinPeriodo?: boolean;
+  esDemo?: boolean;
+  /** Resumen del panel: sin ruta de migas y a una sola zona */
+  resumen?: boolean;
+  subtitulo?: string;
+}
+const {
+  titulo,
+  frase,
+  lectura,
+  filtros,
+  categorias,
+  rango,
+  sinPeriodo = false,
+  esDemo,
+  resumen = false,
+  subtitulo,
+} = Astro.props;
+const ruta = Astro.url.pathname;
+const catActual = categorias.find((c) => c.id === filtros.categoriaId);
+---
+
+<PanelLayout
+  titulo={titulo}
+  subtitulo={subtitulo}
+  amplio
+  migas={
+    resumen
+      ? undefined
+      : [{ texto: "Panel de control", href: enlacePanel("/panel", filtros) }, { texto: titulo }]
+  }
+>
+  <Fragment slot="acciones">
+    <slot name="acciones" />
+  </Fragment>
+  <SubnavPanel filtros={filtros} />
+
+  {(frase || lectura) && (
+    <p class="lectura-seccion">
+      {lectura && (
+        <span class:list={["chip-lectura", lectura]}>
+          <span class="punto" aria-hidden="true" />
+          {NOMBRE_LECTURA[lectura]}
+        </span>
+      )}
+      {frase}
+    </p>
+  )}
+
+  {esDemo && (
+    <p class="demo">
+      <Icono nombre="info" tamano={16} />
+      Datos de demostración: no corresponden a marcaciones reales.
+    </p>
+  )}
+
+  {!sinPeriodo && (
+    <div class="filtros-seccion" data-datos="linea">
+      <nav class="segmentado" aria-label="Período">
+        {PERIODOS.map((v) => (
+          <a
+            href={enlacePanel(ruta, { ...filtros, periodo: v })}
+            aria-current={filtros.periodo === v ? "true" : undefined}
+          >
+            {NOMBRE_PERIODO[v]}
+          </a>
+        ))}
+      </nav>
+      <form method="get" class="filtro-cat" data-autoenviar>
+        {filtros.periodo !== "mes" && (
+          <input type="hidden" name="periodo" value={filtros.periodo} />
+        )}
+        <label for="seccion-cat" class="visualmente-oculto">
+          Categoría
+        </label>
+        <select id="seccion-cat" name="categoria">
+          <option value="">Todas las categorías</option>
+          {categorias.map((c) => (
+            <option value={c.id} selected={c.id === filtros.categoriaId}>
+              {c.nombre}
+            </option>
+          ))}
+        </select>
+        <noscript>
+          <button type="submit">Aplicar</button>
+        </noscript>
+      </form>
+      {rango && <span class="rango">{rango}</span>}
+      {(filtros.periodo !== "mes" || catActual) && (
+        <a class="quitar" href={ruta}>
+          Quitar filtros
+        </a>
+      )}
+    </div>
+  )}
+
+  {resumen ? (
+    <slot />
+  ) : (
+    <div class="dos-zonas">
+      <div class="zona-principal">
+        <slot />
+      </div>
+      <aside class="zona-lateral" aria-label="Resumen y acciones">
+        <slot name="lateral" />
+      </aside>
+    </div>
+  )}
+</PanelLayout>
+
+<style>
+  .lectura-seccion {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-3);
+    margin: 0 0 var(--esp-5);
+    font-size: var(--texto-lg);
+    font-weight: var(--peso-medio);
+  }
+  .chip-lectura {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px var(--esp-3);
+    border-radius: 999px;
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-fuerte);
+  }
+  .chip-lectura .punto {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .chip-lectura.bien {
+    background: var(--color-exito-suave);
+    color: var(--color-exito);
+  }
+  .chip-lectura.atencion {
+    background: var(--color-alerta-suave);
+    color: var(--color-alerta);
+  }
+  .chip-lectura.bajo {
+    background: var(--color-error-suave);
+    color: var(--color-error);
+  }
+  .demo {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-2);
+    margin: 0 0 var(--esp-4);
+    color: var(--color-alerta);
+    font-size: var(--texto-sm);
+  }
+  .filtros-seccion {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-3);
+    margin-bottom: var(--esp-6);
+  }
+  .segmentado {
+    display: inline-flex;
+    flex-wrap: wrap;
+    padding: 4px;
+    gap: 2px;
+    background: var(--color-lateral);
+    border-radius: var(--radio);
+  }
+  .segmentado a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 var(--esp-3);
+    border-radius: var(--radio-sm);
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .segmentado a:hover:not([aria-current]) {
+    color: var(--color-texto);
+  }
+  .segmentado a[aria-current] {
+    background: var(--color-superficie);
+    color: var(--color-texto);
+    box-shadow: var(--sombra-sm);
+  }
+  .filtro-cat select {
+    min-height: 44px;
+    padding: 0 var(--esp-3);
+    border: 1px solid var(--color-borde-fuerte);
+    border-radius: var(--radio-sm);
+    background: var(--color-superficie);
+  }
+  .rango {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .quitar {
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+  }
+  @media (max-width: 600px) {
+    .segmentado {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      flex: 1 1 100%;
+    }
+    .segmentado a {
+      justify-content: center;
+    }
+    .filtro-cat,
+    .filtro-cat select {
+      width: 100%;
+    }
+  }
+</style>

@@ -8,6 +8,26 @@ fecha: 2026-10-25
 
 # Resultados de usabilidad
 
+## 2026-10-27 · Recorrido simulado del Panel de control en tres niveles (D-55)
+
+> [!warning] Tampoco reemplaza la prueba con personas
+> Mismo método que el anterior: cuenta toques y comprueba que la respuesta aparece.
+
+| Tarea | Toques | Cómo |
+|---|---|---|
+| D1 · ¿Cuántos faltan por llegar hoy? | 0 | Recuadro Hoy |
+| D2 · ¿La asistencia del mes va bien o mal? | 0 | «Bien» en el recuadro del mes |
+| D3 · ¿Quién llega tarde más seguido? | 1 | Vistazo de Puntualidad |
+| D4 · Docentes, mes anterior | 3 | Menú › Asistencia › Mes anterior › Docente |
+| D5 · Ver lo pendiente (lo de secretaría) | 1 | Menú › Pendientes |
+| D6 · Del vistazo a la sección completa | 2 | Recuadro › «Ver todo en …» |
+| S0 · ¿Dónde entra la secretaría? | 0 | Directo en Pendientes |
+| S7 · Buscar a Daniel y cargarle un permiso | 3 | Buscador › su panel › Cargar permiso |
+| S8 · ¿Cuántos por llegar hoy? | 0 | Tarjeta «Hoy» de Pendientes |
+| S9 · Planilla de hoy | 0 | Accesos de Pendientes |
+
+**A observar con personas:** si el botón «Ver todo en …» se entiende como «más detalle», si las subsecciones del menú se descubren solas y si la secretaría echa de menos el «Registro del día» con ese nombre (ahora es *Hoy*).
+
 ## 2026-10-25 · Recorrido simulado del nuevo panel (antes de probar con personas)
 
 > [!warning] No reemplaza la prueba con personas

@@ -1,0 +1,233 @@
+---
+/** Panel de control › Asistencia (D-55): tendencia, calendario y día por día. */
+import PanelSeccionLayout from "@/layouts/PanelSeccionLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Tabla from "@/components/ui/Tabla.astro";
+import Icono from "@/components/ui/Icono.astro";
+import Figura from "@/components/graficas/Figura.astro";
+import GraficaLinea from "@/components/graficas/GraficaLinea.astro";
+import CalendarioPeriodo from "@/components/panel/CalendarioPeriodo.astro";
+import Contador from "@/components/panel/Contador.astro";
+import { fechaCorta, hoyEnZona } from "@/lib/fecha";
+import { listarCategorias } from "@/lib/datos/categorias";
+import { cargarPanel, dd, diaTexto, enlacePanel, leerFiltros } from "@/lib/datos/panel";
+import { lecturaPorcentaje } from "@/lib/reglas/estadisticas";
+import { numero, plural, porcentaje } from "@/lib/formato";
+
+const sb = Astro.locals.supabase;
+const hoy = hoyEnZona();
+const categorias = await listarCategorias(sb);
+const filtros = leerFiltros(Astro.url, categorias);
+const d = await cargarPanel(sb, {
+  hoy,
+  filtros,
+  categorias,
+  esDirectiva: Astro.locals.perfil!.rol === "directiva",
+});
+const { resumen, resumenAnt, hayDatos } = d;
+const antes = (v: string) => (resumenAnt?.conteo.total ? `Antes: ${v}` : undefined);
+const exportar = `desde=${d.rango.desde}&hasta=${d.rango.hasta}${filtros.categoriaId ? `&categoria=${filtros.categoriaId}` : ""}`;
+const dias = [...d.serie].reverse();
+---
+
+<PanelSeccionLayout
+  titulo="Asistencia"
+  frase={
+    hayDatos
+      ? `${porcentaje(resumen.asistencia)} de asistencia${d.comparacionAsistencia ? ` · ${d.comparacionAsistencia.toLowerCase()}` : ""}`
+      : "Sin registros en este período"
+  }
+  lectura={hayDatos ? lecturaPorcentaje(resumen.asistencia) : undefined}
+  filtros={filtros}
+  categorias={categorias}
+  rango={`${fechaCorta(d.rango.desde)} – ${fechaCorta(d.rango.hasta)}`}
+  esDemo={d.esDemo}
+>
+  <Tarjeta datos>
+    <dl class="cifras-seccion">
+      <div class={hayDatos ? lecturaPorcentaje(resumen.asistencia) : undefined} style="--i: 0">
+        <dt>Asistencia</dt>
+        <dd class="valor">
+          {hayDatos ? <Contador valor={resumen.asistencia} sufijo=" %" /> : "—"}
+        </dd>
+        <dd class="nota-cifra">{antes(porcentaje(resumenAnt?.asistencia ?? 0))}</dd>
+      </div>
+      <div style="--i: 1">
+        <dt>Faltas</dt>
+        <dd>
+          <a class="valor" href={enlacePanel("/panel/ausencias", filtros)}>
+            <Contador valor={resumen.conteo.falta} />
+          </a>
+        </dd>
+        <dd class="nota-cifra">{antes(numero(resumenAnt?.conteo.falta ?? 0))}</dd>
+      </div>
+      <div style="--i: 2">
+        <dt>Permisos</dt>
+        <dd>
+          <a class="valor" href={enlacePanel("/panel/ausencias", filtros)}>
+            <Contador valor={resumen.conteo.permiso} />
+          </a>
+        </dd>
+        <dd class="nota-cifra">{antes(numero(resumenAnt?.conteo.permiso ?? 0))}</dd>
+      </div>
+      <div style="--i: 3">
+        <dt>Horas trabajadas</dt>
+        <dd class="valor">
+          <Contador valor={resumen.horasTotales} />
+        </dd>
+        <dd class="nota-cifra">{plural(resumen.conteo.total, "jornada", "jornadas")}</dd>
+      </div>
+    </dl>
+  </Tarjeta>
+
+  {d.serieTendencia.length > 1 && (
+    <Figura
+      titulo="Tendencia de asistencia"
+      descripcion={`${d.concl.tendencia ?? "Porcentaje diario de jornadas cumplidas"}${d.omitidosTendencia ? ` · ${plural(d.omitidosTendencia, "día", "días")} con poco personal no se grafica${d.omitidosTendencia === 1 ? "" : "n"}` : ""}`}
+      columnas={["Fecha", "Asistencia"]}
+      filas={d.serieTendencia.map((s) => [fechaCorta(s.clave), porcentaje(s.valor, 2)])}
+    >
+      <GraficaLinea
+        puntos={d.serieTendencia.map((s) => ({
+          etiqueta: dd(s.clave),
+          fecha: s.clave,
+          valor: s.valor,
+          detalle: `${diaTexto(s.clave)} · ${plural(s.conteo.falta, "falta", "faltas")}, ${s.conteo.tarde} tarde`,
+        }))}
+        referencia={{
+          valor: resumen.asistencia,
+          etiqueta: `Prom. ${porcentaje(resumen.asistencia)}`,
+        }}
+      />
+    </Figura>
+  )}
+
+  <Tarjeta titulo="Día por día" descripcion="Toque una fecha para abrir su planilla.">
+    <label class="buscar-en">
+      Buscar un día
+      <input
+        type="search"
+        data-filtrar="dias"
+        placeholder="Por ejemplo: lun o 20 oct"
+        autocomplete="off"
+      />
+    </label>
+    <div data-filtrable="dias" data-limitada>
+      <Tabla
+        titulo="Asistencia día por día"
+        hayFilas={dias.length > 0}
+        vacio="No hay días con registros."
+        tarjetas
+      >
+        <thead>
+          <tr>
+            <th scope="col">
+              <button type="button" class="ordenar">
+                Día
+              </button>
+            </th>
+            <th scope="col" class="num">
+              <button type="button" class="ordenar">
+                Asistencia
+              </button>
+            </th>
+            <th scope="col" class="num">
+              <button type="button" class="ordenar">
+                Presentes
+              </button>
+            </th>
+            <th scope="col" class="num">
+              <button type="button" class="ordenar">
+                Tarde
+              </button>
+            </th>
+            <th scope="col" class="num">
+              <button type="button" class="ordenar">
+                Faltas
+              </button>
+            </th>
+            <th scope="col" class="num">
+              <button type="button" class="ordenar">
+                Permisos
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {dias.map((s, n) => (
+            <tr class:list={[n >= 15 && "extra"]}>
+              <td data-etiqueta="Día" data-valor={s.clave}>
+                <a href={`/reportes?fecha=${s.clave}`}>{diaTexto(s.clave)}</a>
+              </td>
+              <td data-etiqueta="Asistencia" class="num" data-valor={s.valor}>
+                <span class:list={["pct", lecturaPorcentaje(s.valor)]}>{porcentaje(s.valor)}</span>
+              </td>
+              <td data-etiqueta="Presentes" class="num">
+                {s.conteo.presente}
+              </td>
+              <td data-etiqueta="Tarde" class="num">
+                {s.conteo.tarde}
+              </td>
+              <td data-etiqueta="Faltas" class="num">
+                {s.conteo.falta}
+              </td>
+              <td data-etiqueta="Permisos" class="num">
+                {s.conteo.permiso}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Tabla>
+    </div>
+    {dias.length > 15 && (
+      <button type="button" class="ver-todos">
+        Ver todos ({dias.length} días)
+      </button>
+    )}
+  </Tarjeta>
+
+  <Fragment slot="lateral">
+    <Tarjeta titulo="Día por día" descripcion="Verde: bien · ámbar: atención · rojo: bajo">
+      <CalendarioPeriodo semanas={d.semanas} />
+    </Tarjeta>
+    <Tarjeta titulo="Acciones">
+      <ul class="acciones-seccion">
+        <li>
+          <a
+            href={`/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=pdf&ver=1`}
+            target="_blank"
+            rel="noopener"
+            data-astro-reload
+          >
+            <Icono nombre="descargar" tamano={18} /> Planilla de hoy (PDF)
+          </a>
+        </li>
+        <li>
+          <a href={`/api/reportes/resumen?formato=xlsx&${exportar}`} download data-astro-reload>
+            <Icono nombre="documento" tamano={18} /> Resumen de este período (Excel)
+          </a>
+        </li>
+        <li>
+          <a href={`/reportes/resumen?${exportar}`}>
+            <Icono nombre="usuarios" tamano={18} /> Ver por persona
+          </a>
+        </li>
+      </ul>
+    </Tarjeta>
+  </Fragment>
+</PanelSeccionLayout>
+
+<style>
+  .pct {
+    font-weight: var(--peso-fuerte);
+  }
+  .pct.bien {
+    color: var(--lectura-bien);
+  }
+  .pct.atencion {
+    color: var(--lectura-atencion);
+  }
+  .pct.bajo {
+    color: var(--lectura-bajo);
+  }
+</style>

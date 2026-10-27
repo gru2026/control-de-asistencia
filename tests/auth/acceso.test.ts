@@ -14,7 +14,10 @@ describe("decidirAcceso", () => {
       tipo: "redirigir",
       destino: "/asistencia",
     });
-    expect(decidirAcceso("/login", "secretaria")).toEqual({ tipo: "redirigir", destino: "/panel" });
+    expect(decidirAcceso("/login", "secretaria")).toEqual({
+      tipo: "redirigir",
+      destino: "/panel/pendientes",
+    });
   });
 
   it("F4 personal no entra a rutas de administración", () => {
@@ -68,6 +71,6 @@ describe("destinoSeguro", () => {
     expect(destinoSeguro("/\\evil.com", "directiva")).toBe("/panel");
     expect(destinoSeguro("/panel", "personal")).toBe(inicioPorRol("personal"));
     expect(destinoSeguro("/login", "directiva")).toBe("/panel");
-    expect(destinoSeguro(null, "secretaria")).toBe("/panel");
+    expect(destinoSeguro(null, "secretaria")).toBe("/panel/pendientes");
   });
 });

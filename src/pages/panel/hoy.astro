@@ -1,0 +1,695 @@
+---
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Tabla from "@/components/ui/Tabla.astro";
+import Badge, { type TipoBadge } from "@/components/ui/Badge.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Icono from "@/components/ui/Icono.astro";
+import Modal from "@/components/ui/Modal.astro";
+import BarraFiltros from "@/components/ui/BarraFiltros.astro";
+import ChipCategoria from "@/components/ui/ChipCategoria.astro";
+import SubnavPanel from "@/components/panel/SubnavPanel.astro";
+import "@/styles/panel.css";
+import { listarCategorias } from "@/lib/datos/categorias";
+import {
+  aExcepcion,
+  aJornada,
+  COLUMNAS_JORNADA,
+  type FilaHorario,
+  type FilaJornada,
+} from "@/lib/datos/jornadas";
+import { resolverJornada } from "@/lib/reglas/jornada";
+import { estadoFila, type ClaveFila } from "@/lib/reglas/registro";
+import { permisoCubre } from "@/lib/reglas/permisos";
+import { horaEnZona, sumarDias } from "@/lib/reglas/tiempo";
+import { esUuid, terminosBusqueda, texto } from "@/lib/validacion";
+import { fechaLarga, hoyEnZona } from "@/lib/fecha";
+import { ponerFlash } from "@/lib/flash";
+import { deshacerAsistido, marcarAsistido } from "@/lib/servicios/asistido";
+import type { EstadoAsistencia } from "@/types";
+
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+const p = Astro.url.searchParams;
+const hoy = hoyEnZona();
+const fechaParam = p.get("fecha") ?? "";
+const fecha = /^\d{4}-\d{2}-\d{2}$/.test(fechaParam) && fechaParam <= hoy ? fechaParam : hoy;
+const esHoy = fecha === hoy;
+
+// ── Marcación asistida ─────────────────────────────────────────
+let mensaje: string | null = null;
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  const personalId = texto(f, "personal_id");
+  const tipo = texto(f, "tipo");
+  const deshacer = texto(f, "accion") === "deshacer";
+  const hora = texto(f, "hora");
+  // Sin JavaScript también llega el motivo elegido con los botones
+  const motivo = texto(f, "motivo_manual");
+  const observacion =
+    (motivo && motivo !== "Otro" ? motivo : texto(f, "observacion")).slice(0, 300) || null;
+  if (!esUuid(personalId) || (tipo !== "entrada" && tipo !== "salida")) {
+    mensaje = "Solicitud no válida.";
+  } else if (hora && !/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) {
+    mensaje = "Hora no válida.";
+  } else if (deshacer) {
+    const ok = await deshacerAsistido({ personalId, fecha, tipo, usuarioId: perfil.id });
+    ponerFlash(
+      Astro.cookies,
+      ok ? "info" : "error",
+      ok ? "Marcación deshecha." : "Ya no se puede deshacer: corríjala con otra hora.",
+    );
+    // Si el «Deshacer» vino de otra pantalla (panel de la persona), se vuelve a ella.
+    const volver = texto(f, "volver");
+    const destino =
+      volver.startsWith("/") && !volver.startsWith("//")
+        ? volver
+        : Astro.url.pathname + Astro.url.search;
+    return Astro.redirect(destino, 303);
+  } else {
+    try {
+      const r = await marcarAsistido({
+        personalId,
+        fecha,
+        tipo,
+        horaManual: hora || null,
+        observacion,
+        usuarioId: perfil.id,
+      });
+      ponerFlash(
+        Astro.cookies,
+        r.ok ? "exito" : "error",
+        r.mensaje,
+        r.ok && r.deshacible
+          ? { accion: "deshacer", datos: { personal_id: personalId, tipo } }
+          : undefined,
+      );
+      return Astro.redirect(Astro.url.pathname + Astro.url.search, 303);
+    } catch (e) {
+      console.error("[panel/hoy]", e);
+      mensaje = "No se pudo registrar. Intente de nuevo.";
+    }
+  }
+  Astro.response.status = 400;
+}
+
+// ── Datos del día ──────────────────────────────────────────────
+interface FilaPersona {
+  id: string;
+  nombre: string;
+  apellido: string;
+  cedula: string;
+  categoria_id: string;
+  marca_en_pc: boolean;
+  fecha_ingreso: string | null;
+  jornadas: FilaJornada | null;
+  horarios: FilaHorario[];
+}
+interface FilaReg {
+  personal_id: string;
+  estado: EstadoAsistencia;
+  hora_entrada: string | null;
+  hora_salida: string | null;
+  entrada_metodo: string | null;
+  salida_metodo: string | null;
+  salida_no_registrada: boolean;
+  senalado: boolean;
+  revisado_por: string | null;
+  es_demo: boolean;
+}
+const [categorias, gente, regs, perms, { data: feriado }] = await Promise.all([
+  listarCategorias(sb),
+  sb
+    .from("personal")
+    .select(
+      `id, nombre, apellido, cedula, categoria_id, marca_en_pc, fecha_ingreso, jornadas(${COLUMNAS_JORNADA}), horarios(dia_semana, hora_entrada, hora_salida, tolerancia_min, libre)`,
+    )
+    .eq("estado", "activo")
+    .order("apellido")
+    .order("nombre"),
+  sb
+    .from("registros_asistencia")
+    .select(
+      "personal_id, estado, hora_entrada, hora_salida, entrada_metodo, salida_metodo, salida_no_registrada, senalado, revisado_por, es_demo",
+    )
+    .eq("fecha", fecha),
+  sb
+    .from("permisos")
+    .select("personal_id, fecha_desde, fecha_hasta")
+    .lte("fecha_desde", fecha)
+    .gte("fecha_hasta", fecha),
+  sb.from("feriados").select("descripcion").eq("fecha", fecha).maybeSingle(),
+]);
+const catPorId = new Map(categorias.map((c) => [c.id, c]));
+const regPorPersona = new Map(((regs.data ?? []) as FilaReg[]).map((r) => [r.personal_id, r]));
+const permisos = (perms.data ?? []).map((x) => ({
+  personalId: x.personal_id as string,
+  desde: x.fecha_desde as string,
+  hasta: x.fecha_hasta as string,
+}));
+
+const filasTodas = ((gente.data ?? []) as unknown as FilaPersona[])
+  .filter((x) => !x.fecha_ingreso || x.fecha_ingreso <= fecha)
+  .map((x) => {
+    const regla = resolverJornada({
+      fecha,
+      jornada: x.jornadas ? aJornada(x.jornadas) : null,
+      excepciones: x.horarios.map(aExcepcion),
+      feriados: feriado ? [fecha] : [],
+    });
+    const r = regPorPersona.get(x.id);
+    const real = r && !r.es_demo ? r : null;
+    const estado = estadoFila({
+      regla,
+      registro: r
+        ? {
+            horaEntrada: r.hora_entrada,
+            horaSalida: r.hora_salida,
+            estado: r.estado,
+            salidaNoRegistrada: r.salida_no_registrada,
+            esDemo: r.es_demo,
+          }
+        : null,
+      tienePermiso: permisoCubre(permisos, x.id, fecha),
+    });
+    return { persona: x, regla, real, ...estado };
+  });
+
+// ── Filtros ────────────────────────────────────────────────────
+const VISTAS = {
+  todos: "Programados hoy",
+  pendientes: "Por llegar",
+  llegaron: "Llegaron",
+  salida: "Sin salida marcada",
+  faltas: "Faltas",
+  permisos: "Permisos",
+  secretaria: "Marcan en secretaría",
+  libres: "Sin jornada este día",
+} as const;
+type Vista = keyof typeof VISTAS;
+const vista: Vista = (Object.keys(VISTAS) as Vista[]).includes(p.get("ver") as Vista)
+  ? (p.get("ver") as Vista)
+  : "todos";
+const categoria = categorias.some((c) => c.id === p.get("categoria")) ? p.get("categoria") : null;
+const q = (p.get("q") ?? "").slice(0, 80);
+const terminos = terminosBusqueda(q).map((t) => t.toLowerCase());
+
+const LLEGARON: ClaveFila[] = ["presente", "tarde", "sin_salida"];
+const enVista = (f: (typeof filasTodas)[number]) => {
+  switch (vista) {
+    case "pendientes":
+      return f.clave === "pendiente";
+    case "llegaron":
+      return LLEGARON.includes(f.clave) && !!f.real?.hora_entrada;
+    case "salida":
+      return f.accion === "salida";
+    case "faltas":
+      return f.clave === "falta";
+    case "permisos":
+      return f.clave === "permiso";
+    case "secretaria":
+      return f.persona.marca_en_pc && f.clave !== "no_programado";
+    case "libres":
+      return f.clave === "no_programado";
+    default:
+      return f.clave !== "no_programado";
+  }
+};
+const filas = filasTodas
+  .filter(enVista)
+  .filter((f) => !categoria || f.persona.categoria_id === categoria)
+  .filter((f) => {
+    const texto = `${f.persona.nombre} ${f.persona.apellido} ${f.persona.cedula}`.toLowerCase();
+    return terminos.every((t) => texto.includes(t));
+  })
+  // Primero quienes faltan por llegar y marcan en secretaría
+  .sort(
+    (a, b) =>
+      Number(b.clave === "pendiente") - Number(a.clave === "pendiente") ||
+      Number(b.persona.marca_en_pc) - Number(a.persona.marca_en_pc),
+  );
+
+const programados = filasTodas.filter((f) => f.clave !== "no_programado");
+const resumen = {
+  programados: programados.length,
+  llegaron: programados.filter((f) => f.real?.hora_entrada).length,
+  pendientes: programados.filter((f) => f.clave === "pendiente").length,
+  permisos: programados.filter((f) => f.clave === "permiso").length,
+  faltas: programados.filter((f) => f.clave === "falta").length,
+};
+
+const ESTADO: Record<ClaveFila, [TipoBadge, string]> = {
+  pendiente: ["info", "Por llegar"],
+  presente: ["presente", "Presente"],
+  tarde: ["tarde", "Tarde"],
+  falta: ["falta", "Falta"],
+  permiso: ["permiso", "Permiso"],
+  sin_salida: ["pendiente", "Sin salida"],
+  no_programado: ["inactivo", "Sin jornada"],
+};
+const METODO: Record<string, string> = {
+  qr: "teléfono",
+  asistido: "secretaría",
+  manual: "a mano",
+  kiosco: "PC",
+};
+const hora = (iso: string | null | undefined, metodo: string | null | undefined) =>
+  iso ? { h: horaEnZona(iso), m: metodo ? (METODO[metodo] ?? metodo) : "" } : null;
+const navegar = (f: string) => {
+  const u = new URL(Astro.url);
+  if (f === hoy) u.searchParams.delete("fecha");
+  else u.searchParams.set("fecha", f);
+  return u.pathname + u.search;
+};
+const hayFiltros = Boolean(q || categoria || vista !== "todos");
+const volver = encodeURIComponent("/panel/hoy");
+const MOTIVOS_MANUAL = [
+  "Falla de conexión",
+  "Olvidó marcar",
+  "Teléfono dañado o sin batería",
+  "No tiene teléfono",
+  "Otro",
+];
+---
+
+<PanelLayout
+  titulo="Hoy"
+  subtitulo={fechaLarga(fecha)}
+  amplio
+  migas={[{ texto: "Panel de control", href: "/panel" }, { texto: "Hoy" }]}
+>
+  <SubnavPanel filtros={{ periodo: "mes", categoriaId: categoria }} />
+
+  <div class="pila">
+    {mensaje && (
+      <p class="error-linea" role="alert">
+        {mensaje}
+      </p>
+    )}
+
+    <div class="cabecera">
+      <form method="get" class="dia" data-autoenviar>
+        <a href={navegar(sumarDias(fecha, -1))} class="flecha" aria-label="Día anterior">
+          <Icono nombre="anterior" />
+        </a>
+        <label class="visualmente-oculto" for="r-fecha">
+          Fecha
+        </label>
+        <input id="r-fecha" type="date" name="fecha" value={fecha} max={hoy} />
+        {!esHoy ? (
+          <a href={navegar(sumarDias(fecha, 1))} class="flecha" aria-label="Día siguiente">
+            <Icono nombre="siguiente" />
+          </a>
+        ) : (
+          <span class="flecha inactiva" aria-hidden="true">
+            <Icono nombre="siguiente" />
+          </span>
+        )}
+        {!esHoy && (
+          <a href={navegar(hoy)} class="ir-hoy">
+            Hoy
+          </a>
+        )}
+        {vista !== "todos" && <input type="hidden" name="ver" value={vista} />}
+      </form>
+      <dl class="cifras" data-datos="linea">
+        <div>
+          <dt>Programados</dt>
+          <dd>{resumen.programados}</dd>
+        </div>
+        <div>
+          <dt>Llegaron</dt>
+          <dd>{resumen.llegaron}</dd>
+        </div>
+        <div>
+          <dt>Por llegar</dt>
+          <dd>{resumen.pendientes}</dd>
+        </div>
+        <div>
+          <dt>Permisos</dt>
+          <dd>{resumen.permisos}</dd>
+        </div>
+        {resumen.faltas > 0 && (
+          <div>
+            <dt>Faltas</dt>
+            <dd>{resumen.faltas}</dd>
+          </div>
+        )}
+      </dl>
+    </div>
+
+    {feriado && (
+      <p class="aviso-linea">Feriado: {feriado.descripcion}. Nadie tiene jornada este día.</p>
+    )}
+
+    <Tarjeta>
+      <BarraFiltros
+        busqueda={{ placeholder: "Nombre, apellido o cédula" }}
+        total={filas.length}
+        unidad={["persona", "personas"]}
+        conservar={["fecha"]}
+        filtros={[
+          {
+            nombre: "ver",
+            etiqueta: "Mostrar",
+            porDefecto: "todos",
+            opciones: Object.entries(VISTAS).map(([valor, texto]) => ({ valor, texto })),
+          },
+          {
+            nombre: "categoria",
+            etiqueta: "Categoría",
+            vacia: "Todas",
+            opciones: categorias.map((c) => ({ valor: c.id, texto: c.nombre })),
+          },
+        ]}
+      />
+
+      <Tabla
+        titulo="Registro del día"
+        tarjetas
+        hayFilas={filas.length > 0}
+        vacio={hayFiltros ? "Nadie coincide con esos filtros." : "Nadie tiene jornada este día."}
+      >
+        <Fragment slot="vacio">
+          {hayFiltros && (
+            <a href={esHoy ? "/panel/hoy" : `/panel/hoy?fecha=${fecha}`}>Limpiar filtros</a>
+          )}
+        </Fragment>
+        <thead>
+          <tr>
+            <th scope="col">Persona</th>
+            <th scope="col">Categoría</th>
+            <th scope="col" class="col-jornada">
+              Jornada
+            </th>
+            <th scope="col">Entrada</th>
+            <th scope="col">Salida</th>
+            <th scope="col">Estado</th>
+            <th scope="col">
+              <span class="visualmente-oculto">Acciones</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map((f) => {
+            const c = catPorId.get(f.persona.categoria_id);
+            const nombre = `${f.persona.nombre} ${f.persona.apellido}`;
+            const ent = hora(f.real?.hora_entrada, f.real?.entrada_metodo);
+            const sal = hora(f.real?.hora_salida, f.real?.salida_metodo);
+            const [badge, textoEstado] = ESTADO[f.clave];
+            return (
+              <tr>
+                <td class="principal">
+                  <a href={`/personal/${f.persona.id}`} class="nombre" data-persona={f.persona.id}>
+                    {f.persona.apellido}, {f.persona.nombre}
+                  </a>
+                  {f.persona.marca_en_pc && <span class="sin-tel">Marca en secretaría</span>}
+                </td>
+                <td data-etiqueta="Categoría">
+                  {c ? <ChipCategoria nombre={c.nombre} color={c.color} /> : "—"}
+                </td>
+                <td data-etiqueta="Jornada" class="solo-pc col-jornada hora">
+                  {f.regla ? `${f.regla.horaEntrada}–${f.regla.horaSalida}` : "—"}
+                </td>
+                <td data-etiqueta="Entrada" class="hora">
+                  {ent ? (
+                    <span>
+                      {ent.h} <span class="suave">{ent.m}</span>
+                    </span>
+                  ) : (
+                    <span class="suave">—</span>
+                  )}
+                </td>
+                <td data-etiqueta="Salida" class="hora">
+                  {sal ? (
+                    <span>
+                      {sal.h} <span class="suave">{sal.m}</span>
+                    </span>
+                  ) : (
+                    <span class="suave">—</span>
+                  )}
+                </td>
+                <td data-etiqueta="Estado">
+                  <span class="estado">
+                    <Badge tipo={badge}>{textoEstado}</Badge>
+                    {f.real?.senalado && !f.real.revisado_por && (
+                      <a href="/asistencia/revision" class="senal" title="Señalada para revisión">
+                        <Icono nombre="alerta" tamano={16} etiqueta="Señalada para revisión" />
+                      </a>
+                    )}
+                  </span>
+                </td>
+                <td class="acciones-fila">
+                  {f.accion && (
+                    <Boton
+                      tamano="pequeno"
+                      variante="secundario"
+                      data-abrir-modal="modal-marcar"
+                      data-marcar-persona={f.persona.id}
+                      data-marcar-nombre={nombre}
+                      data-marcar-tipo={f.accion}
+                    >
+                      {f.accion === "entrada" ? "Marcar entrada" : "Marcar salida"}
+                    </Boton>
+                  )}
+                  {(f.clave === "pendiente" || f.clave === "falta") && (
+                    <a
+                      class="enlace-permiso"
+                      href={`/permisos/nuevo?persona=${f.persona.id}&desde=${fecha}&volver=${volver}`}
+                      data-ventana={`/ventanas/permiso?persona=${f.persona.id}&desde=${fecha}`}
+                      data-ventana-modo="centro"
+                    >
+                      Permiso
+                    </a>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </Tabla>
+    </Tarjeta>
+  </div>
+
+  <Modal id="modal-marcar" titulo="Marcar asistencia">
+    <form method="post" action="/api/acciones" data-api id="form-marcar" class="v-form" novalidate>
+      <input type="hidden" name="accion" value="marcar" />
+      <input type="hidden" name="fecha" value={fecha} />
+      <input type="hidden" name="personal_id" data-campo="persona" />
+      <input type="hidden" name="tipo" data-campo="tipo" />
+      <p class="quien" data-campo="texto"></p>
+      {esHoy && (
+        <div class="v-campo">
+          <span class="v-leyenda" id="m-momento">
+            ¿A qué hora?
+          </span>
+          <div class="v-chips" role="radiogroup" aria-labelledby="m-momento">
+            <label>
+              <input type="radio" name="momento" value="ahora" checked />
+              Ahora
+            </label>
+            <label>
+              <input type="radio" name="momento" value="otra" />
+              Otra hora
+            </label>
+          </div>
+        </div>
+      )}
+      <div class="v-campo" data-si-otra-hora hidden={esHoy}>
+        <label for="m-hora">Hora</label>
+        <input id="m-hora" name="hora" type="time" />
+      </div>
+      <div class="v-campo" data-si-otra-hora hidden={esHoy}>
+        <span class="v-leyenda" id="m-motivo">
+          ¿Por qué se escribe a mano?
+        </span>
+        <div class="v-chips" role="radiogroup" aria-labelledby="m-motivo">
+          {MOTIVOS_MANUAL.map((m) => (
+            <label>
+              <input type="radio" name="motivo_manual" value={m} />
+              {m}
+            </label>
+          ))}
+        </div>
+      </div>
+      <div class="v-campo" data-si-otro hidden>
+        <label for="m-obs">Escriba el motivo</label>
+        <input id="m-obs" name="observacion" maxlength="300" />
+      </div>
+      <p class="nota">
+        {esHoy
+          ? "«Ahora» usa la hora oficial del servidor. Una hora escrita a mano queda señalada para revisión."
+          : "Es un día anterior: escriba la hora y el motivo. Queda señalada para revisión."}
+      </p>
+    </form>
+    <Boton slot="acciones" type="submit" form="form-marcar" data-texto-cargando="Registrando…">
+      Registrar
+    </Boton>
+  </Modal>
+</PanelLayout>
+
+<script>
+  // Prepara el diálogo con la persona y el tipo de marcación de la fila.
+  document.addEventListener("click", (ev) => {
+    const b = (ev.target as HTMLElement).closest<HTMLElement>("[data-marcar-persona]");
+    if (!b) return;
+    const form = document.getElementById("form-marcar") as HTMLFormElement | null;
+    if (!form) return;
+    const campo = (n: string) => form.querySelector<HTMLInputElement>(`[data-campo="${n}"]`);
+    const tipo = b.dataset.marcarTipo ?? "entrada";
+    campo("persona")!.value = b.dataset.marcarPersona ?? "";
+    campo("tipo")!.value = tipo;
+    const p = form.querySelector<HTMLElement>('[data-campo="texto"]');
+    if (p)
+      p.textContent = `${tipo === "entrada" ? "Entrada" : "Salida"} de ${b.dataset.marcarNombre}`;
+    const titulo = document.getElementById("modal-marcar-titulo");
+    if (titulo) titulo.textContent = tipo === "entrada" ? "Marcar entrada" : "Marcar salida";
+    // Volver a empezar: «Ahora», sin hora ni motivo
+    const hoy = !!form.querySelector('input[name="momento"]');
+    form
+      .querySelectorAll<HTMLInputElement>('input[name="hora"], input[name="observacion"]')
+      .forEach((i) => (i.value = ""));
+    form
+      .querySelectorAll<HTMLInputElement>('input[name="motivo_manual"]')
+      .forEach((i) => (i.checked = false));
+    const ahora = form.querySelector<HTMLInputElement>('input[name="momento"][value="ahora"]');
+    if (ahora) ahora.checked = true;
+    form.querySelectorAll<HTMLElement>("[data-si-otra-hora]").forEach((e) => (e.hidden = hoy));
+    form.querySelectorAll<HTMLElement>("[data-si-otro]").forEach((e) => (e.hidden = true));
+    form.querySelectorAll(".v-error").forEach((e) => e.remove());
+    const general = form.querySelector(".v-mensaje-error");
+    if (general) general.textContent = "";
+  });
+  // «Otra hora» muestra la hora y el motivo; «Otro» pide escribirlo.
+  document.addEventListener("change", (ev) => {
+    const t = ev.target as HTMLInputElement;
+    const form = t.form;
+    if (form?.id !== "form-marcar") return;
+    if (t.name === "momento") {
+      form
+        .querySelectorAll<HTMLElement>("[data-si-otra-hora]")
+        .forEach((e) => (e.hidden = t.value !== "otra"));
+      if (t.value === "otra") form.querySelector<HTMLInputElement>("#m-hora")?.focus();
+    } else if (t.name === "motivo_manual") {
+      const otro = form.querySelector<HTMLElement>("[data-si-otro]");
+      if (otro) otro.hidden = t.value !== "Otro";
+      if (t.value === "Otro") form.querySelector<HTMLInputElement>("#m-obs")?.focus();
+    }
+  });
+</script>
+
+<style>
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  .cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--esp-4);
+  }
+  .dia {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-2);
+  }
+  .dia input {
+    min-height: 44px;
+    padding: 0 var(--esp-3);
+    border: 1px solid var(--color-borde-fuerte);
+    border-radius: var(--radio-sm);
+    background: var(--color-superficie);
+  }
+  .flecha {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radio-sm);
+    color: var(--color-texto);
+  }
+  .flecha:hover {
+    background: var(--color-superficie-hover);
+  }
+  .flecha.inactiva {
+    color: var(--color-borde-fuerte);
+  }
+  .ir-hoy {
+    font-weight: var(--peso-medio);
+  }
+  .cifras {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2) var(--esp-6);
+    margin: 0;
+  }
+  .cifras dt {
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .cifras dd {
+    margin: 0;
+    font-size: var(--texto-xl);
+    font-weight: var(--peso-fuerte);
+    font-variant-numeric: tabular-nums;
+  }
+  .aviso-linea,
+  .error-linea {
+    margin: 0;
+    font-weight: var(--peso-medio);
+    color: var(--color-alerta);
+  }
+  .error-linea {
+    color: var(--color-error);
+  }
+  .nombre {
+    font-weight: var(--peso-fuerte);
+    margin-right: var(--esp-2);
+  }
+  .hora {
+    font-variant-numeric: tabular-nums;
+  }
+  .sin-tel {
+    display: block;
+    font-size: var(--texto-xs);
+    color: var(--color-texto-suave);
+  }
+  .suave {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .estado {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+  }
+  .senal {
+    display: inline-grid;
+    color: var(--color-alerta);
+  }
+  .acciones-fila {
+    text-align: right;
+    white-space: nowrap;
+  }
+  .enlace-permiso {
+    margin-left: var(--esp-3);
+    font-size: var(--texto-sm);
+  }
+  @media (min-width: 701px) and (max-width: 1100px) {
+    .col-jornada {
+      display: none;
+    }
+  }
+  .quien {
+    margin: 0;
+    font-size: var(--texto-lg);
+    font-weight: var(--peso-fuerte);
+  }
+  .nota {
+    margin: 0;
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+</style>

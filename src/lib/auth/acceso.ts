@@ -40,7 +40,8 @@ const coincide = (ruta: string, prefijo: string) =>
 
 /** Página de inicio de cada rol. */
 export function inicioPorRol(rol: Rol): string {
-  return rol === "personal" ? "/asistencia" : "/panel";
+  // La secretaría entra a lo pendiente; la directiva, al resumen (D-55)
+  return rol === "personal" ? "/asistencia" : rol === "secretaria" ? "/panel/pendientes" : "/panel";
 }
 
 /** Roles que pueden ver una ruta (null = pública). */

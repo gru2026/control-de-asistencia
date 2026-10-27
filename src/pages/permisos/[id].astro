@@ -22,9 +22,7 @@ const sb = Astro.locals.supabase;
 const perfil = Astro.locals.perfil!;
 const volverA = (() => {
   const v = Astro.url.searchParams.get("volver");
-  return v && (/^\/personal\/[0-9a-f-]{36}$/.test(v) || v === "/asistencia/registro")
-    ? v
-    : "/permisos";
+  return v && (/^\/personal\/[0-9a-f-]{36}$/.test(v) || v === "/panel/hoy") ? v : "/permisos";
 })();
 
 interface FilaPermiso {

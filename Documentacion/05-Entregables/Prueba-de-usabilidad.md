@@ -40,7 +40,7 @@ Usar las cuentas de prueba (`Documentacion/_privado/Usuarios-de-prueba.md`). No 
 
 | # | Consigna | Éxito | Meta |
 |---|---|---|---|
-| S1 | «Daniel llegó sin teléfono. Regístrele la entrada» | Registro del día › Marcar entrada › Registrar | < 45 s |
+| S1 | «Daniel llegó sin teléfono. Regístrele la entrada» | Panel de control › Hoy › Marcar entrada › Registrar | < 45 s |
 | S2 | «Ayer se cayó el internet y Daniel llegó a las 7:10. Regístrelo» | Día anterior, hora y motivo | < 1,5 min |
 | S3 | «Daniel trae un reposo de 3 días desde mañana. Cárguelo» | Permiso con fechas y motivo | < 1 min |
 | S4 | «Daniel cambió de teléfono» | Tocar su nombre › Cambiar de teléfono | < 45 s |
@@ -57,7 +57,8 @@ Se prueba que la administración **lee el panel sin interpretar cifras** y que l
 | D2 | «¿La asistencia de este mes va bien o mal?» | Lee «Bien / Atención / Bajo» en Este mes | < 15 s |
 | D3 | «¿Quién llega tarde más seguido?» | Toca Puntualidad y lee la lista | < 30 s |
 | D4 | «Vea cómo les fue a los docentes el mes anterior» | Este mes › Mes anterior › Categoría Docente | < 1 min |
-| D5 | (Directiva) «Ahora vea el panel como lo ve secretaría» | Toca «Acción rápida» | < 20 s |
+| D5 | (Directiva) «Ahora vea lo que tiene pendiente la secretaría» | Menú › Panel de control › Pendientes | < 20 s |
+| D6 | «Vea todas las faltas del mes» | Recuadro de Ausencias › «Ver todo en Ausencias» | < 30 s |
 | S7 | «Busque a Daniel y cárguele un permiso» | Buscador › su panel › Cargar permiso | < 45 s |
 | S8 | «¿Cuántos están por llegar hoy?» | Lo lee en la línea «Hoy:» | < 15 s |
 | S9 | «Abra la planilla de hoy» | Botón «Planilla PDF» | < 20 s |

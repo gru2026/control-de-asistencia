@@ -168,7 +168,7 @@ export const POST: APIRoute = async ({ request, locals, cookies }) => {
             ? {
                 accion: "deshacer",
                 datos: { personal_id: ficha!.id, tipo, volver },
-                ruta: `/asistencia/registro?fecha=${fecha}`,
+                ruta: `/panel/hoy?fecha=${fecha}`,
               }
             : undefined,
         );

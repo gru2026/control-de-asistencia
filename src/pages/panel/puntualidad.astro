@@ -1,0 +1,230 @@
+---
+/** Panel de control › Puntualidad (D-55): llegadas, días de la semana y quién llega tarde. */
+import PanelSeccionLayout from "@/layouts/PanelSeccionLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Tabla from "@/components/ui/Tabla.astro";
+import Icono from "@/components/ui/Icono.astro";
+import Figura from "@/components/graficas/Figura.astro";
+import DistribucionLlegadas from "@/components/graficas/DistribucionLlegadas.astro";
+import BarrasHorizontales from "@/components/graficas/BarrasHorizontales.astro";
+import Contador from "@/components/panel/Contador.astro";
+import { fechaCorta, hoyEnZona } from "@/lib/fecha";
+import { listarCategorias } from "@/lib/datos/categorias";
+import { cargarPanel, iniciales, leerFiltros } from "@/lib/datos/panel";
+import { lecturaPorcentaje } from "@/lib/reglas/estadisticas";
+import { plural, porcentaje } from "@/lib/formato";
+import { NOMBRE_DIA, type DiaSemana } from "@/types";
+
+const sb = Astro.locals.supabase;
+const hoy = hoyEnZona();
+const categorias = await listarCategorias(sb);
+const filtros = leerFiltros(Astro.url, categorias);
+const d = await cargarPanel(sb, {
+  hoy,
+  filtros,
+  categorias,
+  esDirectiva: Astro.locals.perfil!.rol === "directiva",
+});
+const { resumen, hayDatos } = d;
+const grupo = (...claves: string[]) =>
+  d.llegadas.filter((l) => claves.includes(l.clave)).reduce((s, l) => s + l.valor, 0);
+const pctDe = (v: number) => (d.totalLlegadas ? (v / d.totalLlegadas) * 100 : 0);
+const aTiempo = pctDe(grupo("antes", "0-5"));
+const tolerancia = pctDe(grupo("6-15"));
+const tarde = pctDe(grupo("16-30", "31-60", "60+"));
+const exportar = `desde=${d.rango.desde}&hasta=${d.rango.hasta}${filtros.categoriaId ? `&categoria=${filtros.categoriaId}` : ""}`;
+---
+
+<PanelSeccionLayout
+  titulo="Puntualidad"
+  frase={
+    hayDatos
+      ? `${d.frasePuntualidad} · ${porcentaje(resumen.puntualidad)} llegó a tiempo`
+      : "Sin registros en este período"
+  }
+  lectura={hayDatos ? lecturaPorcentaje(resumen.puntualidad) : undefined}
+  filtros={filtros}
+  categorias={categorias}
+  rango={`${fechaCorta(d.rango.desde)} – ${fechaCorta(d.rango.hasta)}`}
+  esDemo={d.esDemo}
+>
+  <Tarjeta datos>
+    <dl class="cifras-seccion">
+      <div class="bien" style="--i: 0">
+        <dt>A la hora o antes</dt>
+        <dd class="valor">
+          <Contador valor={aTiempo} sufijo=" %" />
+        </dd>
+      </div>
+      <div style="--i: 1">
+        <dt>Dentro de la tolerancia</dt>
+        <dd class="valor">
+          <Contador valor={tolerancia} sufijo=" %" />
+        </dd>
+      </div>
+      <div class:list={[tarde >= 10 ? "bajo" : tarde > 0 && "atencion"]} style="--i: 2">
+        <dt>Más de 15 min tarde</dt>
+        <dd class="valor">
+          <Contador valor={tarde} sufijo=" %" />
+        </dd>
+      </div>
+      <div style="--i: 3">
+        <dt>Retraso promedio</dt>
+        <dd class="valor">
+          <Contador valor={resumen.retrasoPromedioMin} sufijo=" min" />
+        </dd>
+        <dd class="nota-cifra">de quienes llegan tarde</dd>
+      </div>
+    </dl>
+  </Tarjeta>
+
+  {hayDatos && (
+    <Figura
+      titulo="Hora de llegada"
+      descripcion={d.concl.llegadas ?? "Minutos después de la hora de entrada."}
+      columnas={["Tramo", "Llegadas"]}
+      filas={d.llegadas.map((l) => [l.etiqueta, l.valor])}
+    >
+      <DistribucionLlegadas tramos={d.llegadas} />
+    </Figura>
+  )}
+
+  <Tarjeta
+    titulo="Quiénes llegan tarde"
+    descripcion="Ordene por cualquier columna; toque un nombre para ver a la persona."
+  >
+    <label class="buscar-en">
+      Buscar una persona
+      <input
+        type="search"
+        data-filtrar="tarde"
+        placeholder="Nombre o categoría"
+        autocomplete="off"
+      />
+    </label>
+    <div data-filtrable="tarde" data-limitada>
+      <Tabla
+        titulo="Personas con llegadas tarde"
+        hayFilas={d.masTarde.length > 0}
+        vacio="Nadie llegó tarde en este período."
+        tarjetas
+      >
+        <thead>
+          <tr>
+            <th scope="col">
+              <button type="button" class="ordenar">
+                Persona
+              </button>
+            </th>
+            <th scope="col">
+              <button type="button" class="ordenar">
+                Categoría
+              </button>
+            </th>
+            <th scope="col" class="num" aria-sort="descending">
+              <button type="button" class="ordenar">
+                Veces tarde
+              </button>
+            </th>
+            <th scope="col" class="num">
+              <button type="button" class="ordenar">
+                Retraso promedio
+              </button>
+            </th>
+            <th scope="col" class="num">
+              <button type="button" class="ordenar">
+                Asistencia
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {d.masTarde.map((c, n) => {
+            const x = d.personaPorId.get(c.personalId);
+            const cat = x ? d.catPorId.get(x.categoria_id) : undefined;
+            const r = d.retrasoPorPersona.get(c.personalId);
+            const prom = r ? Math.round(r.suma / r.n) : 0;
+            return (
+              <tr class:list={[n >= 15 && "extra"]}>
+                <td data-etiqueta="Persona" data-valor={x ? `${x.apellido} ${x.nombre}` : ""}>
+                  <span class="persona-celda">
+                    <span class="ini" style={`--c: ${cat?.color ?? "#64748b"}`} aria-hidden="true">
+                      {x ? iniciales(`${x.nombre} ${x.apellido}`) : ""}
+                    </span>
+                    {x ? (
+                      <a href={`/personal/${x.id}`} data-persona={x.id}>
+                        {x.apellido}, {x.nombre}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </span>
+                </td>
+                <td data-etiqueta="Categoría" class="texto-suave">
+                  {cat?.nombre ?? "—"}
+                </td>
+                <td data-etiqueta="Veces tarde" class="num" data-valor={c.tardanzas}>
+                  <strong>{c.tardanzas}</strong>
+                </td>
+                <td data-etiqueta="Retraso promedio" class="num" data-valor={prom}>
+                  {prom} min
+                </td>
+                <td data-etiqueta="Asistencia" class="num" data-valor={c.asistencia}>
+                  {porcentaje(c.asistencia)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </Tabla>
+    </div>
+    {d.masTarde.length > 15 && (
+      <button type="button" class="ver-todos">
+        Ver todos ({d.masTarde.length} personas)
+      </button>
+    )}
+  </Tarjeta>
+
+  <Fragment slot="lateral">
+    {d.dias.length > 0 && (
+      <Tarjeta titulo="Por día de la semana" descripcion={d.concl.dias ?? undefined}>
+        <BarrasHorizontales
+          maximo={100}
+          lectura
+          items={d.dias.map((x) => ({
+            etiqueta: NOMBRE_DIA[x.dia as DiaSemana],
+            valor: x.asistencia,
+            texto: porcentaje(x.asistencia),
+            detalle: `${porcentaje(x.tardanza)} tarde`,
+            resaltar: x.asistencia === d.peorDia && d.dias.length > 1,
+          }))}
+        />
+      </Tarjeta>
+    )}
+    <Tarjeta titulo="Acciones">
+      <ul class="acciones-seccion">
+        <li>
+          <a href={`/reportes/resumen?${exportar}&orden=tardanzas&dir=desc`}>
+            <Icono nombre="usuarios" tamano={18} /> Resumen por persona
+          </a>
+        </li>
+        <li>
+          <a href={`/api/reportes/resumen?formato=xlsx&${exportar}`} download data-astro-reload>
+            <Icono nombre="documento" tamano={18} /> Descargar en Excel
+          </a>
+        </li>
+      </ul>
+      <p class="nota">
+        {plural(resumen.conteo.tarde, "llegada tarde", "llegadas tarde")} en el período.
+      </p>
+    </Tarjeta>
+  </Fragment>
+</PanelSeccionLayout>
+
+<style>
+  .nota {
+    margin: var(--esp-3) 0 0;
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+</style>

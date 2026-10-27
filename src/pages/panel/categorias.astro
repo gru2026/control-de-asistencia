@@ -1,0 +1,272 @@
+---
+/** Panel de control › Por categoría (D-55): comparación entre grupos del personal. */
+import PanelSeccionLayout from "@/layouts/PanelSeccionLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Tabla from "@/components/ui/Tabla.astro";
+import Icono from "@/components/ui/Icono.astro";
+import Figura from "@/components/graficas/Figura.astro";
+import BarrasHorizontales from "@/components/graficas/BarrasHorizontales.astro";
+import Contador from "@/components/panel/Contador.astro";
+import { fechaCorta, hoyEnZona } from "@/lib/fecha";
+import { listarCategorias } from "@/lib/datos/categorias";
+import { cargarPanel, enlacePanel, iniciales, leerFiltros } from "@/lib/datos/panel";
+import { lecturaPorcentaje, NOMBRE_LECTURA } from "@/lib/reglas/estadisticas";
+import { plural, porcentaje } from "@/lib/formato";
+
+const sb = Astro.locals.supabase;
+const hoy = hoyEnZona();
+const categorias = await listarCategorias(sb);
+const filtros = leerFiltros(Astro.url, categorias);
+const d = await cargarPanel(sb, {
+  hoy,
+  filtros,
+  categorias,
+  esDirectiva: Astro.locals.perfil!.rol === "directiva",
+});
+const enAtencion = d.cats.filter((c) => lecturaPorcentaje(c.asistencia) !== "bien").length;
+const exportar = `desde=${d.rango.desde}&hasta=${d.rango.hasta}`;
+---
+
+<PanelSeccionLayout
+  titulo="Por categoría"
+  frase={
+    d.peorCat && d.cats.length > 1
+      ? `${d.fraseCategoria} (${porcentaje(d.peorCat.asistencia)})`
+      : d.fraseCategoria
+  }
+  lectura={d.peorCat ? lecturaPorcentaje(d.peorCat.asistencia) : undefined}
+  filtros={filtros}
+  categorias={categorias}
+  rango={`${fechaCorta(d.rango.desde)} – ${fechaCorta(d.rango.hasta)}`}
+  esDemo={d.esDemo}
+>
+  {d.mejorCat && d.peorCat && (
+    <Tarjeta datos>
+      <dl class="cifras-seccion">
+        <div class={lecturaPorcentaje(d.mejorCat.asistencia)} style="--i: 0">
+          <dt>La mejor: {d.mejorCat.cat?.nombre}</dt>
+          <dd class="valor">
+            <Contador valor={d.mejorCat.asistencia} sufijo=" %" />
+          </dd>
+        </div>
+        <div class={lecturaPorcentaje(d.peorCat.asistencia)} style="--i: 1">
+          <dt>La más baja: {d.peorCat.cat?.nombre}</dt>
+          <dd class="valor">
+            <Contador valor={d.peorCat.asistencia} sufijo=" %" />
+          </dd>
+        </div>
+        <div class:list={[enAtencion && "atencion"]} style="--i: 2">
+          <dt>Por debajo de 90 %</dt>
+          <dd class="valor">
+            <Contador valor={enAtencion} />
+          </dd>
+          <dd class="nota-cifra">{plural(d.cats.length, "categoría", "categorías")} en total</dd>
+        </div>
+      </dl>
+    </Tarjeta>
+  )}
+
+  {d.cats.length > 0 && (
+    <Figura
+      titulo="Asistencia por categoría"
+      descripcion={d.concl.categorias ?? "Asistencia de cada grupo del personal."}
+      columnas={["Categoría", "Asistencia"]}
+      filas={d.cats.map((c) => [c.cat?.nombre ?? "—", porcentaje(c.asistencia, 2)])}
+    >
+      <BarrasHorizontales
+        maximo={100}
+        lectura
+        items={d.cats.map((c) => ({
+          etiqueta: c.cat?.nombre ?? "—",
+          valor: c.asistencia,
+          texto: porcentaje(c.asistencia),
+          color: c.cat?.color,
+          detalle: `${c.personas} pers. · puntualidad ${porcentaje(c.puntualidad)}`,
+        }))}
+      />
+    </Figura>
+  )}
+
+  <Tarjeta
+    titulo="Comparación"
+    descripcion="Toque una categoría para ver todo el panel solo con ella."
+  >
+    <Tabla
+      titulo="Comparación por categoría"
+      hayFilas={d.cats.length > 0}
+      vacio="No hay registros en este período."
+      tarjetas
+    >
+      <thead>
+        <tr>
+          <th scope="col">
+            <button type="button" class="ordenar">
+              Categoría
+            </button>
+          </th>
+          <th scope="col" class="num">
+            <button type="button" class="ordenar">
+              Personas
+            </button>
+          </th>
+          <th scope="col" class="num">
+            <button type="button" class="ordenar">
+              Asistencia
+            </button>
+          </th>
+          <th scope="col" class="num">
+            <button type="button" class="ordenar">
+              Puntualidad
+            </button>
+          </th>
+          <th scope="col" class="num">
+            <button type="button" class="ordenar">
+              Faltas
+            </button>
+          </th>
+          <th scope="col">
+            <button type="button" class="ordenar">
+              Lectura
+            </button>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {d.cats.map((c) => {
+          const l = lecturaPorcentaje(c.asistencia);
+          return (
+            <tr>
+              <td data-etiqueta="Categoría" data-valor={c.cat?.nombre ?? ""}>
+                <a
+                  class="cat"
+                  href={enlacePanel("/panel/asistencia", {
+                    ...filtros,
+                    categoriaId: c.categoriaId,
+                  })}
+                >
+                  <span class="punto" style={`background: ${c.cat?.color ?? "#64748b"}`} />
+                  {c.cat?.nombre ?? "—"}
+                </a>
+              </td>
+              <td data-etiqueta="Personas" class="num">
+                {c.personas}
+              </td>
+              <td data-etiqueta="Asistencia" class="num" data-valor={c.asistencia}>
+                {porcentaje(c.asistencia)}
+              </td>
+              <td data-etiqueta="Puntualidad" class="num" data-valor={c.puntualidad}>
+                {porcentaje(c.puntualidad)}
+              </td>
+              <td data-etiqueta="Faltas" class="num">
+                {c.conteo.falta}
+              </td>
+              <td data-etiqueta="Lectura" data-valor={c.asistencia}>
+                <span class:list={["chip", l]}>{NOMBRE_LECTURA[l]}</span>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </Tabla>
+  </Tarjeta>
+
+  <Fragment slot="lateral">
+    <Tarjeta titulo="Quiénes faltan o llegan tarde más seguido">
+      {d.criticas.length ? (
+        <ol class="ranking">
+          {d.criticas.map((c) => {
+            const x = d.personaPorId.get(c.personalId);
+            const cat = x ? d.catPorId.get(x.categoria_id) : undefined;
+            return (
+              <li>
+                <span class="persona-celda">
+                  <span class="ini" style={`--c: ${cat?.color ?? "#64748b"}`} aria-hidden="true">
+                    {x ? iniciales(`${x.nombre} ${x.apellido}`) : ""}
+                  </span>
+                  {x ? (
+                    <a href={`/personal/${x.id}`} data-persona={x.id}>
+                      {x.nombre} {x.apellido}
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </span>
+                <span class="texto-suave">
+                  {plural(c.faltas, "falta", "faltas")} · {c.tardanzas} tarde
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        <p class="texto-suave">Nadie acumula faltas ni tardanzas.</p>
+      )}
+    </Tarjeta>
+    <Tarjeta titulo="Acciones">
+      <ul class="acciones-seccion">
+        <li>
+          <a href={`/api/reportes/resumen?formato=xlsx&${exportar}`} download data-astro-reload>
+            <Icono nombre="documento" tamano={18} /> Descargar en Excel
+          </a>
+        </li>
+        <li>
+          <a href="/jornadas#categorias">
+            <Icono nombre="ajustes" tamano={18} /> Administrar categorías
+          </a>
+        </li>
+      </ul>
+    </Tarjeta>
+  </Fragment>
+</PanelSeccionLayout>
+
+<style>
+  .cat {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+    color: var(--color-texto);
+    font-weight: var(--peso-medio);
+  }
+  .punto {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+  }
+  .chip {
+    padding: 5px var(--esp-3);
+    border-radius: 999px;
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-fuerte);
+  }
+  .chip.bien {
+    background: var(--color-exito-suave);
+    color: var(--color-exito);
+  }
+  .chip.atencion {
+    background: var(--color-alerta-suave);
+    color: var(--color-alerta);
+  }
+  .chip.bajo {
+    background: var(--color-error-suave);
+    color: var(--color-error);
+  }
+  .ranking {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ranking li {
+    display: grid;
+    gap: 4px;
+    padding: var(--esp-3) 0;
+    border-top: 1px solid var(--color-borde);
+    font-size: var(--texto-sm);
+  }
+  .ranking li:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .ranking .texto-suave {
+    padding-left: calc(34px + var(--esp-3));
+  }
+</style>

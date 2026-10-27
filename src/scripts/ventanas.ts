@@ -13,13 +13,13 @@
  * - `form[data-confirmar="¿…?"]` pide confirmación antes de enviarse.
  * - `[data-ventana-local="id"]` abre el contenido de un `<template id="id">` de la
  *   misma pantalla (sin pedir nada al servidor; D-53). Modo "detalle": cajón ancho.
- * - `input[data-filtrar="id"]` filtra los `li` de la lista con ese id mientras se escribe.
+ * - `input[data-filtrar="id"]` filtra los `li` (o filas de tabla) con ese id mientras se escribe.
  *
  * Este módulo se importa primero en mejoras.ts: sus oyentes de envío corren
  * antes que los demás y antes que el router.
  */
 import { navigate } from "astro:transitions/client";
-import { olvidarPrecargas, tomarPrecarga } from "./precarga";
+import { olvidarPrecargas, precargar, tomarPrecarga } from "./precarga";
 
 const ESQUELETO =
   '<div class="v-cargando" aria-hidden="true"><span></span><span></span><span></span><span></span></div>';
@@ -40,6 +40,9 @@ export function abrirVentanaLocal(id: string, modo: ModoVentana = "detalle") {
   if (!dialogo.open) dialogo.showModal();
   contenido.replaceChildren(plantilla.content.cloneNode(true));
   mostrarContenido(dialogo, contenido, null);
+  // La sección completa empieza a cargarse mientras se mira el vistazo (D-55)
+  const seccion = contenido.querySelector<HTMLAnchorElement>("a[data-seccion]");
+  if (seccion) precargar(seccion.href);
 }
 
 export async function abrirVentana(url: string, modo: ModoVentana = "cajon") {
@@ -391,7 +394,9 @@ document.addEventListener("input", (ev) => {
   if (!id) return;
   const q = sinTildes(input.value.trim());
   const raiz = input.closest("[data-ventana-contenido]") ?? document;
-  raiz.querySelectorAll<HTMLElement>(`[data-filtrable="${id}"] li`).forEach((li) => {
+  const sel = `[data-filtrable="${id}"]`;
+  raiz.querySelector(sel)?.classList.toggle("buscando", q !== "");
+  raiz.querySelectorAll<HTMLElement>(`${sel} li, ${sel} tbody tr`).forEach((li) => {
     li.hidden = q !== "" && !sinTildes(li.textContent ?? "").includes(q);
   });
 });

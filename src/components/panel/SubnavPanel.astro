@@ -1,0 +1,69 @@
+---
+/**
+ * Secciones del Panel de control en el celular (D-55): pestañas deslizables.
+ * En la PC las mismas secciones están en el menú lateral.
+ */
+import { enlacePanel, SECCIONES_PANEL, type FiltrosPanel } from "@/lib/datos/panel";
+
+interface Props {
+  filtros: FiltrosPanel;
+}
+const { filtros } = Astro.props;
+const ruta = Astro.url.pathname;
+---
+
+<nav class="subnav" aria-label="Secciones del Panel de control">
+  {SECCIONES_PANEL.map((s) => (
+    <a href={enlacePanel(s.href, filtros)} aria-current={ruta === s.href ? "page" : undefined}>
+      {s.texto}
+    </a>
+  ))}
+</nav>
+
+<style>
+  .subnav {
+    display: flex;
+    gap: var(--esp-2);
+    margin: calc(var(--esp-2) * -1) calc(var(--esp-4) * -1) var(--esp-5);
+    padding: 0 var(--esp-4) var(--esp-1);
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+  }
+  a {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 var(--esp-4);
+    border: 1px solid var(--color-borde);
+    border-radius: 999px;
+    background: var(--color-superficie);
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+    text-decoration: none;
+    white-space: nowrap;
+    scroll-snap-align: start;
+  }
+  a[aria-current="page"] {
+    border-color: var(--color-primario);
+    background: var(--color-primario);
+    color: var(--color-primario-contraste);
+  }
+  @media (min-width: 900px) {
+    .subnav {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  import { enCadaPantalla } from "@/scripts/pantalla";
+  // La pestaña actual queda a la vista aunque esté al final de la fila
+  enCadaPantalla(() => {
+    document
+      .querySelector<HTMLElement>(".subnav a[aria-current]")
+      ?.scrollIntoView({ block: "nearest", inline: "center" });
+  });
+</script>

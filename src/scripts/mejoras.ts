@@ -7,6 +7,7 @@ import "./ventanas";
 import { navigate } from "astro:transitions/client";
 import "./precarga";
 import "./animaciones";
+import "./tablas";
 import { activarTransiciones } from "./transiciones";
 
 document.documentElement.classList.add("js");

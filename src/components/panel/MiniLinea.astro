@@ -33,6 +33,7 @@ const id = `mini-${Math.random().toString(36).slice(2, 8)}`;
 
 {n > 1 && (
   <span class="mini">
+    {final && <span class="valor">{final}</span>}
     <svg viewBox="0 0 100 40" preserveAspectRatio="none">
       <defs>
         <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
@@ -44,21 +45,23 @@ const id = `mini-${Math.random().toString(36).slice(2, 8)}`;
       <path d={curva} class="trazo" vector-effect="non-scaling-stroke" />
     </svg>
     {ultimo && (
-      <span class="fin" style={`top: ${(ultimo.y / 40) * 100}%`}>
-        {final && <span class="valor">{final}</span>}
-      </span>
+      <span class="fin" style={`top: calc(26px + ${(ultimo.y / 40).toFixed(3)} * (100% - 26px))`} />
     )}
   </span>
 )}
 
 <style>
+  /* La etiqueta del último valor va en su propia franja, encima de la línea */
   .mini {
     position: relative;
     display: block;
-    height: 60px;
+    height: 86px;
+    padding-top: 26px;
     margin-right: 6px;
   }
   svg {
+    position: relative;
+    z-index: 0;
     display: block;
     width: 100%;
     height: 100%;
@@ -75,6 +78,7 @@ const id = `mini-${Math.random().toString(36).slice(2, 8)}`;
   }
   .fin {
     position: absolute;
+    z-index: 1;
     right: -6px;
     width: 12px;
     height: 12px;
@@ -87,10 +91,12 @@ const id = `mini-${Math.random().toString(36).slice(2, 8)}`;
   }
   .valor {
     position: absolute;
-    right: 0;
-    bottom: calc(100% + 6px);
-    padding: 1px 6px;
-    border-radius: 4px;
+    top: 0;
+    right: -6px;
+    animation: a-aparecer 400ms var(--curva) both;
+    animation-delay: 1000ms;
+    padding: 3px 8px;
+    border-radius: 6px;
     background: var(--color-exito);
     color: #fff;
     font-size: var(--texto-xs);

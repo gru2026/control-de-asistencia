@@ -4,6 +4,7 @@ import "@/styles/ventanas.css";
 import { fade } from "astro:transitions";
 import Mensaje from "@/components/ui/Mensaje.astro";
 import PanelAvisos from "@/components/avisos/PanelAvisos.astro";
+import { SECCIONES_PANEL } from "@/lib/datos/panel";
 import { COLUMNAS_AVISO, type Aviso } from "@/lib/avisos";
 import Icono, { type NombreIcono } from "@/components/ui/Icono.astro";
 import { puedeVer } from "@/lib/auth/acceso";
@@ -32,14 +33,31 @@ type Item = {
   texto: string;
   icono: NombreIcono;
   activoEn?: string[];
-  /** Solo activo en la ruta exacta (Mi asistencia no se activa en /asistencia/registro). */
+  /** Solo activo en la ruta exacta (Mi asistencia no se activa en /asistencia/revision). */
   exacto?: boolean;
+  /** Subsecciones (solo en el menú lateral de la PC) */
+  hijos?: { href: string; texto: string }[];
+};
+// Panel de control y sus secciones (D-55); conservan los filtros de período y categoría
+const filtrosPanel = new URLSearchParams();
+if (ruta.startsWith("/panel")) {
+  for (const k of ["periodo", "categoria"]) {
+    const v = Astro.url.searchParams.get(k);
+    if (v) filtrosPanel.set(k, v);
+  }
+}
+const conFiltros = (href: string) => (filtrosPanel.size ? `${href}?${filtrosPanel}` : href);
+const PANEL: Item = {
+  href: "/panel",
+  texto: "Panel de control",
+  icono: "panel",
+  hijos: SECCIONES_PANEL.slice(1).map((x) => ({ href: x.href, texto: x.texto })),
 };
 const ASISTENCIA: Item = {
-  href: "/asistencia/registro",
-  texto: "Asistencia",
+  href: "/permisos",
+  texto: "Permisos",
   icono: "calendario",
-  activoEn: ["/asistencia/revision", "/permisos"],
+  activoEn: ["/asistencia/revision"],
 };
 const MI_ASISTENCIA: Item = {
   href: "/asistencia",
@@ -49,14 +67,14 @@ const MI_ASISTENCIA: Item = {
 };
 const NAV: Record<typeof perfil.rol, Item[]> = {
   directiva: [
-    { href: "/panel", texto: "Panel", icono: "panel" },
+    PANEL,
     ASISTENCIA,
     { href: "/personal", texto: "Personal", icono: "usuarios" },
     { href: "/reportes", texto: "Reportes", icono: "documento" },
     { href: "/configuracion", texto: "Ajustes", icono: "ajustes", activoEn: ["/jornadas"] },
   ],
   secretaria: [
-    { href: "/panel", texto: "Panel", icono: "panel" },
+    PANEL,
     ASISTENCIA,
     { href: "/personal", texto: "Personal", icono: "usuarios" },
     { href: "/reportes", texto: "Reportes", icono: "documento" },
@@ -151,10 +169,33 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
       <ul style={`--columnas: ${visibles.length}`}>
         {visibles.map((i) => (
           <li>
-            <a href={i.href} aria-current={activo(i) ? "page" : undefined}>
+            <a
+              href={i.hijos ? conFiltros(i.href) : i.href}
+              aria-current={
+                i.hijos ? (ruta === i.href ? "page" : undefined) : activo(i) ? "page" : undefined
+              }
+              class:list={[i.hijos && ruta.startsWith(i.href + "/") && "dentro"]}
+            >
               <Icono nombre={i.icono} tamano={22} />
-              <span>{i.texto}</span>
+              <span>
+                {i.hijos ? <span class="corto">Panel</span> : null}
+                <span class:list={[i.hijos && "largo"]}>{i.texto}</span>
+              </span>
             </a>
+            {i.hijos && (
+              <ul class="sub" aria-label={`Secciones de ${i.texto}`}>
+                {i.hijos.map((h) => (
+                  <li>
+                    <a
+                      href={conFiltros(h.href)}
+                      aria-current={ruta === h.href ? "page" : undefined}
+                    >
+                      {h.texto}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
       </ul>
@@ -486,9 +527,15 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
   .nav a:hover {
     color: var(--color-texto);
   }
-  .nav a[aria-current="page"] {
+  .nav a[aria-current="page"],
+  .nav a.dentro {
     color: var(--color-acento-texto);
     font-weight: var(--peso-fuerte);
+  }
+  /* En el celular: «Panel» corto y sin subsecciones (van en pestañas dentro del panel) */
+  .nav .sub,
+  .nav .largo {
+    display: none;
   }
 
   @media (min-width: 480px) {
@@ -549,6 +596,32 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
     .nav a :global(.icono) {
       width: var(--icono-md);
       height: var(--icono-md);
+    }
+    .nav .corto {
+      display: none;
+    }
+    .nav .largo {
+      display: inline;
+    }
+    .nav a.dentro {
+      background: rgb(255 255 255 / 0.5);
+    }
+    /* Subsecciones del Panel de control, con una guía vertical */
+    .nav .sub {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin: 4px 0 var(--esp-2) calc(var(--esp-3) + 9px);
+      padding-left: var(--esp-3);
+      box-shadow: inset 2px 0 0 var(--color-borde-fuerte);
+    }
+    .nav .sub a {
+      min-height: 36px;
+      color: var(--color-texto-suave);
+      font-weight: var(--peso-medio);
+    }
+    .nav .sub a[aria-current="page"] {
+      color: var(--color-acento-texto);
     }
     main {
       padding: var(--esp-10) var(--esp-10) var(--esp-12);

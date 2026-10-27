@@ -1,0 +1,311 @@
+---
+/**
+ * Panel de control › Pendientes (D-55): lo que espera una acción, cada cosa con su
+ * botón, más el buscador de personas y los accesos de todos los días. Es la
+ * entrada de la secretaría.
+ */
+import PanelSeccionLayout from "@/layouts/PanelSeccionLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Icono from "@/components/ui/Icono.astro";
+import { hoyEnZona, fechaLarga } from "@/lib/fecha";
+import { listarCategorias } from "@/lib/datos/categorias";
+import { cargarPanel, enlacePanel, leerFiltros, porApellido, type Tarea } from "@/lib/datos/panel";
+import { numero, plural } from "@/lib/formato";
+
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+const hoy = hoyEnZona();
+const categorias = await listarCategorias(sb);
+const filtros = leerFiltros(Astro.url, categorias);
+const esDirectiva = perfil.rol === "directiva";
+const d = await cargarPanel(sb, { hoy, filtros, categorias, esDirectiva });
+
+const TIPOS: { tipo: Tarea["tipo"]; texto: string }[] = [
+  { tipo: "telefono", texto: "Teléfonos" },
+  { tipo: "falta", texto: "Faltas" },
+  { tipo: "salida", texto: "Salidas sin marcar" },
+  { tipo: "revision", texto: "Por revisar" },
+  { tipo: "jornada", texto: "Sin jornada" },
+  { tipo: "cuenta", texto: "Sin cuenta" },
+];
+const cuenta = (t: string) => d.tareas.filter((x) => x.tipo === t).length;
+const tipoPedido = TIPOS.find((t) => t.tipo === Astro.url.searchParams.get("tipo"))?.tipo ?? null;
+const tareas = tipoPedido ? d.tareas.filter((t) => t.tipo === tipoPedido) : d.tareas;
+const opcionesBuscador = JSON.stringify(
+  [...d.personas]
+    .sort(porApellido)
+    .map((x) => ({ v: x.id, t: `${x.apellido}, ${x.nombre}`, c: x.cedula })),
+);
+const estadoHoy = [
+  { texto: "llegaron", valor: d.llegaronHoy, href: "/panel/hoy?ver=llegaron" },
+  { texto: "tarde", valor: d.hoyConteo.tarde, href: "/panel/hoy?ver=llegaron" },
+  { texto: "por llegar", valor: d.pendientesHoy, href: "/panel/hoy?ver=pendientes" },
+  { texto: "de permiso", valor: d.hoyConteo.permiso, href: "/panel/hoy?ver=permisos" },
+];
+---
+
+<PanelSeccionLayout
+  titulo="Pendientes"
+  frase={
+    d.tareas.length
+      ? plural(d.tareas.length, "cosa por resolver", "cosas por resolver")
+      : "Todo al día"
+  }
+  lectura={d.tareas.length ? "atencion" : "bien"}
+  filtros={filtros}
+  categorias={categorias}
+  sinPeriodo
+  esDemo={d.esDemo}
+>
+  <div
+    class="v-campo v-buscador buscar"
+    data-buscador
+    data-abrir-persona
+    data-opciones={opcionesBuscador}
+  >
+    <label for="panel-buscar">Buscar a una persona</label>
+    <input
+      id="panel-buscar"
+      type="search"
+      placeholder="Nombre o cédula: marcar, permiso, teléfono, cuenta…"
+      autocomplete="off"
+      role="combobox"
+      aria-expanded="false"
+      aria-controls="panel-buscar-lista"
+      aria-autocomplete="list"
+    />
+    <input type="hidden" />
+    <ul id="panel-buscar-lista" role="listbox" hidden></ul>
+  </div>
+
+  <Tarjeta titulo="Por resolver">
+    <nav class="tipos" aria-label="Filtrar por tipo">
+      <a
+        href={enlacePanel("/panel/pendientes", filtros)}
+        aria-current={!tipoPedido ? "true" : undefined}
+      >
+        Todos <span>{d.tareas.length}</span>
+      </a>
+      {TIPOS.filter((t) => cuenta(t.tipo)).map((t) => (
+        <a
+          href={enlacePanel("/panel/pendientes", filtros, { tipo: t.tipo })}
+          aria-current={tipoPedido === t.tipo ? "true" : undefined}
+        >
+          {t.texto} <span>{cuenta(t.tipo)}</span>
+        </a>
+      ))}
+    </nav>
+    {tareas.length ? (
+      <ul class="tareas">
+        {tareas.map((t, i) => (
+          <li style={`--i: ${Math.min(i, 12)}`}>
+            <span class:list={["icono-tarea", t.tipo]}>
+              <Icono nombre={t.icono} tamano={18} />
+            </span>
+            <span class="texto">{t.texto}</span>
+            {t.aprobar ? (
+              <form method="post" action="/api/acciones" data-api>
+                <input type="hidden" name="accion" value="disp_aprobar" />
+                <input type="hidden" name="personal_id" value={t.aprobar.personalId} />
+                <input type="hidden" name="dispositivo_id" value={t.aprobar.dispositivoId} />
+                <button type="submit" class="v-boton v-secundario" data-texto-cargando="Aprobando…">
+                  {t.boton}
+                </button>
+              </form>
+            ) : t.ventana ? (
+              <button
+                type="button"
+                class="v-boton v-secundario"
+                data-ventana={t.ventana}
+                data-ventana-modo="centro"
+              >
+                {t.boton}
+              </button>
+            ) : t.persona ? (
+              <a
+                class="v-boton v-secundario"
+                href={`/personal/${t.persona}`}
+                data-persona={t.persona}
+              >
+                {t.boton}
+              </a>
+            ) : (
+              <a class="v-boton v-secundario" href={t.href}>
+                {t.boton}
+              </a>
+            )}
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class="al-dia">
+        <Icono nombre="exito" tamano={18} /> Todo al día.
+      </p>
+    )}
+  </Tarjeta>
+
+  <Fragment slot="lateral">
+    <Tarjeta titulo="Hoy" descripcion={fechaLarga(hoy)}>
+      {d.hayJornadaHoy ? (
+        <dl class="estado-hoy">
+          {estadoHoy.map((e) => (
+            <div>
+              <dt>{e.texto}</dt>
+              <dd>
+                <a href={e.href}>{numero(e.valor)}</a>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p class="texto-suave">{d.fraseHoy}</p>
+      )}
+    </Tarjeta>
+    <Tarjeta titulo="Accesos">
+      <ul class="acciones-seccion">
+        <li>
+          <a href="/panel/hoy">
+            <Icono nombre="reloj" tamano={18} /> Marcar entradas y salidas
+          </a>
+        </li>
+        <li>
+          <button type="button" data-ventana="/ventanas/permiso" data-ventana-modo="centro">
+            <Icono nombre="permiso" tamano={18} /> Cargar permiso
+          </button>
+        </li>
+        <li>
+          <a
+            href={`/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=pdf&ver=1`}
+            target="_blank"
+            rel="noopener"
+            data-astro-reload
+          >
+            <Icono nombre="descargar" tamano={18} /> Planilla de hoy (PDF)
+          </a>
+        </li>
+        <li>
+          <a href="/api/reportes/resumen?formato=xlsx" download data-astro-reload>
+            <Icono nombre="documento" tamano={18} /> Resumen del mes (Excel)
+          </a>
+        </li>
+        {esDirectiva && (
+          <li>
+            <button
+              type="button"
+              data-ventana="/ventanas/personal-nuevo"
+              data-ventana-modo="centro"
+            >
+              <Icono nombre="mas" tamano={18} /> Nuevo personal
+            </button>
+          </li>
+        )}
+      </ul>
+    </Tarjeta>
+  </Fragment>
+</PanelSeccionLayout>
+
+<style>
+  .buscar {
+    margin-bottom: var(--esp-5);
+  }
+  .buscar input[type="search"] {
+    min-height: 56px;
+    font-size: var(--texto-lg);
+  }
+  .tipos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2);
+    margin-bottom: var(--esp-4);
+  }
+  .tipos a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+    min-height: 40px;
+    padding: 0 var(--esp-3);
+    border: 1px solid var(--color-borde);
+    border-radius: 999px;
+    color: var(--color-texto);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+    text-decoration: none;
+  }
+  .tipos a span {
+    color: var(--color-texto-suave);
+    font-variant-numeric: tabular-nums;
+  }
+  .tipos a[aria-current] {
+    border-color: var(--color-primario);
+    background: var(--color-primario);
+    color: var(--color-primario-contraste);
+  }
+  .tipos a[aria-current] span {
+    color: inherit;
+  }
+  .tareas {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tareas li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--esp-3);
+    min-height: 64px;
+    padding: var(--esp-2) 0;
+    border-top: 1px solid var(--color-borde);
+    animation: a-subir var(--mov-entrada) var(--curva-salida) both;
+    animation-delay: calc(var(--i) * 40ms);
+  }
+  .icono-tarea {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--color-acento) 10%, white);
+    color: var(--color-acento-texto);
+  }
+  .icono-tarea.falta,
+  .icono-tarea.salida {
+    background: color-mix(in srgb, var(--color-alerta) 12%, white);
+    color: var(--color-alerta);
+  }
+  .icono-tarea.telefono {
+    background: color-mix(in srgb, var(--color-exito) 12%, white);
+    color: var(--color-exito);
+  }
+  .al-dia {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-2);
+    margin: 0;
+    color: var(--color-exito);
+    font-weight: var(--peso-medio);
+  }
+  .estado-hoy {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--esp-3);
+    margin: 0;
+  }
+  .estado-hoy dt {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .estado-hoy dd {
+    margin: 0;
+  }
+  .estado-hoy a {
+    color: var(--color-texto);
+    font-size: var(--texto-2xl);
+    font-weight: var(--peso-titulo);
+    text-decoration: none;
+  }
+  .estado-hoy a:hover {
+    color: var(--color-acento-texto);
+    text-decoration: underline;
+  }
+</style>

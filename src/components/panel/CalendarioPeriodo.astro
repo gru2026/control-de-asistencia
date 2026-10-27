@@ -44,12 +44,9 @@ const NOMBRE_NIVEL = {
                     class:list={["dia", c.nivel]}
                     style={`--i: ${w * 7 + d}`}
                     title={`${fechaCorta(c.fecha)}: ${porcentaje(c.valor)} de asistencia`}
+                    aria-label={`${c.dia} (${fechaCorta(c.fecha)}): ${porcentaje(c.valor)} de asistencia. Ver planilla`}
                   >
                     {c.dia}
-                    <span class="visualmente-oculto">
-                      {" "}
-                      ({fechaCorta(c.fecha)}): {porcentaje(c.valor)} de asistencia. Ver planilla
-                    </span>
                   </a>
                 ) : (
                   <span

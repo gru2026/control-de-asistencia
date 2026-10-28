@@ -199,6 +199,61 @@ try {
   );
   await pag.goto(`${B}/panel`);
 
+  r.seccion("Panel de control: cada dato lleva a su detalle (D-56)");
+  await pag.goto(`${B}/panel`);
+  await pag.click('a[data-ventana-local="capa-categorias"]');
+  await pag.waitForSelector("#ventana[open] #capa-categorias-titulo", { timeout: 15000 });
+  const barra = pag.locator("#ventana .barras a.enlace").first();
+  const categoriaTocada = (await barra.locator(".etiqueta").innerText())
+    .split("\n")[0]
+    .trim()
+    .split(/\s+\d/)[0];
+  await barra.click();
+  await pag.waitForURL("**/panel/categorias?**categoria=**", { timeout: 15000 });
+  r.ok(
+    "tocar la barra de una categoría abre su vista con la categoría activa",
+    (await pag.locator("main h1").innerText()).includes(categoriaTocada) &&
+      (await pag.locator(".pastillas .pastilla").count()) === 1,
+    categoriaTocada,
+  );
+  r.ok(
+    "la vista de la categoría se compara con el colegio",
+    /colegio/.test(await pag.locator(".lectura-seccion").innerText()),
+  );
+  await pag.click("a.volver");
+  await pag.waitForSelector("#ventana[open] #capa-categorias-titulo", { timeout: 15000 });
+  r.ok("«Volver al vistazo» regresa con el vistazo abierto", true);
+  await pag.click("#ventana [data-cerrar-ventana]");
+
+  await pag.goto(`${B}/panel/asistencia`);
+  const dia = pag.locator(".calendario a.dia").first();
+  if (await dia.count()) {
+    await dia.click();
+    await pag.waitForURL("**/panel/hoy?fecha=**", { timeout: 15000 });
+    r.ok("un día del calendario abre Hoy de esa fecha", true);
+  } else r.ok("calendario sin días con datos", true);
+  await pag.goto(`${B}/panel/asistencia`);
+  await pag.click(".dias-semana a:has-text('Mar')");
+  await pag.waitForURL("**dia=2**");
+  r.ok(
+    "filtrar por día de la semana muestra la pastilla con ✕",
+    (await pag.locator(".pastilla:has-text('martes')").count()) === 1,
+  );
+  await pag.click(".pastilla:has-text('martes')");
+  await pag.waitForFunction(() => !location.search.includes("dia="));
+  r.ok("el ✕ quita el filtro", (await pag.locator(".pastilla").count()) === 0);
+
+  await pag.goto(`${B}/panel/puntualidad`);
+  const tramo = pag.locator(".tramos a.enlace").first();
+  if (await tramo.count()) {
+    await tramo.click();
+    await pag.waitForURL("**tramo=**", { timeout: 15000 });
+    r.ok(
+      "tocar un tramo de llegada muestra esas llegadas",
+      (await pag.locator("#llegadas-tramo tbody tr").count()) > 0,
+    );
+  } else r.ok("tramos sin datos", true);
+
   r.seccion("Otras pantallas");
   await marcarPagina(pag);
   await pag.click('nav.nav a:has-text("Reportes")');

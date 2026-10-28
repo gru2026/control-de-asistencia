@@ -141,15 +141,24 @@ export const TRAMOS_LLEGADA = [
   { clave: "60+", etiqueta: "Más de 60", desde: 60, hasta: Infinity },
 ] as const;
 
+export type ClaveTramo = (typeof TRAMOS_LLEGADA)[number]["clave"];
+
+/** Tramo de llegada según los minutos respecto a la hora de entrada (null si no marcó). */
+export function tramoDe(diferenciaMin: number | null): ClaveTramo | null {
+  if (diferenciaMin === null) return null;
+  const d = diferenciaMin;
+  return (
+    TRAMOS_LLEGADA.find((t) => (d <= 0 ? t.clave === "antes" : d > t.desde && d <= t.hasta))
+      ?.clave ?? null
+  );
+}
+
 /** Distribución de llegadas según los minutos respecto a la hora de entrada. */
 export function histogramaLlegadas(registros: RegistroEstadistica[]) {
   const conteos = TRAMOS_LLEGADA.map((t) => ({ clave: t.clave, etiqueta: t.etiqueta, valor: 0 }));
   for (const r of registros) {
-    if (r.diferenciaMin === null) continue;
-    const d = r.diferenciaMin;
-    const i = TRAMOS_LLEGADA.findIndex((t) =>
-      d <= 0 ? t.clave === "antes" : d > t.desde && d <= t.hasta,
-    );
+    const c = tramoDe(r.diferenciaMin);
+    const i = conteos.findIndex((x) => x.clave === c);
     if (i >= 0) conteos[i]!.valor++;
   }
   return conteos;

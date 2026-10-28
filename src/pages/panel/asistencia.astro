@@ -10,7 +10,20 @@ import CalendarioPeriodo from "@/components/panel/CalendarioPeriodo.astro";
 import Contador from "@/components/panel/Contador.astro";
 import { fechaCorta, hoyEnZona } from "@/lib/fecha";
 import { listarCategorias } from "@/lib/datos/categorias";
-import { cargarPanel, dd, diaTexto, enlacePanel, leerFiltros } from "@/lib/datos/panel";
+import {
+  cargarPanel,
+  consultaExportar,
+  conParametro,
+  dd,
+  diaSemanaDe,
+  diaTexto,
+  enlacePanel,
+  leerDia,
+  leerFiltros,
+  NOMBRE_DIA_SEMANA,
+  referenciaColegio,
+  sinParametros,
+} from "@/lib/datos/panel";
 import { lecturaPorcentaje } from "@/lib/reglas/estadisticas";
 import { numero, plural, porcentaje } from "@/lib/formato";
 
@@ -26,17 +39,30 @@ const d = await cargarPanel(sb, {
 });
 const { resumen, resumenAnt, hayDatos } = d;
 const antes = (v: string) => (resumenAnt?.conteo.total ? `Antes: ${v}` : undefined);
-const exportar = `desde=${d.rango.desde}&hasta=${d.rango.hasta}${filtros.categoriaId ? `&categoria=${filtros.categoriaId}` : ""}`;
-const dias = [...d.serie].reverse();
+const exportar = consultaExportar(d.rango, filtros);
+// Filtro propio: un día de la semana (desde «Por día de la semana»)
+const dia = leerDia(Astro.url);
+const extras = dia
+  ? [
+      {
+        texto: `Solo los ${NOMBRE_DIA_SEMANA[dia]!.toLowerCase()}`,
+        quitar: sinParametros(Astro.url, "dia"),
+      },
+    ]
+  : [];
+const refColegio = referenciaColegio(d.colegio, (n) => porcentaje(n));
+const dias = [...d.serie].reverse().filter((s) => !dia || diaSemanaDe(s.clave) === dia);
 ---
 
 <PanelSeccionLayout
   titulo="Asistencia"
   frase={
     hayDatos
-      ? `${porcentaje(resumen.asistencia)} de asistencia${d.comparacionAsistencia ? ` · ${d.comparacionAsistencia.toLowerCase()}` : ""}`
+      ? `${porcentaje(resumen.asistencia)} de asistencia${refColegio ? ` · ${refColegio}` : d.comparacionAsistencia ? ` · ${d.comparacionAsistencia.toLowerCase()}` : ""}`
       : "Sin registros en este período"
   }
+  extras={extras}
+  sinDatos={!hayDatos || dias.length === 0}
   lectura={hayDatos ? lecturaPorcentaje(resumen.asistencia) : undefined}
   filtros={filtros}
   categorias={categorias}
@@ -50,7 +76,11 @@ const dias = [...d.serie].reverse();
         <dd class="valor">
           {hayDatos ? <Contador valor={resumen.asistencia} sufijo=" %" /> : "—"}
         </dd>
-        <dd class="nota-cifra">{antes(porcentaje(resumenAnt?.asistencia ?? 0))}</dd>
+        <dd class="nota-cifra">
+          {d.colegio?.conteo.total
+            ? `Colegio: ${porcentaje(d.colegio.asistencia)}`
+            : antes(porcentaje(resumenAnt?.asistencia ?? 0))}
+        </dd>
       </div>
       <div style="--i: 1">
         <dt>Faltas</dt>
@@ -93,16 +123,34 @@ const dias = [...d.serie].reverse();
           fecha: s.clave,
           valor: s.valor,
           detalle: `${diaTexto(s.clave)} · ${plural(s.conteo.falta, "falta", "faltas")}, ${s.conteo.tarde} tarde`,
+          href: `/panel/hoy?fecha=${s.clave}`,
         }))}
-        referencia={{
-          valor: resumen.asistencia,
-          etiqueta: `Prom. ${porcentaje(resumen.asistencia)}`,
-        }}
+        referencia={
+          d.colegio?.conteo.total
+            ? {
+                valor: d.colegio.asistencia,
+                etiqueta: `Colegio ${porcentaje(d.colegio.asistencia)}`,
+              }
+            : { valor: resumen.asistencia, etiqueta: `Prom. ${porcentaje(resumen.asistencia)}` }
+        }
       />
     </Figura>
   )}
 
-  <Tarjeta titulo="Día por día" descripcion="Toque una fecha para abrir su planilla.">
+  <Tarjeta titulo="Día por día" descripcion="Toque un día para ver quién vino y quién no.">
+    <nav class="dias-semana" aria-label="Filtrar por día de la semana">
+      <a href={conParametro(Astro.url, "dia", null)} aria-current={!dia ? "true" : undefined}>
+        Todos
+      </a>
+      {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+        <a
+          href={conParametro(Astro.url, "dia", String(n))}
+          aria-current={dia === n ? "true" : undefined}
+        >
+          {NOMBRE_DIA_SEMANA[n]!.slice(0, 3)}
+        </a>
+      ))}
+    </nav>
     <label class="buscar-en">
       Buscar un día
       <input
@@ -157,7 +205,7 @@ const dias = [...d.serie].reverse();
           {dias.map((s, n) => (
             <tr class:list={[n >= 15 && "extra"]}>
               <td data-etiqueta="Día" data-valor={s.clave}>
-                <a href={`/reportes?fecha=${s.clave}`}>{diaTexto(s.clave)}</a>
+                <a href={`/panel/hoy?fecha=${s.clave}`}>{diaTexto(s.clave)}</a>
               </td>
               <td data-etiqueta="Asistencia" class="num" data-valor={s.valor}>
                 <span class:list={["pct", lecturaPorcentaje(s.valor)]}>{porcentaje(s.valor)}</span>
@@ -218,6 +266,29 @@ const dias = [...d.serie].reverse();
 </PanelSeccionLayout>
 
 <style>
+  .dias-semana {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2);
+    margin-bottom: var(--esp-4);
+  }
+  .dias-semana a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 var(--esp-3);
+    border: 1px solid var(--color-borde);
+    border-radius: 999px;
+    color: var(--color-texto);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+    text-decoration: none;
+  }
+  .dias-semana a[aria-current] {
+    border-color: var(--color-primario);
+    background: var(--color-primario);
+    color: var(--color-primario-contraste);
+  }
   .pct {
     font-weight: var(--peso-fuerte);
   }

@@ -4,6 +4,8 @@ interface Segmento {
   etiqueta: string;
   valor: number;
   clase: "presente" | "tarde" | "falta" | "permiso" | "pendiente";
+  /** Destino al tocar el segmento o su leyenda (D-56) */
+  href?: string;
 }
 interface Props {
   segmentos: Segmento[];
@@ -23,27 +25,78 @@ const pct = (v: number) => (total ? Math.round((v / total) * 100) : 0);
 >
   {segmentos
     .filter((s) => s.valor > 0)
-    .map((s) => (
-      <span
-        class:list={["seg", s.clase]}
-        style={`flex: ${s.valor}`}
-        title={`${s.etiqueta}: ${s.valor} (${pct(s.valor)}%)`}
-      />
-    ))}
+    .map((s) =>
+      s.href ? (
+        <a
+          href={s.href}
+          class:list={["seg", s.clase]}
+          style={`flex: ${s.valor}`}
+          title={`${s.etiqueta}: ${s.valor} (${pct(s.valor)}%). Ver`}
+          aria-hidden="true"
+          tabindex="-1"
+        />
+      ) : (
+        <span
+          class:list={["seg", s.clase]}
+          style={`flex: ${s.valor}`}
+          title={`${s.etiqueta}: ${s.valor} (${pct(s.valor)}%)`}
+        />
+      ),
+    )}
   {total === 0 && <span class="seg vacio" style="flex: 1" />}
 </div>
 <ul class="leyenda">
   {leyenda.map((s) => (
     <li>
-      <span class:list={["m", s.clase]} />
-      <span class="et">{s.etiqueta}</span>
-      <strong>{s.valor}</strong>
-      <span class="pc">{pct(s.valor)}%</span>
+      {s.href ? (
+        <a
+          href={s.href}
+          class="enlace-leyenda"
+          aria-label={`${s.etiqueta}: ${s.valor}. Ver quiénes`}
+        >
+          <span class:list={["m", s.clase]} />
+          <span class="et">{s.etiqueta}</span>
+          <strong>{s.valor}</strong>
+          <span class="pc">{pct(s.valor)}%</span>
+        </a>
+      ) : (
+        <>
+          <span class:list={["m", s.clase]} />
+          <span class="et">{s.etiqueta}</span>
+          <strong>{s.valor}</strong>
+          <span class="pc">{pct(s.valor)}%</span>
+        </>
+      )}
     </li>
   ))}
 </ul>
 
 <style>
+  a.seg {
+    transition: filter var(--duracion-rapida) var(--curva);
+  }
+  a.seg:hover {
+    filter: brightness(1.12);
+  }
+  .enlace-leyenda {
+    display: inline-flex;
+    align-items: center;
+    gap: inherit;
+    min-height: 36px;
+    margin: -4px -8px;
+    padding: 4px 8px;
+    border-radius: var(--radio-sm);
+    color: inherit;
+    text-decoration: none;
+  }
+  .enlace-leyenda:hover,
+  .enlace-leyenda:focus-visible {
+    background: var(--color-superficie-hover);
+  }
+  .enlace-leyenda .et {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
   /* Pista con relleno interior: los segmentos son píldoras dentro de la pista */
   .apilada {
     display: flex;

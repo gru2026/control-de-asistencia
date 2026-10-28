@@ -9,6 +9,10 @@ import Modal from "@/components/ui/Modal.astro";
 import Input from "@/components/ui/Input.astro";
 import Select from "@/components/ui/Select.astro";
 import CamposPersonal from "@/components/personal/CamposPersonal.astro";
+import BarrasHorizontales from "@/components/graficas/BarrasHorizontales.astro";
+import { dd as ddPanel, lunesDe } from "@/lib/datos/panel";
+import { lecturaPorcentaje, NOMBRE_LECTURA } from "@/lib/reglas/estadisticas";
+import { plural, porcentaje } from "@/lib/formato";
 import CamposCuenta from "@/components/personal/CamposCuenta.astro";
 import {
   aExcepcion,
@@ -343,10 +347,33 @@ const { data: regs } = await sb
     "fecha, estado, hora_entrada, hora_salida, hora_esperada_entrada, horas_trabajadas, es_demo",
   )
   .eq("personal_id", id)
-  .gte("fecha", sumarDias(hoy, -30))
+  .gte("fecha", sumarDias(hoy, -56))
   .order("fecha", { ascending: false });
-const registros = (regs ?? []) as FilaRegistro[];
+// 8 semanas para su tendencia; las cifras de la cabecera son de los últimos 30 días
+const registros56 = (regs ?? []) as FilaRegistro[];
+const registros = registros56.filter((r) => r.fecha >= sumarDias(hoy, -30));
 const registroHoy = registros.find((r) => r.fecha === hoy);
+const aEstadistica = (r: FilaRegistro): RegistroEstadistica => ({
+  fecha: r.fecha,
+  personalId: id,
+  categoriaId: ficha!.categoria_id,
+  estado: r.estado,
+  diferenciaMin:
+    r.hora_entrada && r.hora_esperada_entrada
+      ? diferenciaMin(horaEnZona(r.hora_entrada), r.hora_esperada_entrada.slice(0, 5))
+      : null,
+  horas: r.horas_trabajadas === null ? null : Number(r.horas_trabajadas),
+});
+// Tendencia por semana (D-56): de la más antigua a la actual
+const porSemana = new Map<string, FilaRegistro[]>();
+for (const r of registros56) {
+  const l = lunesDe(r.fecha);
+  porSemana.set(l, [...(porSemana.get(l) ?? []), r]);
+}
+const semanasPersona = [...porSemana]
+  .sort((a, b) => a[0].localeCompare(b[0]))
+  .map(([lunes, lista]) => ({ lunes, resumen: resumir(lista.map(aEstadistica)) }))
+  .filter((x) => x.resumen.conteo.total > 0);
 const resumen30 = resumir(
   registros.map((r): RegistroEstadistica => ({
     fecha: r.fecha,
@@ -480,7 +507,14 @@ const valorExc = (k: string, porDefecto: string) =>
       <dl class="mini-kpis" aria-label="Últimos 30 días">
         <div>
           <dt>Asistencia</dt>
-          <dd>{resumen30.conteo.total ? `${resumen30.asistencia}%` : "—"}</dd>
+          <dd>
+            {resumen30.conteo.total ? porcentaje(resumen30.asistencia) : "—"}
+            {resumen30.conteo.total > 0 && (
+              <span class:list={["chip-lectura", lecturaPorcentaje(resumen30.asistencia)]}>
+                {NOMBRE_LECTURA[lecturaPorcentaje(resumen30.asistencia)]}
+              </span>
+            )}
+          </dd>
         </div>
         <div>
           <dt>Tardanzas</dt>
@@ -519,6 +553,23 @@ const valorExc = (k: string, porDefecto: string) =>
 
         <div class:list={["panel-ficha", activa === "resumen" && "activo"]} data-panel="resumen">
           <!-- Asistencia y permisos -->
+          {semanasPersona.length > 1 && (
+            <Tarjeta
+              titulo="Cómo le ha ido, semana a semana"
+              descripcion="Asistencia de las últimas 8 semanas. Verde: bien · ámbar: atención · rojo: bajo."
+            >
+              <BarrasHorizontales
+                maximo={100}
+                lectura
+                items={semanasPersona.map((x) => ({
+                  etiqueta: `Semana del ${ddPanel(x.lunes)}`,
+                  valor: x.resumen.asistencia,
+                  texto: porcentaje(x.resumen.asistencia),
+                  detalle: `${plural(x.resumen.conteo.falta, "falta", "faltas")} · ${x.resumen.conteo.tarde} tarde`,
+                }))}
+              />
+            </Tarjeta>
+          )}
           <Tarjeta
             titulo="Últimos registros de asistencia"
             id="historial"
@@ -1108,6 +1159,28 @@ const valorExc = (k: string, porDefecto: string) =>
     white-space: nowrap;
     font-size: var(--texto-sm);
     color: var(--color-texto-suave);
+  }
+  .chip-lectura {
+    display: inline-block;
+    margin-left: var(--esp-2);
+    padding: 5px var(--esp-2);
+    border-radius: 999px;
+    font-size: var(--texto-xs);
+    font-weight: var(--peso-fuerte);
+    vertical-align: middle;
+    letter-spacing: 0;
+  }
+  .chip-lectura.bien {
+    background: var(--color-exito-suave);
+    color: var(--color-exito);
+  }
+  .chip-lectura.atencion {
+    background: var(--color-alerta-suave);
+    color: var(--color-alerta);
+  }
+  .chip-lectura.bajo {
+    background: var(--color-error-suave);
+    color: var(--color-error);
   }
   .mini-kpis dd {
     margin: 0;

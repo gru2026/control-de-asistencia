@@ -2,7 +2,7 @@
 
 **Servicio comunitario — Documentación completa del proyecto**
 
-Fecha de generación: 2026-10-27
+Fecha de generación: 2026-10-28
 
 ---
 
@@ -538,6 +538,7 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-56 | 2026-10-27 | Todo dato que resume lleva a su detalle (barras, segmentos, puntos, días, tramos); vista de una categoría comparada con el colegio; pastillas de filtros, «Volver al vistazo», descargas con filtros, estados vacíos útiles y tendencia semanal en la ficha | ✅ Vigente |
 | D-55 | 2026-10-27 | Panel de control en tres niveles: resumen (recuadros), vistazo (panel lateral con datos rápidos y «Ver todo») y seis secciones propias en el menú; el Registro del día pasa a ser Panel › Hoy; la secretaría entra a Pendientes | ✅ Vigente |
 | D-54 | 2026-10-27 | Animaciones de intensidad media (entrada escalonada, cifras que cuentan, gráficas que se dibujan) y gráficas con color por lectura y franjas Bien/Atención/Bajo | ✅ Vigente |
 | D-53 | 2026-10-25 | Panel en dos vistas: Resumen (módulos con frases y lectura Bien/Atención/Bajo) y Acción rápida (buscador, pendientes con botón); los datos en crudo pasan a una segunda capa | ✅ Vigente |
@@ -604,6 +605,14 @@ Motivo: cada acción cargaba una pantalla nueva (1 a 2,6 s desde el colegio) y s
 - **D-48 · Avisos y mensajes.** La campana abre un panel (en el celular, desde abajo) con los avisos sin leer, en la misma consulta que el contador. Los resultados de las acciones aparecen abajo y se cierran solos; los reversibles ofrecen **Deshacer** (marcación asistida de los últimos 15 min, revisión, aviso leído). Las acciones graves siguen pidiendo confirmación.
 - **D-49 · Ventanas.** Tocar un nombre abre el **panel lateral** de la persona (hoy, mes, permisos, teléfono, cuenta) con acciones: marcar, cargar permiso, aprobar o cambiar teléfono, «no tiene teléfono», crear cuenta, restablecer a 0000. Los formularios en ventana van a `/api/acciones` (JSON); si sale bien se cierra y se actualiza la pantalla; si no, los errores quedan junto al campo. Confirmaciones con una ventana propia. El contenido llega como fragmento y usa `ventanas.css` (clases `v-`). La ficha completa queda a un toque, por capas (pestañas).
 - **D-50 · Formularios sin estrés.** Marcar empieza en «Ahora»; «Otra hora» pide hora y motivo con botones. Permiso: buscador de persona (escribir nombre o cédula), fecha con botones (Hoy · Mañana · Otras fechas) y motivo con botones. En el celular, las tablas muestran solo lo esencial. Guía de prueba con personas reales: Prueba-de-usabilidad.
+
+### D-56 · Cada dato lleva a su detalle
+- **Regla:** cada barra, segmento, punto, día o cifra que agrupa registros es un enlace real a esos registros con el filtro puesto (lista de comprobación en `DESIGN.md`).
+- **Destinos:** barra o fila de categoría → *Por categoría* con esa categoría activa; segmento o leyenda de la barra de hoy → *Hoy* con `ver=llegaron|tarde|faltas|permisos|pendientes` (nuevo `ver=tarde`); llegadas por categoría → *Hoy* filtrado; punto de la tendencia y día del calendario → *Hoy* de esa fecha (antes: la planilla); día de la semana → *Asistencia* con `dia=1..7`; tramo de llegada → *Puntualidad* con `tramo=` y la lista de esas llegadas; semana de faltas → *Ausencias* con `semana=`.
+- **Vista de una categoría:** frase con el colegio de referencia, cifras «N puntos por encima/debajo del colegio», tendencia con la línea del colegio, sus personas de menor a mayor asistencia, y accesos a las demás categorías.
+- **Comparación con el colegio** siempre que hay una categoría elegida (Asistencia, Puntualidad, Por categoría): `cargarPanel` carga además el período completo sin filtro.
+- **Pastillas de filtros** («Viendo solo: Cocina ✕») que conservan los demás filtros; **«Volver al vistazo»** (`volver=`) que reabre el vistazo de origen; **descargas** con período y categoría; **estado vacío** que explica qué filtro dejó la pantalla sin datos y ofrece «Ver los últimos 30 días» o «Quitar filtros».
+- **Ficha de la persona:** lectura Bien/Atención/Bajo junto a su asistencia y barras «semana a semana» de las últimas 8 semanas.
 
 ### D-55 · Panel de control en tres niveles
 - **Nivel 1 · Resumen** (`/panel`): los seis recuadros (D-53). **Nivel 2 · Vistazo:** al tocar un recuadro se abre el panel lateral con la misma estructura siempre: frase con su lectura, tres cifras (cada una lleva a la sección ya filtrada), una gráfica, lo más importante (hasta 5, con «Ver los N»), una o dos acciones y el botón fijo **«Ver todo en …»**. Al abrirlo se precarga la sección. **Nivel 3 · Sección:** `/panel/hoy`, `/panel/asistencia`, `/panel/puntualidad`, `/panel/ausencias`, `/panel/categorias`, `/panel/pendientes`, con filtros, cifras, gráfica completa, tabla ordenable con buscador y acciones (exportar, cargar permiso…).
@@ -2110,6 +2119,8 @@ En el PC se entra con el **correo** de la cuenta (o con la cédula, si la cuenta
 > - El **Panel de control** se lee en tres pasos: los **recuadros** dicen cómo vamos; al tocar uno se abre a la derecha un **vistazo** con las cifras principales y lo más importante; y el botón **«Ver todo en …»** abre la **sección completa**, con filtros, tablas y descargas. Las secciones (Hoy, Asistencia, Puntualidad, Ausencias y permisos, Por categoría, Pendientes) también están en el menú, dentro de *Panel de control*.
 > - **Hoy** es el antiguo Registro del día: ahí se marcan entradas y salidas. **Pendientes** reúne lo que espera una acción, con su botón, y el buscador de personas; la secretaría entra directamente ahí.
 > - El período elegido (Esta semana, Este mes, Últimos 30 días, Mes anterior) y la categoría se mantienen al pasar de una sección a otra.
+> - **Casi todo se puede tocar:** una barra de categoría abre esa categoría (comparada con el colegio y con su gente); un día del calendario o un punto de la gráfica abre *Hoy* de esa fecha; un tramo de llegada muestra quiénes llegaron así. Arriba aparece lo que se está viendo («Viendo solo: Cocina ✕»): toque la ✕ para quitarlo.
+> - Si llegó desde un vistazo, **«Volver al vistazo»** lo devuelve donde estaba. Las descargas salen con los mismos filtros que está viendo.
 > - El botón **Acciones** (arriba) reúne lo más frecuente: buscar a una persona, registrar personal nuevo, cargar un permiso, crear cuentas y descargar la planilla de hoy o el resumen del mes.
 > - En la PC, los formularios muestran a la derecha una columna de ayuda: por ejemplo, en Ajustes se ve cómo saldrá el encabezado de la planilla mientras se escribe, y en un permiso cuántos días abarca.
 > - En **Ajustes › Usuarios**, «Gestionar» abre una ventana para cambiar el tipo de cuenta, la contraseña o desactivarla.

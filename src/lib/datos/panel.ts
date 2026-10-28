@@ -21,6 +21,10 @@ import {
   resumir,
   serieDiaria,
   serieRepresentativa,
+  porcentajeAsistencia,
+  tramoDe,
+  TRAMOS_LLEGADA,
+  type ClaveTramo,
 } from "@/lib/reglas/estadisticas";
 import { numero, plural } from "@/lib/formato";
 import type { Categoria } from "@/types";
@@ -176,6 +180,7 @@ export async function cargarPanel(
     { data: permisosData, count: totalAusentes },
     { data: pedidosData },
     { count: porRevisar },
+    registrosColegio,
   ] = await Promise.all([
     cargarRegistros(sb, rango.desde, rango.hasta, categoriaId),
     cargarRegistros(sb, rango.anterior.desde, rango.anterior.hasta, categoriaId),
@@ -206,7 +211,10 @@ export async function cargarPanel(
       .select("id", { count: "exact", head: true })
       .eq("senalado", true)
       .is("revisado_por", null),
+    // Con una categoría elegida, el colegio completo sirve de referencia (D-56)
+    categoriaId ? cargarRegistros(sb, rango.desde, rango.hasta, null) : Promise.resolve(null),
   ]);
+  const colegio = registrosColegio ? resumir(registrosColegio) : null;
   const personas = (personalData ?? []) as unknown as FilaPersona[];
   const personaPorId = new Map(personas.map((x) => [x.id, x]));
   const nombreDe = (id: string) => {
@@ -302,13 +310,39 @@ export async function cargarPanel(
       color: p.cat?.color ?? "#64748b",
       llegaron: p.llegaron,
       esperados: p.esperados,
+      href: `/panel/hoy?categoria=${p.categoriaId}`,
     }));
   const hoySegmentos = [
-    { etiqueta: "Presentes", valor: hoyConteo.presente, clase: "presente" as const },
-    { etiqueta: "Tarde", valor: hoyConteo.tarde, clase: "tarde" as const },
-    { etiqueta: "Permiso", valor: hoyConteo.permiso, clase: "permiso" as const },
-    { etiqueta: "Falta", valor: hoyConteo.falta, clase: "falta" as const },
-    { etiqueta: "Sin marcar", valor: pendientesHoy, clase: "pendiente" as const },
+    {
+      etiqueta: "A tiempo",
+      valor: hoyConteo.presente,
+      clase: "presente" as const,
+      href: "/panel/hoy?ver=llegaron",
+    },
+    {
+      etiqueta: "Tarde",
+      valor: hoyConteo.tarde,
+      clase: "tarde" as const,
+      href: "/panel/hoy?ver=tarde",
+    },
+    {
+      etiqueta: "Permiso",
+      valor: hoyConteo.permiso,
+      clase: "permiso" as const,
+      href: "/panel/hoy?ver=permisos",
+    },
+    {
+      etiqueta: "Falta",
+      valor: hoyConteo.falta,
+      clase: "falta" as const,
+      href: "/panel/hoy?ver=faltas",
+    },
+    {
+      etiqueta: "Sin marcar",
+      valor: pendientesHoy,
+      clase: "pendiente" as const,
+      href: "/panel/hoy?ver=pendientes",
+    },
   ];
   const tardeHoy = deHoy
     .filter((r) => r.estado === "tarde")
@@ -458,7 +492,39 @@ export async function cargarPanel(
       ? `Más baja: ${peorCat.cat?.nombre ?? "—"}`
       : `${peorCat.cat?.nombre ?? "—"}`;
 
+  // Cada persona con registros en el período (vista de una categoría)
+  const conteoPersona = new Map<string, typeof registros>();
+  for (const r of registros) {
+    const l = conteoPersona.get(r.personalId) ?? [];
+    l.push(r);
+    conteoPersona.set(r.personalId, l);
+  }
+  const personasPeriodo = [...conteoPersona]
+    .map(([id, lista]) => {
+      const c = contar(lista);
+      return {
+        persona: personaPorId.get(id),
+        asistencia: porcentajeAsistencia(c),
+        faltas: c.falta,
+        tardanzas: c.tarde,
+        permisos: c.permiso,
+        jornadas: c.total,
+      };
+    })
+    .filter((x): x is typeof x & { persona: FilaPersona } => Boolean(x.persona))
+    .sort((a, b) => a.asistencia - b.asistencia || porApellido(a.persona, b.persona));
+
+  // Llegadas de un tramo (Puntualidad › tramo)
+  const llegadasDelTramo = (clave: ClaveTramo) =>
+    registros
+      .filter((r) => tramoDe(r.diferenciaMin) === clave)
+      .map((r) => ({ ...r, persona: personaPorId.get(r.personalId) }))
+      .sort((a, b) => (b.diferenciaMin ?? 0) - (a.diferenciaMin ?? 0));
+
   return {
+    colegio,
+    personasPeriodo,
+    llegadasDelTramo,
     rango,
     catPorId,
     personas,
@@ -519,3 +585,71 @@ export async function cargarPanel(
 }
 
 export type DatosPanel = Awaited<ReturnType<typeof cargarPanel>>;
+
+// ── Filtros propios de cada sección (no viajan entre secciones) ──
+export const NOMBRE_DIA_SEMANA = [
+  "",
+  "Lunes",
+  "Martes",
+  "Miércoles",
+  "Jueves",
+  "Viernes",
+  "Sábado",
+  "Domingo",
+];
+/** 1 = lunes … 7 = domingo */
+export const diaSemanaDe = (f: string) => ((new Date(`${f}T00:00:00Z`).getUTCDay() + 6) % 7) + 1;
+export function leerDia(url: URL): number | null {
+  const d = Number(url.searchParams.get("dia"));
+  return Number.isInteger(d) && d >= 1 && d <= 7 ? d : null;
+}
+export function leerTramo(url: URL): ClaveTramo | null {
+  const t = url.searchParams.get("tramo");
+  return TRAMOS_LLEGADA.find((x) => x.clave === t)?.clave ?? null;
+}
+export const NOMBRE_TRAMO: Record<ClaveTramo, string> = {
+  antes: "Antes de la hora",
+  "0-5": "Hasta 5 min después",
+  "6-15": "De 6 a 15 min",
+  "16-30": "De 16 a 30 min",
+  "31-60": "De 31 a 60 min",
+  "60+": "Más de 60 min",
+};
+export function leerSemana(url: URL): string | null {
+  const s = url.searchParams.get("semana");
+  return s && /^\d{4}-\d{2}-\d{2}$/.test(s) && diaSemanaDe(s) === 1 ? s : null;
+}
+/** Lunes de la semana de una fecha */
+export const lunesDe = (f: string) => sumarDias(f, -(diaSemanaDe(f) - 1));
+
+/** Exportaciones con todos los filtros activos (D-56) */
+export function consultaExportar(rango: { desde: string; hasta: string }, f: FiltrosPanel): string {
+  return `desde=${rango.desde}&hasta=${rango.hasta}${f.categoriaId ? `&categoria=${f.categoriaId}` : ""}`;
+}
+
+/** «el colegio está en 96 %» cuando hay una categoría elegida */
+export function referenciaColegio(
+  colegio: { asistencia: number; conteo: { total: number } } | null,
+  formato: (n: number) => string,
+): string | undefined {
+  return colegio?.conteo.total ? `el colegio está en ${formato(colegio.asistencia)}` : undefined;
+}
+
+/** La misma dirección sin uno o más parámetros (para el ✕ de cada filtro). */
+export function sinParametros(url: URL, ...claves: string[]): string {
+  const u = new URLSearchParams(url.search);
+  for (const k of [...claves, "volver", "pagina"]) u.delete(k);
+  const q = u.toString();
+  return q ? `${url.pathname}?${q}` : url.pathname;
+}
+
+/** La misma dirección con un parámetro cambiado (conserva los demás filtros). */
+export function conParametro(url: URL, clave: string, valor: string | null): string {
+  const u = new URLSearchParams(url.search);
+  u.delete("volver");
+  u.delete("pagina");
+  if (valor === null) u.delete(clave);
+  else u.set(clave, valor);
+  const q = u.toString();
+  return q ? `${url.pathname}?${q}` : url.pathname;
+}

@@ -5,6 +5,8 @@ interface Fila {
   color: string;
   llegaron: number;
   esperados: number;
+  /** Destino al tocar la fila (D-56) */
+  href?: string;
 }
 interface Props {
   filas: Fila[];
@@ -17,8 +19,14 @@ const { filas } = Astro.props;
     {filas.map((f) => {
       const completo = f.llegaron >= f.esperados;
       return (
-        <li style={`--c: ${f.color}`}>
-          <span class="nombre">{f.nombre}</span>
+        <li style={`--c: ${f.color}`} class:list={[f.href && "con-enlace"]}>
+          {f.href ? (
+            <a class="nombre" href={f.href}>
+              {f.nombre}
+            </a>
+          ) : (
+            <span class="nombre">{f.nombre}</span>
+          )}
           <span class:list={["cifra", completo && "completo"]}>
             <strong>{f.llegaron}</strong>/{f.esperados}
           </span>
@@ -37,6 +45,24 @@ const { filas } = Astro.props;
 )}
 
 <style>
+  .con-enlace {
+    position: relative;
+  }
+  /* Toda la fila se toca; el enlace es el nombre */
+  a.nombre {
+    color: inherit;
+    font-weight: var(--peso-medio);
+  }
+  a.nombre::after {
+    content: "";
+    position: absolute;
+    inset: -4px -8px;
+    border-radius: var(--radio-sm);
+  }
+  .con-enlace:hover {
+    background: var(--color-superficie-hover);
+    border-radius: var(--radio-sm);
+  }
   .lista-llegadas {
     display: flex;
     flex-direction: column;

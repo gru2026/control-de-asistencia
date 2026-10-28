@@ -11,6 +11,7 @@ interface Punto {
   valor: number;
   fecha?: string; // AAAA-MM-DD
   detalle?: string; // segunda línea del tooltip
+  href?: string; // destino al tocar el punto (D-56)
 }
 interface Props {
   puntos: Punto[];
@@ -102,6 +103,7 @@ const etiquetasX = coords.filter(
     i === 0 || i === coords.length - 1 || (i % paso === 0 && coords.length - 1 - i >= paso / 2),
 );
 const ultimo = coords[coords.length - 1];
+const Elemento = coords.some((c) => c.href) ? "a" : "span";
 const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
 ---
 
@@ -144,7 +146,8 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
     )}
 
     {coords.map((c, i) => (
-      <span
+      <Elemento
+        href={c.href}
         class:list={[
           "punto",
           nivel(c.valor),
@@ -152,14 +155,15 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
           c.x > 70 && "a-la-izquierda",
         ]}
         style={`left: ${c.x}%; top: ${c.y}%; --y: ${c.y}; --i: ${Math.min(i, 30)}`}
-        tabindex="0"
-        aria-label={`${c.etiqueta}: ${formato(c.valor)}`}
+        tabindex={c.href ? undefined : "0"}
+        aria-label={`${c.etiqueta}: ${formato(c.valor)}${c.href ? ". Ver ese día" : ""}`}
       >
         <span class="globo" role="tooltip">
           <strong>{formato(c.valor)}</strong>
           <span>{c.detalle ?? c.etiqueta}</span>
+          {c.href && <span class="ver-dia">Toque para ver ese día</span>}
         </span>
-      </span>
+      </Elemento>
     ))}
 
     {ultimo && (
@@ -363,6 +367,12 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
     inset: 7px;
     background: var(--color-acento);
     box-shadow: 0 0 0 5px rgb(37 99 235 / 0.18);
+  }
+  a.punto {
+    cursor: pointer;
+  }
+  .ver-dia {
+    font-weight: var(--peso-medio);
   }
   .punto:hover::before,
   .punto:focus-visible::before {

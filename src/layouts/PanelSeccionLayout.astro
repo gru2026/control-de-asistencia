@@ -9,7 +9,14 @@ import "@/styles/panel.css";
 import SubnavPanel from "@/components/panel/SubnavPanel.astro";
 import Icono from "@/components/ui/Icono.astro";
 import { NOMBRE_LECTURA, type Lectura } from "@/lib/reglas/estadisticas";
-import { enlacePanel, NOMBRE_PERIODO, PERIODOS, type FiltrosPanel } from "@/lib/datos/panel";
+import {
+  enlacePanel,
+  NOMBRE_PERIODO,
+  PERIODOS,
+  sinParametros,
+  conParametro,
+  type FiltrosPanel,
+} from "@/lib/datos/panel";
 import type { Categoria } from "@/types";
 
 interface Props {
@@ -27,6 +34,10 @@ interface Props {
   /** Resumen del panel: sin ruta de migas y a una sola zona */
   resumen?: boolean;
   subtitulo?: string;
+  /** Filtros propios de la sección (día, tramo, semana…), como pastillas con ✕ */
+  extras?: { texto: string; quitar: string }[];
+  /** No hay datos con estos filtros: se explica por qué y cómo seguir */
+  sinDatos?: boolean;
 }
 const {
   titulo,
@@ -39,9 +50,30 @@ const {
   esDemo,
   resumen = false,
   subtitulo,
+  extras = [],
+  sinDatos = false,
 } = Astro.props;
 const ruta = Astro.url.pathname;
 const catActual = categorias.find((c) => c.id === filtros.categoriaId);
+// Pastillas de filtros activos: cada una se quita con su ✕ (D-56)
+const pastillas = [
+  ...(catActual
+    ? [{ texto: catActual.nombre, quitar: sinParametros(Astro.url, "categoria") }]
+    : []),
+  ...extras,
+];
+// Si se llegó desde un vistazo, «Volver» lo vuelve a abrir con los mismos filtros
+const CAPAS: Record<string, string> = {
+  hoy: "Hoy",
+  pendientes: "Pendientes",
+  asistencia: "Asistencia",
+  puntualidad: "Puntualidad",
+  ausencias: "Ausencias y permisos",
+  categorias: "Por categoría",
+};
+const volver = Astro.url.searchParams.get("volver");
+const volverA = volver && CAPAS[volver] ? enlacePanel("/panel", filtros, { abrir: volver }) : null;
+const hayFiltros = filtros.periodo !== "mes" || pastillas.length > 0;
 ---
 
 <PanelLayout
@@ -58,6 +90,12 @@ const catActual = categorias.find((c) => c.id === filtros.categoriaId);
     <slot name="acciones" />
   </Fragment>
   <SubnavPanel filtros={filtros} />
+
+  {volverA && (
+    <a class="volver" href={volverA}>
+      <Icono nombre="atras" tamano={16} /> Volver al vistazo de {CAPAS[volver!]}
+    </a>
+  )}
 
   {(frase || lectura) && (
     <p class="lectura-seccion">
@@ -83,7 +121,7 @@ const catActual = categorias.find((c) => c.id === filtros.categoriaId);
       <nav class="segmentado" aria-label="Período">
         {PERIODOS.map((v) => (
           <a
-            href={enlacePanel(ruta, { ...filtros, periodo: v })}
+            href={conParametro(Astro.url, "periodo", v === "mes" ? null : v)}
             aria-current={filtros.periodo === v ? "true" : undefined}
           >
             {NOMBRE_PERIODO[v]}
@@ -91,9 +129,11 @@ const catActual = categorias.find((c) => c.id === filtros.categoriaId);
         ))}
       </nav>
       <form method="get" class="filtro-cat" data-autoenviar>
-        {filtros.periodo !== "mes" && (
-          <input type="hidden" name="periodo" value={filtros.periodo} />
-        )}
+        {[...Astro.url.searchParams]
+          .filter(([k]) => !["categoria", "volver", "pagina"].includes(k))
+          .map(([k, v]) => (
+            <input type="hidden" name={k} value={v} />
+          ))}
         <label for="seccion-cat" class="visualmente-oculto">
           Categoría
         </label>
@@ -110,11 +150,56 @@ const catActual = categorias.find((c) => c.id === filtros.categoriaId);
         </noscript>
       </form>
       {rango && <span class="rango">{rango}</span>}
-      {(filtros.periodo !== "mes" || catActual) && (
-        <a class="quitar" href={ruta}>
-          Quitar filtros
+    </div>
+  )}
+
+  {pastillas.length > 0 && (
+    <div class="pastillas" aria-label="Filtros aplicados">
+      <span class="texto-suave">Viendo solo:</span>
+      {pastillas.map((x) => (
+        <a class="pastilla" href={x.quitar} aria-label={`Quitar el filtro ${x.texto}`}>
+          {x.texto}
+          <span aria-hidden="true">✕</span>
+        </a>
+      ))}
+      {pastillas.length > 1 && (
+        <a class="quitar" href={enlacePanel(ruta, { ...filtros, categoriaId: null })}>
+          Quitar todos
         </a>
       )}
+    </div>
+  )}
+
+  {sinDatos && (
+    <div class="sin-datos" role="status">
+      <Icono nombre="info" tamano={22} />
+      <div>
+        <p>
+          <strong>
+            No hay registros
+            {catActual ? ` de ${catActual.nombre}` : ""}
+            {extras.length ? ` con «${extras.map((x) => x.texto).join("», «")}»` : ""}
+            {` en ${NOMBRE_PERIODO[filtros.periodo].toLowerCase()}`}.
+          </strong>
+        </p>
+        <p class="texto-suave">
+          {hayFiltros
+            ? "Pruebe con otro período o quite un filtro."
+            : "Aparecerán cuando el personal empiece a marcar."}
+        </p>
+        {hayFiltros && (
+          <p class="opciones-vacio">
+            {filtros.periodo !== "30d" && (
+              <a href={enlacePanel(ruta, { ...filtros, periodo: "30d" })}>
+                Ver los últimos 30 días
+              </a>
+            )}
+            {pastillas.length > 0 && (
+              <a href={enlacePanel(ruta, { ...filtros, categoriaId: null })}>Quitar filtros</a>
+            )}
+          </p>
+        )}
+      </div>
     </div>
   )}
 
@@ -225,6 +310,68 @@ const catActual = categorias.find((c) => c.id === filtros.categoriaId);
   }
   .quitar {
     font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+  }
+  .volver {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+    min-height: 40px;
+    margin: calc(-1 * var(--esp-2)) 0 var(--esp-3);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+  }
+  .pastillas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-2);
+    margin: calc(-1 * var(--esp-3)) 0 var(--esp-6);
+    font-size: var(--texto-sm);
+  }
+  .pastilla {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+    min-height: 36px;
+    padding: 0 var(--esp-3);
+    border-radius: 999px;
+    background: var(--color-primario);
+    color: var(--color-primario-contraste);
+    font-weight: var(--peso-medio);
+    text-decoration: none;
+    animation: a-surgir 300ms var(--curva-salida) both;
+  }
+  .pastilla:hover span {
+    transform: scale(1.2);
+  }
+  .pastilla span {
+    transition: transform var(--duracion-rapida) var(--curva);
+  }
+  .sin-datos {
+    display: flex;
+    gap: var(--esp-4);
+    align-items: flex-start;
+    margin-bottom: var(--esp-6);
+    padding: var(--esp-5);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    background: var(--color-superficie);
+  }
+  .sin-datos :global(.icono) {
+    flex: none;
+    color: var(--color-acento-texto);
+  }
+  .sin-datos p {
+    margin: 0;
+  }
+  .sin-datos p + p {
+    margin-top: var(--esp-2);
+  }
+  .opciones-vacio {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-4);
     font-weight: var(--peso-medio);
   }
   @media (max-width: 600px) {

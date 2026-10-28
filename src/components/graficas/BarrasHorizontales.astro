@@ -11,6 +11,8 @@ interface Item {
   detalle?: string; // texto secundario
   color?: string;
   resaltar?: boolean;
+  /** Destino al tocar la barra (D-56: todo dato que resume lleva a su detalle) */
+  href?: string;
 }
 interface Props {
   items: Item[];
@@ -28,25 +30,88 @@ const max = maximo ?? Math.max(1, ...items.map((i) => i.valor));
       class:list={[i.resaltar && "resaltada", lectura && lecturaPorcentaje(i.valor)]}
       style={`--i: ${n}`}
     >
-      <div class="fila">
-        <span class="etiqueta">
-          {lectura && i.color && <span class="punto" style={`background: ${i.color}`} />}
-          {i.etiqueta}
-          {i.detalle && <small>{i.detalle}</small>}
-        </span>
-        <span class="valor">{i.texto ?? `${i.valor}%`}</span>
-      </div>
-      <div class="pista" aria-hidden="true">
-        <div
-          class="relleno"
-          style={`width: ${Math.max(1, (i.valor / max) * 100)}%; ${i.color && !lectura ? `--c: ${i.color}` : ""}`}
-        />
-      </div>
+      <Fragment>
+        {(() => {
+          const contenido = (
+            <>
+              <div class="fila">
+                <span class="etiqueta">
+                  {lectura && i.color && <span class="punto" style={`background: ${i.color}`} />}
+                  {i.etiqueta}
+                  {i.detalle && <small>{i.detalle}</small>}
+                </span>
+                <span class="valor">
+                  {i.texto ?? `${i.valor}%`}
+                  {i.href && (
+                    <svg
+                      class="flecha"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="m9 18 6-6-6-6" />
+                    </svg>
+                  )}
+                </span>
+              </div>
+              <div class="pista" aria-hidden="true">
+                <div
+                  class="relleno"
+                  style={`width: ${Math.max(1, (i.valor / max) * 100)}%; ${i.color && !lectura ? `--c: ${i.color}` : ""}`}
+                />
+              </div>
+            </>
+          );
+          return i.href ? (
+            <a
+              class="enlace"
+              href={i.href}
+              aria-label={`${i.etiqueta}: ${i.texto ?? `${i.valor}%`}. Ver detalle`}
+            >
+              {contenido}
+            </a>
+          ) : (
+            contenido
+          );
+        })()}
+      </Fragment>
     </li>
   ))}
 </ul>
 
 <style>
+  /* Barra que lleva a su detalle: toda la fila se toca */
+  .enlace {
+    display: block;
+    margin: calc(-1 * var(--esp-2)) calc(-1 * var(--esp-3));
+    padding: var(--esp-2) var(--esp-3);
+    border-radius: var(--radio-sm);
+    color: inherit;
+    text-decoration: none;
+    transition: background var(--duracion-rapida) var(--curva);
+  }
+  .enlace:hover,
+  .enlace:focus-visible {
+    background: var(--color-superficie-hover);
+  }
+  .valor {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .flecha {
+    color: var(--color-acento-texto);
+    transition: transform var(--duracion-rapida) var(--curva);
+  }
+  .enlace:hover .flecha {
+    transform: translateX(3px);
+  }
   /* Cada fila (etiqueta + barra) es un grupo; entre filas, separación clara. */
   .barras {
     display: flex;

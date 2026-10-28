@@ -76,6 +76,14 @@ Ritmo: dentro de un grupo 6–12 px; entre controles 16 px; entre bloques 32 px 
 - Todas las secciones usan el mismo ancho que el panel (96 rem), también los formularios.
 - Movimiento (D-54): intensidad media, sin rebotes ni sobrepaso. Tokens `--mov-entrada`, `--mov-grafica`, `--mov-desfase`, `--curva-salida`; animaciones compartidas `a-subir`, `a-surgir`, `a-crecer-x/y`, `a-revelar`, `a-anillo` en `global.css`. Escalonar con `--i`. Solo transform/opacity/clip-path. Siempre respetar «reducir movimiento».
 - Color de datos: verde/ámbar/rojo significa Bien/Atención/Bajo (90 % · 80 %) en recuadros, barras, puntos y calendario; el color de categoría se usa solo como punto identificador.
+- **Todo dato que resume es una puerta a su detalle (D-56).** Lista de comprobación para cada pantalla nueva:
+  1. Cada barra, segmento, punto, día de calendario o cifra que agrupa registros es un enlace real (`<a>`) a la lista de esos registros, con el filtro ya puesto.
+  2. Se nota que se toca: fila resaltada y flecha al pasar el mouse; en el celular la flecha se ve siempre y la zona táctil mide al menos 44 px.
+  3. Al llegar, el filtro se ve como pastilla con ✕ («Viendo solo: Cocina ✕») y se conserva al cambiar de sección.
+  4. Si se llegó desde un vistazo, hay «Volver al vistazo».
+  5. Las descargas respetan todos los filtros activos.
+  6. Si el filtro deja la pantalla sin datos, se dice por qué y se ofrece cambiar el período o quitar el filtro.
+  7. Excepción: dentro de un recuadro del resumen no hay enlaces; el recuadro entero es el único botón.
 - Panel de control (D-55): tres niveles — recuadros, vistazo (frase · tres cifras enlazadas · gráfica · hasta 5 elementos · acciones · «Ver todo en …» fijo al pie) y sección (`PanelSeccionLayout`: lectura, filtros que se conservan, cifras, gráfica, tabla ordenable con buscador y «Ver todos» a partir de 15 filas, acciones en la columna derecha).
 - Panel (D-53): primera capa en palabras («32 de 45 ya llegaron», «Bien / Atención / Bajo»), nunca cifras sueltas con variaciones. Las gráficas completas, filtros y listas van en la segunda capa (cajón ancho `ventana cajon detalle`, contenido en `<template>`).
 - Formularios: `.dos-zonas` (formulario 2/3 + columna de apoyo 1/3) y `.campos` (rejilla de 12 columnas; cada campo con el ancho de su dato: `c-corto` cédula/fecha/número, `c-medio`, `c-largo` nombre, `c-completo` observaciones). Las opciones cortas van en botones (`v-chips`), no en listas desplegables.

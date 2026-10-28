@@ -6,8 +6,10 @@ import { fechaCorta } from "@/lib/fecha";
 
 interface Props {
   semanas: (CeldaCalendario | null)[][];
+  /** Adónde lleva cada día (por defecto, Panel › Hoy de esa fecha; D-56) */
+  enlaceDia?: (fecha: string) => string;
 }
-const { semanas } = Astro.props;
+const { semanas, enlaceDia = (f: string) => `/panel/hoy?fecha=${f}` } = Astro.props;
 const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
 const NOMBRE_NIVEL = {
   alto: "90 % o más (bien)",
@@ -40,11 +42,11 @@ const NOMBRE_NIVEL = {
               <td>
                 {c.valor !== null ? (
                   <a
-                    href={`/reportes?fecha=${c.fecha}`}
+                    href={enlaceDia(c.fecha)}
                     class:list={["dia", c.nivel]}
                     style={`--i: ${w * 7 + d}`}
                     title={`${fechaCorta(c.fecha)}: ${porcentaje(c.valor)} de asistencia`}
-                    aria-label={`${c.dia} (${fechaCorta(c.fecha)}): ${porcentaje(c.valor)} de asistencia. Ver planilla`}
+                    aria-label={`${c.dia} (${fechaCorta(c.fecha)}): ${porcentaje(c.valor)} de asistencia. Ver ese día`}
                   >
                     {c.dia}
                   </a>

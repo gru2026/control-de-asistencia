@@ -180,6 +180,7 @@ const VISTAS = {
   todos: "Programados hoy",
   pendientes: "Por llegar",
   llegaron: "Llegaron",
+  tarde: "Llegaron tarde",
   salida: "Sin salida marcada",
   faltas: "Faltas",
   permisos: "Permisos",
@@ -201,6 +202,8 @@ const enVista = (f: (typeof filasTodas)[number]) => {
       return f.clave === "pendiente";
     case "llegaron":
       return LLEGARON.includes(f.clave) && !!f.real?.hora_entrada;
+    case "tarde":
+      return f.real?.estado === "tarde";
     case "salida":
       return f.accion === "salida";
     case "faltas":

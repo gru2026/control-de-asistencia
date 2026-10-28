@@ -11,8 +11,10 @@ interface Tramo {
 }
 interface Props {
   tramos: Tramo[];
+  /** Destino al tocar un tramo: la lista de esas llegadas (D-56) */
+  enlace?: (clave: string) => string;
 }
-const { tramos } = Astro.props;
+const { tramos, enlace } = Astro.props;
 
 const valor = (...claves: string[]) =>
   tramos.filter((t) => claves.includes(t.clave)).reduce((s, t) => s + t.valor, 0);
@@ -65,7 +67,17 @@ const max = Math.max(1, ...tramos.map((t) => t.valor));
       const d = DETALLE[t.clave] ?? { etiqueta: t.clave, clase: "puntual" };
       return (
         <li class={d.clase} style={`--i: ${tramos.indexOf(t)}`}>
-          <span class="etiqueta">{d.etiqueta}</span>
+          {enlace && t.valor ? (
+            <a
+              class="etiqueta enlace"
+              href={enlace(t.clave)}
+              aria-label={`${d.etiqueta}: ${t.valor} llegadas. Ver quiénes`}
+            >
+              {d.etiqueta}
+            </a>
+          ) : (
+            <span class="etiqueta">{d.etiqueta}</span>
+          )}
           <span class="pista" aria-hidden="true">
             <span
               class="relleno"
@@ -181,6 +193,24 @@ const max = Math.max(1, ...tramos.map((t) => t.valor));
     padding: var(--esp-4) 0 0;
     list-style: none;
     border-top: 1px solid var(--color-borde);
+  }
+  .tramos li:has(.enlace) {
+    position: relative;
+    border-radius: var(--radio-sm);
+  }
+  .tramos li:has(.enlace):hover {
+    background: var(--color-superficie-hover);
+  }
+  .enlace {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  /* Toda la fila se toca */
+  .enlace::after {
+    content: "";
+    position: absolute;
+    inset: -4px -8px;
   }
   .tramos li {
     display: grid;

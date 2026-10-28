@@ -10,7 +10,18 @@ import BarrasHorizontales from "@/components/graficas/BarrasHorizontales.astro";
 import Contador from "@/components/panel/Contador.astro";
 import { fechaCorta, hoyEnZona } from "@/lib/fecha";
 import { listarCategorias } from "@/lib/datos/categorias";
-import { cargarPanel, iniciales, leerFiltros } from "@/lib/datos/panel";
+import {
+  cargarPanel,
+  consultaExportar,
+  conParametro,
+  diaTexto,
+  enlacePanel,
+  iniciales,
+  leerFiltros,
+  leerTramo,
+  NOMBRE_TRAMO,
+  sinParametros,
+} from "@/lib/datos/panel";
 import { lecturaPorcentaje } from "@/lib/reglas/estadisticas";
 import { plural, porcentaje } from "@/lib/formato";
 import { NOMBRE_DIA, type DiaSemana } from "@/types";
@@ -32,16 +43,25 @@ const pctDe = (v: number) => (d.totalLlegadas ? (v / d.totalLlegadas) * 100 : 0)
 const aTiempo = pctDe(grupo("antes", "0-5"));
 const tolerancia = pctDe(grupo("6-15"));
 const tarde = pctDe(grupo("16-30", "31-60", "60+"));
-const exportar = `desde=${d.rango.desde}&hasta=${d.rango.hasta}${filtros.categoriaId ? `&categoria=${filtros.categoriaId}` : ""}`;
+const exportar = consultaExportar(d.rango, filtros);
+// Filtro propio: un tramo de llegada (desde la gráfica «Hora de llegada»)
+const tramo = leerTramo(Astro.url);
+const delTramo = tramo ? d.llegadasDelTramo(tramo) : [];
+const extras = tramo
+  ? [{ texto: NOMBRE_TRAMO[tramo], quitar: sinParametros(Astro.url, "tramo") }]
+  : [];
+const colegioPunt = d.colegio?.conteo.total ? porcentaje(d.colegio.puntualidad) : null;
 ---
 
 <PanelSeccionLayout
   titulo="Puntualidad"
   frase={
     hayDatos
-      ? `${d.frasePuntualidad} · ${porcentaje(resumen.puntualidad)} llegó a tiempo`
+      ? `${d.frasePuntualidad} · ${porcentaje(resumen.puntualidad)} llegó a tiempo${colegioPunt ? ` (colegio: ${colegioPunt})` : ""}`
       : "Sin registros en este período"
   }
+  extras={extras}
+  sinDatos={!hayDatos}
   lectura={hayDatos ? lecturaPorcentaje(resumen.puntualidad) : undefined}
   filtros={filtros}
   categorias={categorias}
@@ -85,8 +105,87 @@ const exportar = `desde=${d.rango.desde}&hasta=${d.rango.hasta}${filtros.categor
       columnas={["Tramo", "Llegadas"]}
       filas={d.llegadas.map((l) => [l.etiqueta, l.valor])}
     >
-      <DistribucionLlegadas tramos={d.llegadas} />
+      <DistribucionLlegadas
+        tramos={d.llegadas}
+        enlace={(clave) => `${conParametro(Astro.url, "tramo", clave)}#llegadas-tramo`}
+      />
     </Figura>
+  )}
+
+  {tramo && (
+    <Tarjeta
+      id="llegadas-tramo"
+      titulo={`Llegadas: ${NOMBRE_TRAMO[tramo].toLowerCase()}`}
+      descripcion={`${plural(delTramo.length, "llegada", "llegadas")} en el período. La más tardía primero.`}
+    >
+      <div data-filtrable="tramo" data-limitada>
+        <Tabla
+          titulo="Llegadas del tramo"
+          hayFilas={delTramo.length > 0}
+          vacio="No hay llegadas en este tramo."
+          tarjetas
+        >
+          <thead>
+            <tr>
+              <th scope="col">
+                <button type="button" class="ordenar">
+                  Día
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="ordenar">
+                  Persona
+                </button>
+              </th>
+              <th scope="col" class="num">
+                <button type="button" class="ordenar">
+                  Hora
+                </button>
+              </th>
+              <th scope="col" class="num" aria-sort="descending">
+                <button type="button" class="ordenar">
+                  Minutos
+                </button>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {delTramo.map((r, n) => (
+              <tr class:list={[n >= 15 && "extra"]}>
+                <td data-etiqueta="Día" data-valor={r.fecha}>
+                  <a href={`/panel/hoy?fecha=${r.fecha}`}>{diaTexto(r.fecha)}</a>
+                </td>
+                <td
+                  data-etiqueta="Persona"
+                  data-valor={r.persona ? `${r.persona.apellido} ${r.persona.nombre}` : ""}
+                >
+                  {r.persona ? (
+                    <a href={`/personal/${r.persona.id}`} data-persona={r.persona.id}>
+                      {r.persona.apellido}, {r.persona.nombre}
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td data-etiqueta="Hora" class="num">
+                  {r.horaEntrada ?? "—"}
+                </td>
+                <td data-etiqueta="Minutos" class="num" data-valor={r.diferenciaMin ?? 0}>
+                  {(r.diferenciaMin ?? 0) <= 0
+                    ? `−${Math.abs(r.diferenciaMin ?? 0)} min`
+                    : `+${r.diferenciaMin} min`}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Tabla>
+      </div>
+      {delTramo.length > 15 && (
+        <button type="button" class="ver-todos">
+          Ver todas ({delTramo.length} llegadas)
+        </button>
+      )}
+    </Tarjeta>
   )}
 
   <Tarjeta
@@ -197,6 +296,7 @@ const exportar = `desde=${d.rango.desde}&hasta=${d.rango.hasta}${filtros.categor
             texto: porcentaje(x.asistencia),
             detalle: `${porcentaje(x.tardanza)} tarde`,
             resaltar: x.asistencia === d.peorDia && d.dias.length > 1,
+            href: enlacePanel("/panel/asistencia", filtros, { dia: String(x.dia) }),
           }))}
         />
       </Tarjeta>

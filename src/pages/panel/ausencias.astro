@@ -11,7 +11,17 @@ import ListaAusentes from "@/components/panel/ListaAusentes.astro";
 import Contador from "@/components/panel/Contador.astro";
 import { fechaCorta, hoyEnZona } from "@/lib/fecha";
 import { listarCategorias } from "@/lib/datos/categorias";
-import { cargarPanel, dd, diaTexto, iniciales, leerFiltros } from "@/lib/datos/panel";
+import {
+  cargarPanel,
+  conParametro,
+  dd,
+  diaTexto,
+  iniciales,
+  leerFiltros,
+  leerSemana,
+  lunesDe,
+  sinParametros,
+} from "@/lib/datos/panel";
 import { plural } from "@/lib/formato";
 
 const sb = Astro.locals.supabase;
@@ -24,6 +34,14 @@ const d = await cargarPanel(sb, {
   categorias,
   esDirectiva: Astro.locals.perfil!.rol === "directiva",
 });
+// Filtro propio: una semana (desde «Faltas por semana»)
+const semana = leerSemana(Astro.url);
+const faltasLista = semana
+  ? d.faltasPeriodo.filter((r) => lunesDe(r.fecha) === semana)
+  : d.faltasPeriodo;
+const extras = semana
+  ? [{ texto: `Semana del ${dd(semana)}`, quitar: sinParametros(Astro.url, "semana") }]
+  : [];
 const faltas = d.faltasPeriodo.length;
 const conVarias = d.masFaltas.filter((c) => c.faltas >= d.UMBRAL_FALTAS).length;
 const proximos = Math.max(0, d.totalAus - d.permisosHoy);
@@ -41,6 +59,7 @@ const proximos = Math.max(0, d.totalAus - d.permisosHoy);
   categorias={categorias}
   rango={`${fechaCorta(d.rango.desde)} – ${fechaCorta(d.rango.hasta)}`}
   esDemo={d.esDemo}
+  extras={extras}
 >
   <Fragment slot="acciones">
     <Boton data-ventana="/ventanas/permiso" data-ventana-modo="centro">
@@ -92,13 +111,15 @@ const proximos = Math.max(0, d.totalAus - d.permisosHoy);
           valor: n,
           texto: plural(n, "falta", "faltas"),
           color: "var(--color-error)",
+          href: `${conParametro(Astro.url, "semana", s)}#faltas-lista`,
         }))}
       />
     </Figura>
   )}
 
   <Tarjeta
-    titulo="Faltas del período"
+    id="faltas-lista"
+    titulo={semana ? `Faltas de la semana del ${dd(semana)}` : "Faltas del período"}
     descripcion="Si alguien tenía un motivo, cárguele el permiso: la falta pasa a permiso."
   >
     <label class="buscar-en">
@@ -113,7 +134,7 @@ const proximos = Math.max(0, d.totalAus - d.permisosHoy);
     <div data-filtrable="faltas" data-limitada>
       <Tabla
         titulo="Faltas del período"
-        hayFilas={faltas > 0}
+        hayFilas={faltasLista.length > 0}
         vacio="No hay faltas en este período."
         tarjetas
       >
@@ -140,7 +161,7 @@ const proximos = Math.max(0, d.totalAus - d.permisosHoy);
           </tr>
         </thead>
         <tbody>
-          {d.faltasPeriodo.map((r, n) => {
+          {faltasLista.map((r, n) => {
             const x = d.personaPorId.get(r.personalId);
             const cat = x ? d.catPorId.get(x.categoria_id) : undefined;
             return (
@@ -181,9 +202,9 @@ const proximos = Math.max(0, d.totalAus - d.permisosHoy);
         </tbody>
       </Tabla>
     </div>
-    {d.faltasPeriodo.length > 15 && (
+    {faltasLista.length > 15 && (
       <button type="button" class="ver-todos">
-        Ver todos ({d.faltasPeriodo.length} faltas)
+        Ver todos ({faltasLista.length} faltas)
       </button>
     )}
   </Tarjeta>

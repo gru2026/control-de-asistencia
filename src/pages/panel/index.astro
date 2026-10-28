@@ -36,6 +36,11 @@ const esDirectiva = perfil.rol === "directiva";
 const d = await cargarPanel(sb, { hoy, filtros, categorias, esDirectiva });
 const ir = (ruta: string, extra: Record<string, string | null> = {}) =>
   enlacePanel(ruta, filtros, extra);
+// Desde un vistazo, la sección ofrece «Volver al vistazo» (D-56)
+const irDesde =
+  (capa: string) =>
+  (ruta: string, extra: Record<string, string | null> = {}) =>
+    ir(ruta, { ...extra, volver: capa });
 
 const { resumen, hayDatos } = d;
 const lecturaMes = hayDatos ? lecturaPorcentaje(resumen.asistencia) : undefined;
@@ -266,19 +271,25 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
             <div>
               <dt>Llegaron</dt>
               <dd>
-                <a href={ir("/panel/hoy", { ver: "llegaron" })}>{numero(d.llegaronHoy)}</a>
+                <a href={irDesde("hoy")("/panel/hoy", { ver: "llegaron" })}>
+                  {numero(d.llegaronHoy)}
+                </a>
               </dd>
             </div>
             <div class:list={[d.hoyConteo.tarde && "atencion"]}>
               <dt>Tarde</dt>
               <dd>
-                <a href={ir("/panel/hoy", { ver: "llegaron" })}>{numero(d.hoyConteo.tarde)}</a>
+                <a href={irDesde("hoy")("/panel/hoy", { ver: "llegaron" })}>
+                  {numero(d.hoyConteo.tarde)}
+                </a>
               </dd>
             </div>
             <div class:list={[d.pendientesHoy && "atencion"]}>
               <dt>Sin marcar</dt>
               <dd>
-                <a href={ir("/panel/hoy", { ver: "pendientes" })}>{numero(d.pendientesHoy)}</a>
+                <a href={irDesde("hoy")("/panel/hoy", { ver: "pendientes" })}>
+                  {numero(d.pendientesHoy)}
+                </a>
               </dd>
             </div>
           </dl>
@@ -299,7 +310,7 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
             ))}
           </ul>
           {d.sinMarcarHoy.length > 5 && (
-            <a class="ver-mas" href={ir("/panel/hoy", { ver: "pendientes" })}>
+            <a class="ver-mas" href={irDesde("hoy")("/panel/hoy", { ver: "pendientes" })}>
               Ver los {d.sinMarcarHoy.length} sin marcar <Icono nombre="siguiente" tamano={16} />
             </a>
           )}
@@ -318,7 +329,7 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
       </div>
     </div>
     <footer class="v-pie">
-      <a href={ir("/panel/hoy")} data-seccion class="v-boton v-primario v-bloque-ancho">
+      <a href={irDesde("hoy")("/panel/hoy")} data-seccion class="v-boton v-primario v-bloque-ancho">
         Ver todo en Hoy <Icono nombre="siguiente" tamano={18} />
       </a>
     </footer>
@@ -346,19 +357,25 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
         <div class:list={[contarTipo("telefono") && "atencion"]}>
           <dt>Teléfonos</dt>
           <dd>
-            <a href={ir("/panel/pendientes", { tipo: "telefono" })}>{contarTipo("telefono")}</a>
+            <a href={irDesde("pendientes")("/panel/pendientes", { tipo: "telefono" })}>
+              {contarTipo("telefono")}
+            </a>
           </dd>
         </div>
         <div class:list={[contarTipo("falta") && "atencion"]}>
           <dt>Faltas</dt>
           <dd>
-            <a href={ir("/panel/pendientes", { tipo: "falta" })}>{contarTipo("falta")}</a>
+            <a href={irDesde("pendientes")("/panel/pendientes", { tipo: "falta" })}>
+              {contarTipo("falta")}
+            </a>
           </dd>
         </div>
         <div class:list={[contarTipo("salida") && "atencion"]}>
           <dt>Salidas</dt>
           <dd>
-            <a href={ir("/panel/pendientes", { tipo: "salida" })}>{contarTipo("salida")}</a>
+            <a href={irDesde("pendientes")("/panel/pendientes", { tipo: "salida" })}>
+              {contarTipo("salida")}
+            </a>
           </dd>
         </div>
       </dl>
@@ -408,7 +425,7 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
             ))}
           </ul>
           {d.tareas.length > 5 && (
-            <a class="ver-mas" href={ir("/panel/pendientes")}>
+            <a class="ver-mas" href={irDesde("pendientes")("/panel/pendientes")}>
               Ver los {d.tareas.length} pendientes <Icono nombre="siguiente" tamano={16} />
             </a>
           )}
@@ -416,7 +433,11 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
       )}
     </div>
     <footer class="v-pie">
-      <a href={ir("/panel/pendientes")} data-seccion class="v-boton v-primario v-bloque-ancho">
+      <a
+        href={irDesde("pendientes")("/panel/pendientes")}
+        data-seccion
+        class="v-boton v-primario v-bloque-ancho"
+      >
         Ver todo en Pendientes <Icono nombre="siguiente" tamano={18} />
       </a>
     </footer>
@@ -447,19 +468,21 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
         <div>
           <dt>Asistencia</dt>
           <dd>
-            <a href={ir("/panel/asistencia")}>{hayDatos ? porcentaje(resumen.asistencia) : "—"}</a>
+            <a href={irDesde("asistencia")("/panel/asistencia")}>
+              {hayDatos ? porcentaje(resumen.asistencia) : "—"}
+            </a>
           </dd>
         </div>
         <div class:list={[resumen.conteo.falta && "atencion"]}>
           <dt>Faltas</dt>
           <dd>
-            <a href={ir("/panel/ausencias")}>{numero(resumen.conteo.falta)}</a>
+            <a href={irDesde("asistencia")("/panel/ausencias")}>{numero(resumen.conteo.falta)}</a>
           </dd>
         </div>
         <div>
           <dt>Permisos</dt>
           <dd>
-            <a href={ir("/panel/ausencias")}>{numero(resumen.conteo.permiso)}</a>
+            <a href={irDesde("asistencia")("/panel/ausencias")}>{numero(resumen.conteo.permiso)}</a>
           </dd>
         </div>
       </dl>
@@ -470,6 +493,7 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
             fecha: s.clave,
             valor: s.valor,
             detalle: `${diaTexto(s.clave)} · ${plural(s.conteo.falta, "falta", "faltas")}, ${s.conteo.tarde} tarde`,
+            href: `/panel/hoy?fecha=${s.clave}`,
           }))}
           referencia={{
             valor: resumen.asistencia,
@@ -483,7 +507,7 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
           <ul>
             {diasBajos.map((s) => (
               <li>
-                <a href={`/reportes?fecha=${s.clave}`}>{diaTexto(s.clave)}</a>
+                <a href={`/panel/hoy?fecha=${s.clave}`}>{diaTexto(s.clave)}</a>
                 <span class:list={["pct", lecturaPorcentaje(s.valor)]}>{porcentaje(s.valor)}</span>
               </li>
             ))}
@@ -492,7 +516,11 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
       )}
     </div>
     <footer class="v-pie">
-      <a href={ir("/panel/asistencia")} data-seccion class="v-boton v-primario v-bloque-ancho">
+      <a
+        href={irDesde("asistencia")("/panel/asistencia")}
+        data-seccion
+        class="v-boton v-primario v-bloque-ancho"
+      >
         Ver todo en Asistencia <Icono nombre="siguiente" tamano={18} />
       </a>
     </footer>
@@ -522,7 +550,7 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
           <div class={g.clase}>
             <dt>{g.texto}</dt>
             <dd>
-              <a href={ir("/panel/puntualidad")}>{pct(g.valor)}</a>
+              <a href={irDesde("puntualidad")("/panel/puntualidad")}>{pct(g.valor)}</a>
             </dd>
           </div>
         ))}
@@ -557,7 +585,7 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
             })}
           </ul>
           {d.masTarde.length > 5 && (
-            <a class="ver-mas" href={ir("/panel/puntualidad")}>
+            <a class="ver-mas" href={irDesde("puntualidad")("/panel/puntualidad")}>
               Ver las {d.masTarde.length} personas <Icono nombre="siguiente" tamano={16} />
             </a>
           )}
@@ -565,7 +593,11 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
       )}
     </div>
     <footer class="v-pie">
-      <a href={ir("/panel/puntualidad")} data-seccion class="v-boton v-primario v-bloque-ancho">
+      <a
+        href={irDesde("puntualidad")("/panel/puntualidad")}
+        data-seccion
+        class="v-boton v-primario v-bloque-ancho"
+      >
         Ver todo en Puntualidad <Icono nombre="siguiente" tamano={18} />
       </a>
     </footer>
@@ -588,19 +620,19 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
         <div class:list={[d.faltasPeriodo.length && "atencion"]}>
           <dt>Faltas</dt>
           <dd>
-            <a href={ir("/panel/ausencias")}>{numero(d.faltasPeriodo.length)}</a>
+            <a href={irDesde("ausencias")("/panel/ausencias")}>{numero(d.faltasPeriodo.length)}</a>
           </dd>
         </div>
         <div>
           <dt>De permiso hoy</dt>
           <dd>
-            <a href={ir("/panel/ausencias")}>{numero(d.permisosHoy)}</a>
+            <a href={irDesde("ausencias")("/panel/ausencias")}>{numero(d.permisosHoy)}</a>
           </dd>
         </div>
         <div>
           <dt>Próximos 7 días</dt>
           <dd>
-            <a href={ir("/panel/ausencias")}>{numero(proximos)}</a>
+            <a href={irDesde("ausencias")("/panel/ausencias")}>{numero(proximos)}</a>
           </dd>
         </div>
       </dl>
@@ -625,7 +657,7 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
             ))}
           </ul>
           {d.faltasPeriodo.length > 5 && (
-            <a class="ver-mas" href={ir("/panel/ausencias")}>
+            <a class="ver-mas" href={irDesde("ausencias")("/panel/ausencias")}>
               Ver las {d.faltasPeriodo.length} faltas <Icono nombre="siguiente" tamano={16} />
             </a>
           )}
@@ -643,7 +675,11 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
       </div>
     </div>
     <footer class="v-pie">
-      <a href={ir("/panel/ausencias")} data-seccion class="v-boton v-primario v-bloque-ancho">
+      <a
+        href={irDesde("ausencias")("/panel/ausencias")}
+        data-seccion
+        class="v-boton v-primario v-bloque-ancho"
+      >
         Ver todo en Ausencias <Icono nombre="siguiente" tamano={18} />
       </a>
     </footer>
@@ -667,7 +703,11 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
           <div class={lecturaPorcentaje(d.mejorCat.asistencia)}>
             <dt>La mejor</dt>
             <dd>
-              <a href={ir("/panel/asistencia", { categoria: d.mejorCat.categoriaId })}>
+              <a
+                href={irDesde("categorias")("/panel/categorias", {
+                  categoria: d.mejorCat.categoriaId,
+                })}
+              >
                 {porcentaje(d.mejorCat.asistencia)}
               </a>
               <small>{d.mejorCat.cat?.nombre}</small>
@@ -676,7 +716,11 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
           <div class={lecturaPorcentaje(d.peorCat.asistencia)}>
             <dt>La más baja</dt>
             <dd>
-              <a href={ir("/panel/asistencia", { categoria: d.peorCat.categoriaId })}>
+              <a
+                href={irDesde("categorias")("/panel/categorias", {
+                  categoria: d.peorCat.categoriaId,
+                })}
+              >
                 {porcentaje(d.peorCat.asistencia)}
               </a>
               <small>{d.peorCat.cat?.nombre}</small>
@@ -685,7 +729,7 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
           <div class:list={[enAtencion && "atencion"]}>
             <dt>Por debajo de 90 %</dt>
             <dd>
-              <a href={ir("/panel/categorias")}>{enAtencion}</a>
+              <a href={irDesde("categorias")("/panel/categorias")}>{enAtencion}</a>
             </dd>
           </div>
         </dl>
@@ -700,12 +744,17 @@ const planillaHoy = `/api/reportes/planilla?fecha=${hoy}&tipo=docentes&formato=p
             texto: porcentaje(c.asistencia),
             color: c.cat?.color,
             detalle: `${c.personas} pers.`,
+            href: irDesde("categorias")("/panel/categorias", { categoria: c.categoriaId }),
           }))}
         />
       )}
     </div>
     <footer class="v-pie">
-      <a href={ir("/panel/categorias")} data-seccion class="v-boton v-primario v-bloque-ancho">
+      <a
+        href={irDesde("categorias")("/panel/categorias")}
+        data-seccion
+        class="v-boton v-primario v-bloque-ancho"
+      >
         Ver todo en Por categoría <Icono nombre="siguiente" tamano={18} />
       </a>
     </footer>

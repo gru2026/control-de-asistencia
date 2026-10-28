@@ -11,7 +11,7 @@ fecha: 2026-10-06
 Documentación del proyecto **Diseño de una aplicación web progresiva de control de asistencia para el personal docente y administrativo de la U.E.E. General Rafael Urdaneta**.
 
 > [!info] Cómo usar este vault
-> Empieza por el [[Resumen ejecutivo]] si eres nuevo en el proyecto. Si vas a trabajar en el desarrollo, ve a [[04-Desarrollo/Tareas-por-semana|Tareas por semana]]. Si vas a reunirte con el colegio, lleva [[Preguntas-para-el-colegio]].
+> Empieza por el [[Resumen ejecutivo]] si eres nuevo en el proyecto. Para ver qué cambió últimamente, abre el [[04-Desarrollo/Historial-de-cambios|Historial de cambios]]. Si vas a trabajar en el desarrollo, ve a [[04-Desarrollo/Tareas-por-semana|Tareas por semana]]. Si vas a reunirte con el colegio, lleva [[Preguntas-para-el-colegio]].
 
 ---
 
@@ -35,7 +35,7 @@ Documentación del proyecto **Diseño de una aplicación web progresiva de contr
 - [[03-Diseno/Arquitectura-y-stack|Arquitectura y stack]] — Astro + Supabase + Vercel
 - [[03-Diseno/Modelo-de-datos|Modelo de datos]] — tablas y relaciones
 - [[03-Diseno/Reglas-de-negocio|Reglas de negocio]] — tardanzas, faltas, horas
-- [[03-Diseno/Mapa-de-pantallas|Mapa de pantallas]] — rutas y accesos
+- [[03-Diseno/Mapa-de-pantallas|Mapa de pantallas]] — rutas, Panel de control en tres niveles, filtros
 - [[03-Diseno/Estructura-de-carpetas|Estructura de carpetas]] — árbol del repositorio
 - [[03-Diseno/PWA-y-offline|PWA y modo offline]] — instalable, app shell sin conexión
 
@@ -44,12 +44,17 @@ Documentación del proyecto **Diseño de una aplicación web progresiva de contr
 - [[04-Desarrollo/Guia-de-entorno|Guía de entorno]] — cómo levantar el proyecto
 - [[04-Desarrollo/Convenciones-y-calidad|Convenciones y calidad]] — lint, commits, estructura
 - [[04-Desarrollo/Tareas-por-semana|Tareas por semana]] — tablero de progreso (checklists)
+- [[04-Desarrollo/Historial-de-cambios|Historial de cambios]] — qué cambió después del 19/10, en palabras simples ⭐
+- [[04-Desarrollo/Puesta-en-marcha|Puesta en marcha]] — pasos para empezar el uso real
 - [[04-Desarrollo/Despliegue-Vercel-Supabase|Despliegue (Vercel + Supabase)]] — paso a paso
 
 ## 05 · Entregables
 
 - [[05-Entregables/Manual-de-usuario|Manual de usuario]] — para el personal del colegio
+- [[05-Entregables/Guia-rapida-personal|Guía rápida del personal]] · [[05-Entregables/Guia-rapida-secretaria|Guía rápida de secretaría]] — una página cada una
 - [[05-Entregables/Plan-de-pruebas|Plan de pruebas]] — casos de prueba
+- [[05-Entregables/Prueba-de-usabilidad|Prueba de usabilidad]] · [[05-Entregables/Resultados-usabilidad|Resultados]] — guía para probar con personas
+- [[05-Entregables/Informe-de-auditoria|Informe de auditoría]] — rendimiento, accesibilidad y seguridad
 - [[05-Entregables/Presentacion-del-proyecto|Presentación del proyecto]] — estructura para exponer
 
 ## 06 · Servicio comunitario

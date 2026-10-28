@@ -48,7 +48,8 @@ Desarrollar una **aplicación web progresiva (PWA)** de control de asistencia qu
 ## Alcance clave
 
 - **Roles:** directiva (administración del colegio), secretaria, personal (docentes y administrativos).
-- **Módulos:** login, gestión de personal y jornadas configurables, QR imprimible, marcación con QR + GPS, aprobación de dispositivos, respaldo en el PC (asistido y kiosco), reportes PDF/Excel, dashboard y notificaciones.
+- **Módulos:** login con cédula, gestión de personal y jornadas configurables, QR imprimible, marcación con QR + GPS, aprobación de teléfonos, respaldo en el PC (*Hoy*: marcación asistida y hora manual), reportes PDF/Excel, **Panel de control** y avisos.
+- **Panel de control:** se lee en tres niveles (resumen en palabras → vistazo → sección), con seis secciones (Hoy, Asistencia, Puntualidad, Ausencias y permisos, Por categoría, Pendientes), lectura Bien/Atención/Bajo y cada dato enlazado a su detalle.
 - **Fuera de alcance:** asistencia de estudiantes (solo personal).
 
 ## Plan
@@ -57,7 +58,7 @@ Desarrollar una **aplicación web progresiva (PWA)** de control de asistencia qu
 
 ## Estado
 
-Decisiones principales cerradas con el colegio (2026-10-06) → Registro de decisiones. Repositorio y andamiaje creados. Pendientes: valores concretos de jornada, coordenadas y administrador inicial → Preguntas-para-el-colegio.
+**28/10/2026:** desarrollo terminado y publicado en https://control-de-asistencia-vert.vercel.app, con las mejoras de uso del Panel de control (D-46 a D-56, ver Historial de cambios). Falta: prueba en teléfonos reales, prueba de usabilidad con personas del colegio, puesta en marcha (QR definitivo, cuentas, inicio del control) y capacitación. Datos pendientes del colegio en Preguntas-para-el-colegio.
 
 ---
 
@@ -214,6 +215,9 @@ Ver: Alcance y beneficiarios · Cronograma
 
 ## Semana 3 — Respaldo en el PC, reportes y dashboard
 
+> **Plan original**
+> Esta tabla es el plan tal como se escribió. Después: el kiosco con PIN se descartó (D-37), y el 27/10 el registro del día pasó a ser **Panel de control › Hoy** (`/panel/hoy`) y el panel se reorganizó en tres niveles con secciones (D-55). Estado real en Tareas por semana.
+
 | Día | Tarea | Entregable parcial |
 |---|---|---|
 | 1 | `/asistencia/registro`: tabla del día + marcación asistida + permisos + contingencia | Respaldo por secretaría |
@@ -340,8 +344,8 @@ Prioridad: **MVP** (imprescindible) · **Importante** · **Diferible** (ver cort
 | RF-24 | Reporte **general/mensual** de todo el personal. | MVP |
 | RF-25 | Exportar a **PDF**. | MVP |
 | RF-26 | Exportar a **Excel** (xlsx). | Importante |
-| RF-27 | Dashboard con KPIs: presentes hoy, tardanzas del mes, faltas del mes, señaladas pendientes. | Importante |
-| RF-28 | Gráficas de asistencia mensual (SVG). | Diferible |
+| RF-27 | Dashboard con KPIs: presentes hoy, tardanzas del mes, faltas del mes, señaladas pendientes. ✅ *Cumplido y ampliado por el Panel de control (RF-35 a RF-40).* | Importante |
+| RF-28 | Gráficas de asistencia mensual (SVG). ✅ *Cumplido: tendencia, calendario, barras y llegadas.* | Diferible |
 
 ## RF — Notificaciones
 
@@ -358,6 +362,19 @@ Prioridad: **MVP** (imprescindible) · **Importante** · **Diferible** (ver cort
 | RF-32 | App **instalable** (manifest + iconos) en Android/iOS/escritorio. | MVP |
 | RF-33 | La app abre sin conexión (app shell) y muestra "Sin conexión" al intentar marcar. | Importante |
 | RF-34 | Interfaz **mobile-first** para la marcación; vistas de administración optimizadas para el PC. | MVP |
+
+## RF — Panel de control (agregados el 25–27/10/2026)
+
+Surgen de observar a la administración: le costaba leer cifras sueltas (D-53 a D-56).
+
+| ID | Requisito | Prioridad |
+|---|---|---|
+| RF-35 | El panel dice en **palabras** cómo va cada tema («32 de 45 ya llegaron») con una lectura **Bien / Atención / Bajo** (90 % · 80 %), nunca solo con color. | MVP |
+| RF-36 | Tres niveles de profundidad: **resumen** → **vistazo** (datos rápidos y acciones, sin salir de la pantalla) → **sección** completa. | MVP |
+| RF-37 | Seis secciones propias en el menú: Hoy, Asistencia, Puntualidad, Ausencias y permisos, Por categoría, Pendientes; con período y categoría que se conservan entre ellas. | MVP |
+| RF-38 | **Cada dato que resume lleva a su detalle** con el filtro puesto (barras, segmentos, puntos, días, tramos, semanas). | Importante |
+| RF-39 | Vista de una **categoría** comparada con el colegio, con sus personas. | Importante |
+| RF-40 | **Pendientes**: lo que espera una acción con su botón (aprobar teléfono, cargar permiso, revisar…); es la entrada de la secretaría. | MVP |
 
 Ver: No funcionales · Roles y permisos
 
@@ -439,6 +456,11 @@ Ver: No funcionales · Roles y permisos
 
 # Roles y Permisos
 
+> **Actualización 28/10/2026**
+> - **Página de inicio:** directiva → `/panel` (resumen del Panel de control); secretaría → `/panel/pendientes`; personal → `/asistencia` (D-55).
+> - El **Panel de control** (resumen y sus seis secciones) es de directiva y secretaría. Ambas ven lo mismo; las acciones de administración (alta de personal, cuentas) siguen siendo solo de la directiva.
+> - Las filas de **kiosco** y **PIN** de la matriz quedan tachadas: se descartaron (D-37).
+
 > **Actualización 19/10/2026**
 > El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
 
@@ -450,18 +472,21 @@ Ver: No funcionales · Roles y permisos
 | Iniciar sesión | ✅ | ✅ | ✅ |
 | Marcar **su propia** entrada/salida (QR + GPS) | ✅ | ✅ | ✅ |
 | Marcación **asistida** en el PC (por otros) | ✅ | ✅ | ❌ |
-| Marcarse en el **kiosco** del PC (cédula + PIN) | ✅ | ✅ | ✅ |
+| ~~Marcarse en el kiosco del PC (cédula + PIN)~~ *(descartado, D-37)* | — | — | — |
 | Cargar permisos | ✅ | ✅ | ❌ |
 | Aprobar / revocar **dispositivos** | ✅ | ✅ | ❌ |
-| Asignar / restablecer **PIN** | ✅ | ✅ | ❌ |
+| ~~Asignar / restablecer PIN~~ *(descartado, D-37)* | — | — | — |
+| Restablecer la contraseña a **0000** (cuentas por cédula) | ✅ | ✅ | ❌ |
 | Revisar marcaciones **señaladas** | ✅ | ✅ | ❌ |
-| CRUD de personal | ✅ | 👁️ solo lectura | ❌ |
+| CRUD de personal (incluye el alta rápida en ventana) | ✅ | 👁️ solo lectura | ❌ |
+| Crear cuentas en lote / gestionar cuentas en ventana | ✅ | ❌ | ❌ |
 | Gestionar **jornadas**, tolerancias y feriados | ✅ | ❌ | ❌ |
 | Generar / regenerar / imprimir el **QR** | ✅ | ❌ | ❌ |
-| Configuración (geocerca, franjas, kiosco) | ✅ | ❌ | ❌ |
+| Configuración (ubicación del colegio, franjas, cierre diario, institución) | ✅ | ❌ | ❌ |
 | Ver **reportes de todos** | ✅ | ✅ | ❌ |
 | Ver **su propio historial** | ✅ | ✅ | ✅ |
-| Dashboard / KPIs globales | ✅ | ✅ | ❌ |
+| **Panel de control**: resumen, vistazos y secciones (Hoy, Asistencia, Puntualidad, Ausencias, Por categoría, Pendientes) | ✅ | ✅ | ❌ |
+| Descargar planillas y resúmenes (PDF/Excel) | ✅ | ✅ | ❌ |
 | Centro de notificaciones | ✅ | ✅ | solo las suyas |
 | Crear/editar usuarios y roles | ✅ | ❌ | ❌ |
 
@@ -471,10 +496,10 @@ Ver: No funcionales · Roles y permisos
 La **administración real del colegio** (rectoría, coordinación o personalista). Acceso total: personal, jornadas, configuración, QR, usuarios y reportes. Trabaja desde el **PC del colegio**. Único rol que crea usuarios y genera el QR.
 
 ### 🔶 Secretaría (rol `secretaria`)
-Encargada del registro diario desde el PC: marcación asistida, permisos, aprobación de cambios de teléfono, PIN del kiosco, revisión de marcaciones señaladas, reportes y dashboard. No administra usuarios ni configuración.
+Encargada del registro diario desde el PC: entra a **Pendientes** (teléfonos por aprobar, faltas, salidas sin marcar), marca en **Hoy** a quien no tiene teléfono, carga permisos, revisa marcaciones señaladas, restablece contraseñas a 0000 y consulta el Panel de control y los reportes. No administra usuarios ni configuración.
 
 ### 🟢 Personal (rol `personal`)
-Docentes y personal administrativo. Marcan entrada/salida desde **su propio celular** (QR + GPS) o en el kiosco del PC, y consultan **únicamente** su historial.
+Docentes, personal administrativo, obrero, cocina y vigilancia. Marcan entrada/salida desde **su propio celular** (QR + GPS); quien no tiene teléfono es marcado por secretaría en *Hoy*. Consultan **únicamente** su historial y sus avisos.
 
 > **El desarrollador no es administrador en producción**
 > Tras el despliegue, la cuenta `directiva` pertenece al colegio. El desarrollador conserva acceso técnico a Supabase solo para soporte.
@@ -843,13 +868,36 @@ Usuario toca "Marcar entrada"
 ## Flujo en el PC (respaldo)
 
 ```
-Asistido: secretaria → /asistencia/registro → "Marcar" en la fila
-          → POST /api/marcacion-asistida → metodo = asistido, registrado_por
-
-Kiosco:   persona → /kiosco → cédula + PIN
-          → POST /api/kiosco → verifica dispositivo kiosco + PIN (hash, bloqueo)
-          → metodo = kiosco
+Asistido: secretaría → /panel/hoy → «Marcar entrada» en la fila (Ahora u Otra hora + motivo)
+          → POST /api/acciones (JSON) → metodo = asistido, registrado_por; con otra hora queda señalada
 ```
+
+(El kiosco con cédula + PIN se descartó: D-37.)
+
+## Interfaz: navegación y ventanas
+
+- **Sin recarga** (D-46): Astro `ClientRouter` reemplaza solo el contenido; `scripts/precarga.ts` precarga pantallas al pasar el mouse (15 s) con la cabecera `X-Precarga`.
+- **Ventana lateral** (D-49): un solo `<dialog id="ventana">` en `PanelLayout`. Se llena con un fragmento del servidor (`/ventanas/*`) o, en el panel, con un `<template>` de la misma página (vistazos, D-55). Los formularios `data-api` envían a `/api/acciones` y reciben `{ ok, mensaje, errores }`.
+- **Caché del servidor** (D-47): perfil y categorías por 60 s; cabecera `Server-Timing` para medir.
+
+## Panel de control: datos y niveles (D-53 a D-56)
+
+```
+/panel, /panel/*  → leerFiltros(url)  → periodo (semana|mes|30d|anterior) + categoría
+                  → cargarPanel(sb, { hoy, filtros, categorias, esDirectiva })
+                       · registros del período, del período anterior y de la última semana
+                       · personal activo con su jornada · feriados · permisos de 7 días
+                       · teléfonos pendientes · marcaciones por revisar
+                       · con categoría: también el colegio completo (comparación)
+                  → resumen, serie diaria, días de la semana, tramos de llegada,
+                    categorías, personas, tareas pendientes y frases en palabras
+```
+
+- **Un solo cargador** (`src/lib/datos/panel.ts`) para el resumen, los vistazos y las seis secciones; «Hoy» usa siempre el día de hoy, sin depender del período.
+- **Lectura** en palabras: `lecturaPorcentaje` → Bien (≥ 90 %), Atención (80–89 %), Bajo (< 80 %); el calendario usa los mismos umbrales.
+- **Filtros en la URL**: `periodo` y `categoria` viajan entre secciones; los de cada sección (`dia`, `tramo`, `semana`, `ver`, `tipo`) no. Detalle en Mapa de pantallas.
+- **Cada dato es un enlace** a su detalle (D-56): los componentes de `components/graficas/` aceptan un destino por barra, segmento, punto o tramo.
+- **Animaciones** solo con `transform`, `opacity` y `clip-path`, sin rebote, y apagadas con «reducir movimiento» (D-54).
 
 ## Sin conexión
 
@@ -1252,272 +1300,318 @@ Si pasa todo → se guarda con hora del servidor, evidencia (lat, lng, precisió
 
 # Mapa de Pantallas
 
-> **Actualización 19/10/2026**
-> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
-
+> **Actualización 28/10/2026**
+> Este mapa describe la app **tal como está publicada**. Cambios desde la versión anterior:
+> - El **Panel de control** se lee en tres niveles (resumen → vistazo → sección) y tiene **seis secciones propias** en el menú (D-53 a D-56).
+> - El **Registro del día** pasó a ser **Panel de control › Hoy** (`/panel/hoy`); `/asistencia/registro` redirige allí.
+> - El ítem de menú «Asistencia» ahora se llama **«Permisos»** (Permisos y Por revisar).
+> - La **secretaría entra a Pendientes**; la directiva, al resumen del panel.
+> - El **kiosco con cédula + PIN se descartó** (D-37): el respaldo es *Hoy* en el PC de secretaría. El personal entra con su **cédula** y la contraseña inicial **0000** (D-42).
 
 Dos contextos de uso:
 - 📱 **Celular** del personal → marcar y ver su historial (mobile-first).
-- 🖥️ **PC del colegio** → administración y respaldo de marcación (escritorio).
+- 🖥️ **PC del colegio** → administración, panel de control y respaldo de la marcación.
 
 ## Árbol de rutas
 
 ```
-/login                          Autenticación (pública)
+/login                              Autenticación (pública)
+/cambiar-clave                      Crear la contraseña propia (obligatorio en el primer ingreso)
 
-📱 Celular
-/asistencia                     Marcar entrada/salida (escáner QR + GPS)
-/historial                      Su asistencia personal
+📱 Personal
+/asistencia                         Marcar entrada/salida (QR + GPS) y últimos días
+/historial                          Su asistencia mes a mes (calendario y días)
+/notificaciones                     Sus avisos
 
-🖥️ PC (directiva / secretaria)
-/panel                          Dashboard con KPIs
-/asistencia/registro            Tabla del día + marcación asistida + permisos
-/asistencia/revision            Marcaciones señaladas ⚠️
-/personal                       Lista de personal (búsqueda + paginación)
-/personal/nuevo                 [directiva] Alta
-/personal/[id]                  Ficha: datos, jornada, dispositivos, PIN, resumen
-/jornadas                       [directiva] Plantillas de jornada + feriados
-/reportes                       Reportes + exportación PDF/Excel
-/notificaciones                 Centro de alertas
-/permisos                       Permisos (listado + filtros) · /permisos/[id] crear/editar
-/configuracion                  [directiva] Institución, accesos, demostración
-/configuracion/marcacion        [directiva] Geocerca, ubicaciones de prueba, franjas, cierre diario
-/configuracion/qr               [directiva] Generar / regenerar / imprimir QR
-/configuracion/usuarios         [directiva] Cuentas y roles
+🖥️ Directiva y secretaría
+/panel                              Panel de control · resumen (6 recuadros + vistazos)
+/panel/hoy                          Hoy: personal del día, marcación asistida, hora manual, permisos
+/panel/asistencia                   Asistencia del período: tendencia, calendario, día por día
+/panel/puntualidad                  Hora de llegada, días de la semana, quién llega tarde
+/panel/ausencias                    Faltas del período, faltas por semana, permisos de la semana
+/panel/categorias                   Comparación entre categorías · con ?categoria=: vista de una categoría
+/panel/pendientes                   Lo que espera una acción, buscador, estado de hoy, accesos
+/permisos                           Permisos (listado + filtros) · /permisos/[id] crear/editar
+/asistencia/revision                Marcaciones señaladas (pestaña «Por revisar» de Permisos)
+/personal                           Lista de personal (búsqueda, filtros, paginación)
+/personal/[id]                      Ficha por pestañas: resumen, datos, horario, teléfono y cuenta, estado
+/personal/nuevo                     [directiva] Alta completa (también hay alta rápida en ventana)
+/personal/cuentas                   [directiva] Crear cuentas en lote + hoja de claves
+/personal/importar                  [directiva] Importar desde CSV
+/reportes                           Planilla diaria oficial (PDF/Excel)
+/reportes/resumen                   Resumen del período por persona (PDF/Excel)
+/jornadas                           [directiva] Jornadas, feriados y categorías
+/configuracion                      [directiva] Accesos, institución (con vista previa), demostración
+/configuracion/marcacion            [directiva] Ubicación del colegio, ubicaciones de prueba, franjas, cierre diario
+/configuracion/qr                   [directiva] Generar / imprimir / desactivar el QR
+/configuracion/usuarios             [directiva] Cuentas y roles
+/configuracion/puesta-en-marcha     [directiva] Lista para empezar el uso real
 
-/asistencia/registro            Registro del día: marcar entrada/salida, hora manual
-/asistencia/revision            Marcaciones señaladas
-/reportes/resumen               Resumen del período (PDF/Excel)
-/notificaciones                 Avisos
-/historial                      Historial personal del mes
-/cambiar-clave                  Crear la contraseña propia (obligatorio en el primer ingreso)
-/personal/cuentas               [directiva] Crear cuentas en lote + hoja de claves
-/configuracion/puesta-en-marcha [directiva] Lista para empezar el uso real
+/asistencia/registro                Redirección permanente → /panel/hoy (conserva la consulta)
 
-(El kiosco con cédula + PIN se descartó: D-37.)
+Fragmentos de ventana (se abren sin salir de la pantalla; no se navega a ellos)
+/ventanas/persona/[id]              Panel lateral de una persona
+/ventanas/permiso                   Cargar un permiso
+/ventanas/acciones                  Menú «Acciones» de la barra superior
+/ventanas/personal-nuevo            [directiva] Alta rápida de personal
+/ventanas/cuenta/[id]               [directiva] Gestionar una cuenta
+/ventanas/cuenta-nueva              [directiva] Cuenta sin ficha de personal
 ```
 
 > **Protección**
-> Todo excepto `/login` pasa por `middleware.ts`: sin sesión → `/login`; sin permiso → 403 amigable. `/kiosco` exige además que el navegador sea un dispositivo tipo `kiosco` aprobado.
+> Todo excepto `/login` pasa por `middleware.ts` y las reglas de `src/lib/auth/acceso.ts`: sin sesión → `/login`; sin permiso → 403 amigable. `/panel/*`, `/permisos`, `/personal`, `/reportes` y `/ventanas/*` son de directiva y secretaría; `/configuracion`, `/jornadas` y el alta de personal, solo de directiva.
+
+## Página de inicio por rol
+
+| Rol | Entra a |
+|---|---|
+| Directiva | `/panel` (resumen) |
+| Secretaría | `/panel/pendientes` |
+| Personal | `/asistencia` |
+
+## Panel de control en tres niveles
+
+```
+Nivel 1 · Resumen (/panel)          seis recuadros en palabras, con su lectura
+   │  tocar un recuadro
+   ▼
+Nivel 2 · Vistazo (panel lateral)   frase · tres cifras enlazadas · gráfica ·
+   │                                hasta 5 elementos · 1–2 acciones ·
+   │  «Ver todo en …»               botón fijo «Ver todo en …»
+   ▼
+Nivel 3 · Sección (/panel/…)        filtros · cifras · gráfica completa ·
+                                    tabla ordenable con buscador · acciones
+```
+
+- **Recuadros:** Hoy · Pendientes · Asistencia del período · Puntualidad · Ausencias y permisos · Por categoría.
+- **Lectura** en palabras y color: **Bien** (≥ 90 %), **Atención** (80–89 %), **Bajo** (< 80 %).
+- **Vistazo:** su contenido viaja en la propia página (`<template>`), por eso abre al instante; al abrirse, la sección completa empieza a **precargarse**.
+- **Secciones:** misma plantilla (`PanelSeccionLayout`): ruta «Panel de control › …», frase de lectura, filtros, pastillas de filtros activos, datos a la izquierda y resumen/acciones a la derecha.
+
+### Filtros
+
+| Parámetro | Dónde | Viaja entre secciones |
+|---|---|---|
+| `periodo` = `semana` · `mes` · `30d` · `anterior` | Todas las secciones con datos del período | Sí |
+| `categoria` = id | Todas | Sí |
+| `ver` = `pendientes` · `llegaron` · `tarde` · `salida` · `faltas` · `permisos` · `secretaria` · `libres` | Hoy | No |
+| `fecha` = AAAA-MM-DD | Hoy | No |
+| `dia` = 1–7 (lunes a domingo) | Asistencia | No |
+| `tramo` = `antes` · `0-5` · `6-15` · `16-30` · `31-60` · `60+` | Puntualidad | No |
+| `semana` = lunes AAAA-MM-DD | Ausencias | No |
+| `tipo` = `telefono` · `falta` · `salida` · `revision` · `jornada` · `cuenta` | Pendientes | No |
+| `volver` = nombre del vistazo | Cualquier sección | No (muestra «Volver al vistazo») |
+| `abrir` = nombre del vistazo | Resumen | No (abre ese vistazo al llegar) |
+
+### Cada dato lleva a su detalle (D-56)
+
+| Se toca | Lleva a |
+|---|---|
+| Barra o fila de una categoría | `/panel/categorias?categoria=…` (vista de la categoría) |
+| Segmento o leyenda de la barra de hoy | `/panel/hoy?ver=…` |
+| Fila de «llegadas por categoría» | `/panel/hoy?categoria=…` |
+| Punto de la tendencia · día del calendario | `/panel/hoy?fecha=…` |
+| Barra de un día de la semana | `/panel/asistencia?dia=…` |
+| Tramo de la hora de llegada | `/panel/puntualidad?tramo=…` |
+| Barra de una semana de faltas | `/panel/ausencias?semana=…` |
+| Cifra de un vistazo | La sección con ese filtro |
+| Nombre de una persona | Su panel lateral |
 
 ## Detalle por pantalla
 
 ### `/login`
-- Correo + contraseña, mensaje de error claro.
-- Redirige según rol: directiva/secretaria → `/panel`; personal → `/asistencia`.
-- Al entrar, registra el dispositivo (ver D-07).
+- Cédula o correo + contraseña, mensaje de error claro.
+- Redirige según el rol (tabla de arriba). Si la cuenta tiene la contraseña inicial, pasa por `/cambiar-clave`.
 
 ### `/asistencia` — Marcación ⭐ (celular)
-- Saludo + fecha + hora en vivo + jornada del día ("Entrada 07:00 · tolerancia 15 min").
-- **Botón grande** según estado:
-  - Sin entrada → verde **"Marcar entrada"**
-  - Con entrada → muestra la hora + naranja **"Marcar salida"**
-  - Ambas → resumen ("Entrada 07:04 · Salida 16:01 ✓")
-- Al tocar: pide **ubicación** → abre **cámara** con visor → al leer el QR envía al servidor → confirmación grande (✅ Presente / 🟨 Tarde) o error claro.
-- Estados especiales:
-  - 📵 Sin conexión: *"Conéctese para marcar o diríjase a secretaría."*
-  - ⏳ Teléfono pendiente de aprobación.
-  - 📍 Ubicación desactivada (con pasos para activarla).
-- Últimos 5 días con su estado.
+- Saludo, fecha, reloj y jornada del día. Botón grande **Marcar entrada / Marcar salida**.
+- Al tocar: ubicación → cámara → lee el QR → confirmación grande (Presente / Tarde) o error claro.
+- Estados especiales: sin conexión, teléfono pendiente, ubicación desactivada, marca en secretaría.
+- En la PC: el reloj a la izquierda y los últimos días a la derecha.
 
 ### `/historial` (celular)
-- Lista/calendario del mes con estados y totales. Solo lo propio.
+- Calendario del mes con colores, cifras del mes y la lista de días; permisos del mes.
 
-### `/panel` — Dashboard (PC)
-- KPIs: presentes hoy · tardanzas del mes · faltas del mes · **señaladas por revisar** · **teléfonos pendientes**.
-- Últimas alertas. Accesos rápidos.
+### `/panel` — Resumen
+Seis recuadros con frase, cifra que cuenta desde 0, mini gráfica y lectura. Cada uno abre su vistazo. Barra de período y categoría arriba.
 
-### `/asistencia/registro` — Tabla del día (PC)
-- Todo el personal activo con estado: pendiente / presente / tarde / permiso, hora y método (📱 QR / 🖥️ PC).
-- Botón **Marcar** por fila (asistido; queda `registrado_por`).
-- **Cargar permiso** (rango de fechas, motivo, observación).
-- Completar salida no registrada / contingencia "falla de conexión".
-- Filtros por cargo y estado; búsqueda.
+### `/panel/hoy` — Hoy (antes Registro del día)
+- Todo el personal programado ese día, con estado, horas y método.
+- **Marcar entrada / salida** con «Ahora» u «Otra hora» + motivo (queda señalada). Días anteriores con las flechas.
+- Cargar permiso desde la fila. Filtros: Mostrar, categoría y búsqueda.
 
-### `/asistencia/revision` (PC)
-- Marcaciones con ⚠️ (motivo: precisión GPS, etc.), con mapa/distancia.
-- Acción: **Marcar como revisada** (+ observación).
+### `/panel/asistencia`
+Cifras (con el colegio como referencia si hay categoría), tendencia, calendario, tabla día por día con filtro por día de la semana; descargas.
 
-### `/personal` y `/personal/[id]` (PC)
-- Lista: nombre, cédula, cargo, jornada, estado. Búsqueda + filtros + paginación.
-- Ficha:
-  - Datos personales y cuenta asociada.
-  - Jornada asignada + excepciones por día.
-  - **Dispositivos**: aprobado actual, pendientes → *Aprobar* / *Revocar*.
-  - **PIN de kiosco**: asignar / restablecer / desbloquear.
-  - Resumen del último mes.
+### `/panel/puntualidad`
+Cifras (a tiempo, tolerancia, tarde, retraso promedio), hora de llegada por tramos (tocables), lista de llegadas de un tramo, asistencia por día de la semana, tabla de quién llega tarde.
 
-### `/jornadas` (PC, directiva)
-- CRUD de plantillas (entrada, salida, tolerancia, pausa, días).
-- Feriados.
+### `/panel/ausencias`
+Cifras (faltas, personas con 3 o más, permisos hoy y próximos), faltas por semana, tabla de faltas con «Cargar permiso», quiénes faltan más, permisos de la semana.
 
-### `/configuracion` (PC, directiva)
-- Institución (nombre, logo para reportes).
-- **Geocerca:** coordenadas del colegio (pegar enlace/coordenadas o elegir en mapa), radio, precisión máxima, activa/inactiva.
-- Franjas horarias opcionales.
-- Kiosco: activar PIN; **"Autorizar este PC como kiosco"**.
+### `/panel/categorias`
+- Sin categoría: la mejor, la más baja, barras y tabla de comparación.
+- Con `?categoria=`: vista de la categoría comparada con el colegio, tendencia con la línea del colegio, sus personas y accesos a las demás.
 
-### `/configuracion/qr` (PC, directiva)
-- QR activo: descripción, fecha de creación, vencimiento.
-- **Generar nuevo** (pide confirmación: *"El QR actual dejará de funcionar"*), con vencimiento opcional.
-- **Imprimir**: hoja A4 con logo, QR grande, nombre del colegio e instrucciones ("Abra la app Asistencia UEN → Marcar → escanee este código").
-- El código solo se muestra en el momento de generarlo/imprimir.
+### `/panel/pendientes`
+Buscador de personas, lista de pendientes con su botón y filtro por tipo, estado de hoy y accesos frecuentes.
 
-### `/kiosco` (PC autorizado)
-- Pantalla simple, sin menú: cédula + PIN (teclado numérico en pantalla).
-- Muestra nombre y estado → botón **Entrada** / **Salida** → confirmación → vuelve a inicio en 5 s.
+### `/asistencia/revision` · `/permisos`
+- Revisión: marcaciones señaladas con motivo, distancia y mapa → **Revisada**.
+- Permisos: listado con filtros; nuevo/editar con resumen en vivo (días que abarca, faltas que cubre).
 
-### `/reportes`, `/notificaciones`, `/configuracion/usuarios`
-- Reportes: filtros (rango, persona/todos), tabla (horas, tardanzas, faltas, permisos, % asistencia, marcaciones por PC), **PDF** y **Excel**.
-- Notificaciones: lista con marcar leída; filtro no leídas.
-- Usuarios: crear cuenta, asignar rol, desactivar.
+### `/personal` y `/personal/[id]`
+- Lista con búsqueda, filtros y paginación.
+- Ficha por pestañas: **Resumen** (semana a semana, últimos registros, permisos), **Datos**, **Horario**, **Teléfono y cuenta**, **Estado**. Arriba: asistencia de 30 días con su lectura; a la derecha, «De un vistazo».
+
+### `/reportes` · `/reportes/resumen`
+Planilla diaria oficial y resumen del período por persona, en PDF o Excel.
+
+### `/configuracion` y subpáginas (directiva)
+Accesos, institución con **vista previa** del encabezado de la planilla, datos de demostración, marcación (ubicación y cierre diario), QR, usuarios y puesta en marcha.
 
 ## Navegación
 
 ```
-🖥️ PC: header (logo · 👤) + nav lateral
-   Directiva:  Panel · Personal · Permisos · Reportes · Ajustes (incluye Jornadas)
-   Secretaría: Panel · Personal · Permisos · Reportes · Mi asistencia
+🖥️ PC: barra superior (logo · nombre y rol · Acciones · Mi asistencia · 🔔 · Salir)
+      + menú lateral
+   Directiva:  Panel de control (Hoy · Asistencia · Puntualidad · Ausencias y permisos ·
+               Por categoría · Pendientes) · Permisos · Personal · Reportes · Ajustes
+   Secretaría: Panel de control (…las mismas seis) · Permisos · Personal · Reportes ·
+               Mi asistencia
 
-📱 Celular: bottom bar
-   Marcar · Historial · 🔔 · Perfil
+📱 Celular: barra inferior
+   Directiva y secretaría: Panel · Permisos · Personal · Reportes · (Ajustes / Mi asistencia);
+                           dentro del panel, pestañas deslizables con las secciones
+   Personal:               Mi asistencia · Historial
 ```
+
+La app navega **sin recargar** (D-46): al cambiar de pantalla solo se reemplaza el contenido, y las pantallas se precargan al pasar el mouse o al abrir un vistazo.
 
 ---
 
 # Estructura de Carpetas del Repositorio
 
-> **Actualización 19/10/2026**
-> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
-
+> **Actualización 28/10/2026**
+> Árbol revisado contra el repositorio publicado. Lo más reciente: el **Panel de control** vive en `src/pages/panel/` con su plantilla `PanelSeccionLayout` y su cargador de datos `src/lib/datos/panel.ts` (D-55, D-56); el antiguo `asistencia/registro.astro` es ahora `panel/hoy.astro` y deja una redirección. El kiosco con PIN se descartó (D-37) y ya no tiene archivos.
 
 ```
-servicio comunitario/            # raíz del repositorio
-├── astro.config.mjs              # output: server, adaptador Vercel
-├── package.json
-├── tsconfig.json
-├── vitest.config.ts
-├── .env.local                    # claves Supabase (NO se commitea)
-├── .env.example                  # plantilla de variables
-├── .gitignore                    # node_modules, .env*, dist, _privado/
-├── .prettierrc                   # formato
-├── eslint.config.js              # lint
-├── vercel.json                   # cron diario (cierre de jornada)
+servicio comunitario/              # raíz del repositorio
+├── astro.config.mjs               # output: server, adaptador Vercel, sin prefetch de Astro (D-46)
+├── vercel.json                    # cron diario → /api/cierre-diario
+├── package.json                   # scripts: dev, build, lint, check, test, test:e2e, diseno:revisar, docs
+├── DESIGN.md                      # sistema de diseño y reglas de interfaz (fuente de verdad visual)
+├── PRODUCT.md                     # para quién es y qué debe sentirse
 ├── README.md
 │
 ├── public/
-│   ├── manifest.webmanifest      # nombre, iconos, colores (instalable)
-│   ├── icons/                    # 192, 512, maskable, apple-touch
-│   ├── sw.js                     # service worker (app shell)
-│   └── favicon.svg
+│   ├── manifest.webmanifest       # instalable
+│   ├── sw.js                      # service worker (app shell)
+│   ├── offline.html               # pantalla sin conexión
+│   ├── fuentes/                   # Onest, autoalojada
+│   └── icons/
 │
-├── supabase/
-│   ├── migrations/               # 001_esquema.sql, 002_funciones.sql,
-│   │                             # 003_rls.sql
-│   └── seed.sql                  # jornada por defecto, configuración, feriados
+├── supabase/migrations/           # 001_esquema … 011_auditoria (esquema, RLS, funciones)
+├── scripts/                       # db.mjs (SQL), respaldo.mjs, crear-usuario.mjs
 │
 ├── src/
-│   ├── middleware.ts              # sesión + roles → redirecciones
+│   ├── middleware.ts              # sesión, rol, caché de perfil, Server-Timing
 │   │
 │   ├── layouts/
-│   │   ├── BaseLayout.astro      # html base, meta, manifest, sw
-│   │   ├── AuthLayout.astro      # pantalla de login
-│   │   └── PanelLayout.astro     # header + nav lateral/bottom
+│   │   ├── BaseLayout.astro       # html base, navegación sin recarga (ClientRouter)
+│   │   ├── AuthLayout.astro       # login y cambio de clave
+│   │   ├── PanelLayout.astro      # barra superior, menú (con subsecciones del panel),
+│   │   │                          # ventana lateral #ventana, confirmación, mensajes, avisos
+│   │   └── PanelSeccionLayout.astro  # plantilla de las secciones del Panel de control (D-55)
 │   │
 │   ├── pages/
-│   │   ├── index.astro           # redirect → /login o /panel
-│   │   ├── login.astro
-│   │   ├── panel.astro
+│   │   ├── login.astro · cambiar-clave.astro · index.astro · 404.astro · sin-permiso.astro
+│   │   ├── panel/                 # Panel de control (D-53…D-56)
+│   │   │   ├── index.astro        # resumen: 6 recuadros + vistazos en <template>
+│   │   │   ├── hoy.astro          # antes Registro del día: marcación asistida, hora manual
+│   │   │   ├── asistencia.astro · puntualidad.astro · ausencias.astro
+│   │   │   ├── categorias.astro   # comparación o vista de una categoría
+│   │   │   └── pendientes.astro   # entrada de la secretaría
 │   │   ├── asistencia/
-│   │   │   ├── index.astro       # 📱 marcación QR + GPS
-│   │   │   ├── registro.astro    # 🖥️ tabla del día + asistida + permisos
-│   │   │   └── revision.astro    # 🖥️ marcaciones señaladas
-│   │   ├── personal/
-│   │   │   ├── index.astro
-│   │   │   ├── nuevo.astro
-│   │   │   └── [id].astro        # ficha + dispositivos + PIN
-│   │   ├── jornadas.astro        # plantillas + feriados
-│   │   ├── reportes.astro
-│   │   ├── historial.astro
-│   │   ├── notificaciones.astro
-│   │   ├── kiosco.astro          # autoservicio cédula + PIN (PC)
-│   │   ├── configuracion/
-│   │   │   ├── index.astro       # institución, geocerca, franjas, kiosco
-│   │   │   ├── qr.astro          # generar / regenerar / imprimir
-│   │   │   └── usuarios.astro
-│   │   └── api/                  # endpoints server (Astro)
-│   │       ├── marcacion.ts      # POST entrada/salida (QR + GPS)
-│   │       ├── marcacion-asistida.ts
-│   │       ├── kiosco.ts         # POST cédula + PIN
-│   │       ├── dispositivos.ts   # registrar / aprobar / revocar
-│   │       ├── qr.ts             # generar / revocar
-│   │       ├── cierre-diario.ts  # usado por cron
-│   │       └── reportes.ts
+│   │   │   ├── index.astro        # 📱 marcación QR + GPS
+│   │   │   ├── revision.astro     # marcaciones señaladas
+│   │   │   └── registro.astro     # redirección 301 → /panel/hoy
+│   │   ├── personal/              # index, [id] (ficha por pestañas), nuevo, cuentas, importar
+│   │   ├── permisos/              # index, [id]
+│   │   ├── reportes.astro · reportes/resumen.astro
+│   │   ├── jornadas.astro · historial.astro · notificaciones.astro
+│   │   ├── configuracion/         # index, marcacion, qr, usuarios, puesta-en-marcha
+│   │   ├── ventanas/              # fragmentos para la ventana lateral (D-49, D-51)
+│   │   │   ├── persona/[id].astro · permiso.astro · acciones.astro
+│   │   │   ├── personal-nuevo.astro · cuenta/[id].astro · cuenta-nueva.astro
+│   │   └── api/
+│   │       ├── marcacion.ts       # POST entrada/salida (QR + GPS + dispositivo)
+│   │       ├── acciones.ts        # acciones rápidas en JSON (marcar, permiso, teléfono, cuentas…)
+│   │       ├── cierre-diario.ts   # usado por el cron
+│   │       ├── salir.ts
+│   │       └── reportes/          # planilla.ts, resumen.ts (PDF y Excel)
 │   │
 │   ├── components/
-│   │   ├── ui/                   # Atómicos reutilizables
-│   │   │   ├── Boton.astro
-│   │   │   ├── Tarjeta.astro
-│   │   │   ├── Tabla.astro
-│   │   │   ├── Modal.astro
-│   │   │   ├── Input.astro
-│   │   │   └── Badge.astro       # estados presente/tarde/falta
-│   │   ├── asistencia/
-│   │   │   ├── BotonMarca.astro
-│   │   │   ├── EscanerQR.client.ts # cámara + BarcodeDetector/jsQR
-│   │   │   ├── TablaDelDia.astro
-│   │   │   └── EstadoDia.astro
-│   │   ├── reportes/
-│   │   │   ├── FiltrosReporte.astro
-│   │   │   ├── TablaReporte.astro
-│   │   │   └── Exportador.client.ts
-│   │   └── dashboard/
-│   │       ├── Kpi.astro
-│   │       └── GraficaMensual.astro
+│   │   ├── ui/                    # Boton, Tarjeta, Tabla, Modal, Input, Select, Badge, Icono,
+│   │   │                          # BarraFiltros, Pestanas, Paginacion, Mensaje, Alerta…
+│   │   ├── graficas/              # GraficaLinea, BarrasHorizontales, BarraApilada,
+│   │   │                          # DistribucionLlegadas, Figura (todas aceptan destino al tocar)
+│   │   ├── panel/                 # Modulo, Anillo, MiniLinea, Contador, SubnavPanel,
+│   │   │                          # CalendarioPeriodo, HoyPorCategoria, ListaAusentes
+│   │   ├── personal/              # CamposPersonal, CamposCuenta
+│   │   ├── asistencia/            # PestanasAsistencia (Permisos · Por revisar)
+│   │   └── avisos/                # PanelAvisos (campana)
 │   │
 │   ├── lib/
-│   │   ├── supabase/
-│   │   │   ├── client-browser.ts
-│   │   │   └── client-server.ts
-│   │   ├── reglas/               # ⭐ lógica pura testeable
-│   │   │   ├── jornada.ts        # R0 resolución de la jornada del día
-│   │   │   ├── estados.ts        # R1 clasificación
-│   │   │   ├── calculoHoras.ts   # R2 horas
-│   │   │   ├── acumulados.ts     # R5 porcentajes
-│   │   │   └── geocerca.ts       # R10 distancia Haversine + precisión
-│   │   ├── seguridad/
-│   │   │   └── hash.ts           # hash de QR y PIN
-│   │   ├── export/
-│   │   │   ├── pdf.ts            # jsPDF
-│   │   │   └── excel.ts          # SheetJS
-│   │   └── dispositivo.ts        # dispositivo_uid en el navegador
+│   │   ├── reglas/                # ⭐ lógica pura y probada: jornada, estados, horas, cierre,
+│   │   │                          # geocerca, permisos, registro, estadisticas (lectura 90/80,
+│   │   │                          # tramos de llegada)…
+│   │   ├── datos/                 # lecturas de la base: asistencia (rangoPeriodo), categorias,
+│   │   │                          # jornadas, marcacion, cache, panel (cargarPanel y filtros)
+│   │   ├── servicios/             # escrituras: marcación, asistido, permisos, cuentas, personal,
+│   │   │                          # dispositivos, qr, cierre, notificaciones…
+│   │   ├── reportes/              # planilla y resumen en PDF y Excel
+│   │   ├── auth/                  # acceso.ts (reglas por ruta y rol, inicio por rol), cedula.ts
+│   │   ├── validacion/            # validación de formularios
+│   │   ├── supabase/servidor.ts · fecha.ts · formato.ts (números a la venezolana) · flash.ts
+│   │   └── avisos.ts · importacion.ts · qr.ts · demo/
+│   │
+│   ├── scripts/                   # JavaScript del navegador
+│   │   ├── mejoras.ts             # punto de entrada
+│   │   ├── transiciones.ts · precarga.ts · pantalla.ts   # navegación sin recarga (D-46)
+│   │   ├── ventanas.ts            # ventana lateral, vistazos locales, envío a /api/acciones,
+│   │   │                          # confirmación, buscador de personas, filtro de listas
+│   │   ├── tablas.ts              # tablas ordenables y «Ver todos» (D-55)
+│   │   ├── animaciones.ts         # cifras que cuentan desde 0 (D-54)
+│   │   └── marcar.ts · dispositivo.ts
 │   │
 │   ├── styles/
-│   │   ├── tokens.css            # variables: colores, tipografía, espaciado
-│   │   └── global.css            # reset, base, utilidades
+│   │   ├── tokens.css             # colores, tipografía, espaciado, movimiento, lectura
+│   │   ├── global.css             # base, rejilla de formularios, animaciones compartidas
+│   │   ├── ventanas.css           # ventana lateral y sus piezas (v-)
+│   │   └── panel.css              # piezas de las secciones del panel
 │   │
-│   └── types/
-│       └── index.ts              # tipos compartidos (Usuario, Registro...)
+│   └── types/index.ts
 │
 ├── tests/
-│   └── reglas/
-│       ├── jornada.test.ts
-│       ├── estados.test.ts
-│       ├── calculoHoras.test.ts
-│       ├── acumulados.test.ts
-│       └── geocerca.test.ts
+│   ├── reglas/ · auth/ · validacion/ · *.test.ts   # pruebas unitarias (Vitest)
+│   └── e2e/
+│       ├── navegacion.mjs         # pruebas de navegador (Playwright)
+│       ├── detector.mjs           # revisión de diseño automática
+│       └── capturas.mjs           # capturas para el manual impreso
 │
-└── Documentacion/                # este vault de Obsidian (fuente de verdad)
+└── Documentacion/                 # este vault de Obsidian (fuente de verdad)
 ```
 
 ## Convenciones
 
-- **`.astro`** para páginas/componentes con HTML; **`.ts`** para lógica pura.
-- Los `*.client.ts` son los pocos con JS en el navegador (interactividad).
-- `lib/reglas/` **nunca** importa de UI ni de Supabase (pure functions → fáciles de testear).
-- Archivos en español para nombres de usuario/pantallas; en inglés para código interno si se prefiere — **consistencia por encima de todo** (definir en Convenciones-y-calidad).
+- **`.astro`** para páginas y componentes con HTML; **`.ts`** para lógica.
+- `lib/reglas/` **nunca** importa de la interfaz ni de Supabase: funciones puras, fáciles de probar.
+- `lib/datos/` lee; `lib/servicios/` escribe. Las páginas no consultan tablas directamente salvo lecturas simples.
+- Los scripts de página no se ejecutan dos veces con la navegación sin recarga: usar oyentes delegados en `document` o `enCadaPantalla` (`scripts/pantalla.ts`).
+- Nombres en español, consistentes entre archivos, rutas y textos (Convenciones-y-calidad).
 
-Ver: Arquitectura · Guía de entorno
+Ver: Arquitectura · Mapa de pantallas · Guía de entorno
 
 ---
 
@@ -1875,7 +1969,7 @@ test: casos de tardanza con tolerancia 15 min
 
 ## Semana 3 — PC de respaldo, reportes y dashboard ✅
 
-- [x] `/asistencia/registro`: tabla del día + marcación asistida + hora manual (contingencia) + días anteriores
+- [x] `/asistencia/registro`: tabla del día + marcación asistida + hora manual (contingencia) + días anteriores *(desde el 27/10 es `/panel/hoy`, D-55)*
 - [x] ~~`/kiosco` cédula + PIN~~ → descartado (D-37); en su lugar «Marca en secretaría» y «Cambiar de teléfono» en la ficha
 - [x] `/asistencia/revision`: marcaciones señaladas
 - [x] `/reportes/resumen` con filtros + `acumulados.ts` (R5) + tests
@@ -1902,9 +1996,16 @@ test: casos de tardanza con tolerancia 15 min
 - [ ] Logo del colegio y escudo para el encabezado (pendiente del colegio)
 
 - [x] Sensación de app (D-46 a D-50): navegación de una sola página, precarga, avisos en panel, panel lateral de la persona, acciones en ventanas con «Deshacer», formularios con botones, ficha por capas
-- [ ] Prueba de usabilidad con personas del colegio → Prueba-de-usabilidad
+- [x] Acciones rápidas y orden visual (D-51): botón «Acciones», alta de personal y gestión de cuentas en ventanas
+- [x] Formularios a todo el ancho (D-52): rejilla por campo y columna de apoyo
+- [x] Panel más fácil de leer (D-53): frases en palabras y lectura Bien/Atención/Bajo
+- [x] Animaciones y gráficas modernas (D-54): entradas escalonadas, cifras que cuentan, tendencia con franjas, barras por lectura
+- [x] Panel de control en tres niveles (D-55): resumen → vistazo → seis secciones en el menú; Registro del día → *Hoy*; secretaría entra a *Pendientes*; período «Esta semana»
+- [x] Cada dato lleva a su detalle (D-56): barras, puntos, días y tramos enlazados; vista de una categoría comparada con el colegio; pastillas de filtros, «Volver al vistazo», estados vacíos, tendencia semanal en la ficha
+- [x] Recorridos de usabilidad simulados (25 y 27/10) → Resultados-usabilidad
+- [ ] Prueba de usabilidad con personas del colegio → Prueba-de-usabilidad (tareas D1–D6 y S0–S9 incluidas)
 
-**🏁 Hito:** desarrollo listo (2026-10-19); falta la prueba en teléfonos reales, la puesta en marcha y la capacitación.
+**🏁 Hito:** desarrollo listo (2026-10-19); mejoras de uso del panel publicadas (2026-10-27). Falta la prueba en teléfonos reales, la prueba de usabilidad con personas, la puesta en marcha y la capacitación.
 
 ---
 
@@ -1928,6 +2029,84 @@ test: casos de tardanza con tolerancia 15 min
 | 2 | 🟢 Terminada (falta prueba en celulares reales) |
 | 3 | 🟢 Terminada |
 | 4 | 🟡 Desarrollo terminado; faltan pruebas reales, puesta en marcha y capacitación |
+
+---
+
+# Historial de cambios
+
+Qué cambió en la app después del cierre del desarrollo (19/10/2026), en palabras simples. El porqué técnico de cada cambio está en el Registro de decisiones; cómo se usa, en el Manual de usuario.
+
+> **Lo más importante para el colegio**
+> 1. El **Registro del día** ahora se llama **Hoy** y está dentro de **Panel de control**.
+> 2. La **secretaría entra a *Pendientes***: lo que espera una acción, cada cosa con su botón.
+> 3. El panel **dice en palabras** cómo vamos (Bien / Atención / Bajo) y **todo se puede tocar** para ver el detalle.
+> 4. En el menú, «Asistencia» pasó a llamarse **«Permisos»** (con la pestaña *Por revisar*).
+
+## 27/10/2026 — Cada dato lleva a su detalle (D-56)
+
+- Las barras, los segmentos, los puntos de las gráficas, los días del calendario, los tramos de llegada y las semanas de faltas se pueden tocar y llevan a su lista con el filtro puesto.
+- **Vista de una categoría:** comparada con el colegio («8 puntos por debajo del colegio»), con su tendencia y sus personas.
+- Arriba se ve lo que se está filtrando («Viendo solo: Cocina ✕») y se quita con la ✕.
+- **«Volver al vistazo»** cuando se llega a una sección desde el panel lateral.
+- Las descargas en Excel salen con el período y la categoría que se están viendo.
+- Si un filtro deja la pantalla sin datos, el panel explica por qué y ofrece otra opción.
+- La ficha de cada persona muestra su lectura y **cómo le ha ido semana a semana**.
+- Corrección: la gráfica de tendencia ya no se sale de su tarjeta (el promedio pasó a la leyenda).
+
+Commits `f794b36`, `303fe29`.
+
+## 27/10/2026 — Panel de control en tres niveles (D-55)
+
+- **Resumen → vistazo → sección:** el recuadro abre un panel a la derecha con lo esencial y el botón **«Ver todo en …»** abre la página completa.
+- **Seis secciones** en el menú: Hoy, Asistencia, Puntualidad, Ausencias y permisos, Por categoría, Pendientes. En el celular, como pestañas arriba.
+- El **Registro del día** pasa a ser *Hoy*; los enlaces viejos llevan solos.
+- Se quitó el selector «Resumen / Acción rápida»: su contenido es la sección *Pendientes*.
+- Nuevo período **«Esta semana»**; el período y la categoría se conservan al cambiar de sección.
+- Tablas que se ordenan tocando el encabezado, con buscador y «Ver todos».
+- Corrección: los filtros de Personal, Hoy y otras listas volvieron a quedar en una fila.
+
+Commits `7bc01ae`, `d42cf18`.
+
+## 27/10/2026 — Animaciones y gráficas (D-54)
+
+- Los recuadros entran uno tras otro, la cifra principal cuenta desde 0, el anillo se llena y las líneas se dibujan.
+- Gráficas más claras: curva suave, franjas de fondo Bien/Atención/Bajo y barras coloreadas por su lectura.
+- El calendario usa los mismos límites que el resto (90 % y 80 %).
+- Con «reducir movimiento» activado en el equipo, todo aparece sin animación.
+
+Commit `4d73b18`.
+
+## 26/10/2026 — Panel en palabras (D-53)
+
+- La primera pantalla dice en palabras cómo vamos («32 de 45 ya llegaron», «96 % de asistencia · Bien») en lugar de cifras sueltas; los gráficos completos pasaron a una segunda capa.
+- Recorrido de usabilidad simulado → Resultados-usabilidad.
+
+Commit `ff5575d`.
+
+## 20/10/2026 — Formularios y orden visual (D-51, D-52)
+
+- Botón **Acciones** en la barra superior: buscar a una persona, nuevo personal, cargar permiso, cuentas y descargas.
+- **Nuevo personal** y **gestión de cuentas** en ventanas, sin salir de la pantalla.
+- Todas las pantallas al mismo ancho; formularios con los campos del tamaño de su dato y una columna de ayuda a la derecha (por ejemplo, la vista previa del encabezado de la planilla).
+
+Commits `b0a5bf5`, `2341bca`, `2f6a8c2`.
+
+## 20/10/2026 — Sensación de app (D-46 a D-50)
+
+- La app ya no se recarga al cambiar de pantalla y las pantallas se precargan.
+- Tocar el nombre de una persona abre su resumen a la derecha.
+- Mensajes con **«Deshacer»** después de cada acción rápida.
+- Avisos en un panel desde la campana.
+- Marcar con «Ahora» u «Otra hora» y motivos con botones; ficha de la persona por pestañas.
+
+Commits `3ba44c2` a `7bfdce4`.
+
+## Pendiente
+
+- Prueba en teléfonos reales (Android y iPhone).
+- Prueba de usabilidad con personas del colegio → Prueba-de-usabilidad.
+- Volver a medir con Lighthouse el panel nuevo → Informe-de-auditoria.
+- Puesta en marcha y capacitación.
 
 ---
 
@@ -2017,6 +2196,41 @@ En `vercel.json`:
 
 - Vercel guarda cada deploy: **Deployments → redeploy** de la versión anterior (reversión en segundos).
 - Migraciones de BD: siempre versionadas en `supabase/migrations/`; nunca editar tablas a mano en producción.
+
+---
+
+# Puesta en marcha (de las pruebas al uso real)
+
+> **Quién decide**
+> La fecha la decide la coordinación del proyecto (Schormeiker) con la directiva. Mientras tanto, las pruebas siguen con los datos de demostración. Nada de esta lista se ejecuta solo.
+
+La app tiene una lista de verificación en vivo en **Ajustes › Puesta en marcha** (solo directiva): marca cada paso como listo o pendiente y lleva a la pantalla donde se hace.
+
+## Orden sugerido
+
+| # | Paso | Dónde | Notas |
+|---|---|---|---|
+| 0 | Respaldo de la base | Terminal: `npm run db:respaldo` | Queda en `Documentacion/_privado/respaldos/` (no se sube a GitHub) |
+| 1 | Revisar la nómina, las jornadas y los feriados | Personal · Ajustes › Jornadas | Antonio con secretaría |
+| 2 | Marcar a quien no tiene teléfono | Ficha › Teléfono › «Marca en secretaría» | No necesitan cuenta |
+| 3 | Completar los datos de la planilla (firmante, código DEA, logo) | Ajustes › Institución | El logo está pendiente del colegio |
+| 4 | Crear la cuenta de la directiva real | Ajustes › Usuarios | Con su correo; luego desactivar la de prueba |
+| 5 | Borrar los datos de demostración | Ajustes › Datos de demostración | El panel quedará vacío hasta las primeras marcaciones |
+| 6 | Desactivar fichas, cuentas y ubicaciones de prueba | Personal · Ajustes › Usuarios · Ajustes › Marcación | Cuentas `…@example.com`; fichas V-1000000x |
+| 7 | Generar e imprimir el QR definitivo | Ajustes › Código QR | Pegarlo en la entrada |
+| 8 | Crear las cuentas del personal | Personal › Cuentas | El mismo día de la capacitación (contraseña inicial 0000) |
+| 9 | Capacitación: instalar, entrar, crear contraseña, marcar | En el colegio | Ver el manual y la guía rápida |
+| 10 | Fijar la fecha de inicio del control | Ajustes › Marcación › Cierre diario | Desde ese día el cierre pone falta a quien no marque |
+
+## Después del primer día
+
+- Revisar **Permisos › Por revisar** (ubicación dudosa u horas escritas a mano).
+- Revisar **Personal › Cuentas › Sin activar**: quien no creó su contraseña.
+- Atender **Panel de control › Pendientes** y los avisos de la campana (teléfonos nuevos, faltas, salidas sin marcar).
+
+## Respaldo
+
+`npm run db:respaldo` guarda una copia JSON de cada tabla y la lista de cuentas (sin contraseñas). Para restaurar una cuenta, se crea de nuevo o se restablece a 0000. Recomendación: un respaldo semanal y antes de cualquier cambio grande.
 
 ---
 
@@ -2110,77 +2324,197 @@ La campana de arriba muestra sus **avisos**.
 
 # Parte 2 · Secretaría y directiva (PC del colegio)
 
-En el PC se entra con el **correo** de la cuenta (o con la cédula, si la cuenta se creó así). Menú: **Panel · Asistencia · Personal · Reportes**, y **Ajustes** para la directiva.
+En el PC se entra con el **correo** de la cuenta (o con la cédula, si la cuenta se creó así). Al entrar, la **directiva** llega al resumen del *Panel de control* y la **secretaría** a *Pendientes*.
+
+**Menú de la izquierda:**
+
+| Opción | Para qué |
+|---|---|
+| **Panel de control** | Cómo va la asistencia del colegio. Debajo están sus seis secciones: **Hoy · Asistencia · Puntualidad · Ausencias y permisos · Por categoría · Pendientes** |
+| **Permisos** | Cargar y consultar permisos; pestaña **Por revisar** |
+| **Personal** | Lista del personal, fichas, cuentas |
+| **Reportes** | Planilla diaria y resumen del período (PDF y Excel) |
+| **Ajustes** (directiva) | QR, marcación, jornadas, categorías, usuarios, institución |
+
+En el celular, el menú está abajo y las secciones del panel aparecen como pestañas arriba.
 
 > **Todo sin salir de la pantalla**
-> - **Toque el nombre de una persona** (en Personal, Panel de control › Hoy, Reportes o el Panel) y se abre a la derecha su resumen: hoy, el mes, permisos, teléfono y cuenta, con botones para marcar, cargar un permiso, aprobar o cambiar el teléfono, crear la cuenta o restablecer la contraseña. «Abrir ficha completa» lleva a todos los datos.
+> - **Toque el nombre de una persona** en cualquier lista y se abre a la derecha su resumen, con botones para marcar, cargar un permiso, aprobar o cambiar el teléfono, crear la cuenta o restablecer la contraseña. «Abrir ficha completa» lleva a todos los datos.
 > - Después de cada acción aparece un mensaje abajo. Si se equivocó, toque **Deshacer**.
-> - La **campana** abre los avisos encima de la pantalla; tóquelos para ir a lo que indican.
-> - El **Panel de control** se lee en tres pasos: los **recuadros** dicen cómo vamos; al tocar uno se abre a la derecha un **vistazo** con las cifras principales y lo más importante; y el botón **«Ver todo en …»** abre la **sección completa**, con filtros, tablas y descargas. Las secciones (Hoy, Asistencia, Puntualidad, Ausencias y permisos, Por categoría, Pendientes) también están en el menú, dentro de *Panel de control*.
-> - **Hoy** es el antiguo Registro del día: ahí se marcan entradas y salidas. **Pendientes** reúne lo que espera una acción, con su botón, y el buscador de personas; la secretaría entra directamente ahí.
-> - El período elegido (Esta semana, Este mes, Últimos 30 días, Mes anterior) y la categoría se mantienen al pasar de una sección a otra.
-> - **Casi todo se puede tocar:** una barra de categoría abre esa categoría (comparada con el colegio y con su gente); un día del calendario o un punto de la gráfica abre *Hoy* de esa fecha; un tramo de llegada muestra quiénes llegaron así. Arriba aparece lo que se está viendo («Viendo solo: Cocina ✕»): toque la ✕ para quitarlo.
-> - Si llegó desde un vistazo, **«Volver al vistazo»** lo devuelve donde estaba. Las descargas salen con los mismos filtros que está viendo.
 > - El botón **Acciones** (arriba) reúne lo más frecuente: buscar a una persona, registrar personal nuevo, cargar un permiso, crear cuentas y descargar la planilla de hoy o el resumen del mes.
-> - En la PC, los formularios muestran a la derecha una columna de ayuda: por ejemplo, en Ajustes se ve cómo saldrá el encabezado de la planilla mientras se escribe, y en un permiso cuántos días abarca.
-> - En **Ajustes › Usuarios**, «Gestionar» abre una ventana para cambiar el tipo de cuenta, la contraseña o desactivarla.
+> - La **campana** abre los avisos encima de la pantalla.
 
-## 7. Hoy (Panel de control › Hoy, antes «Registro del día»)
+## 7. Cómo leer el Panel de control
 
-Lista de todo el personal que trabaja ese día, con su estado: **por llegar, presente, tarde, falta, permiso o sin salida**, y cómo marcó (teléfono, secretaría o a mano).
+El panel se lee en **tres pasos**, de lo general a lo detallado:
+
+| Paso | Qué ve | Cómo se llega |
+|---|---|---|
+| **1. Resumen** | Seis recuadros que dicen en palabras cómo vamos: «32 de 45 ya llegaron», «96 % de asistencia» | Panel de control |
+| **2. Vistazo** | A la derecha: tres cifras, una gráfica, lo más importante (hasta 5) y una o dos acciones | Tocando un recuadro |
+| **3. Sección** | La página completa: filtros, gráfica grande, tabla que se ordena y busca, descargas | Botón **«Ver todo en …»** del vistazo, o el menú |
+
+**Las etiquetas de color** dicen cómo va cada cosa, siempre con una palabra:
+
+| Etiqueta | Significa |
+|---|---|
+| 🟢 **Bien** | 90 % o más |
+| 🟠 **Atención** | De 80 % a 89 % |
+| 🔴 **Bajo** | Menos de 80 % |
+
+Los mismos colores se usan en las barras, los puntos de las gráficas y los días del calendario.
+
+**Filtros.** Arriba de cada sección se elige el **período** (Esta semana, Este mes, Últimos 30 días, Mes anterior) y la **categoría**. Se mantienen al pasar de una sección a otra. Lo que se está filtrando aparece como una pastilla — «Viendo solo: Cocina ✕» —; toque la **✕** para quitarlo.
+
+**Casi todo se puede tocar.** Cada barra, punto o día lleva a su detalle con el filtro ya puesto:
+
+| Toque | Y verá |
+|---|---|
+| La barra de una categoría | Esa categoría comparada con el colegio y su gente |
+| Un día del calendario o un punto de la gráfica | *Hoy* de esa fecha: quién vino y quién no |
+| Un segmento de la barra de hoy (tarde, sin marcar…) | *Hoy* con solo esas personas |
+| Un día de la semana (Martes) | *Asistencia* con solo los martes |
+| Un tramo de llegada («De 16 a 30 min») | La lista de esas llegadas: quién, qué día, cuántos minutos |
+| Una semana de faltas | Las faltas de esa semana |
+
+Si llegó desde un vistazo, **«Volver al vistazo»** lo devuelve donde estaba. Las **descargas** salen con los mismos filtros que está viendo. Si un filtro deja la pantalla vacía, el panel le dice por qué y le ofrece ver los últimos 30 días o quitar el filtro.
+
+## 8. Hoy (antes «Registro del día»)
+
+**Panel de control › Hoy.** Lista de todo el personal que trabaja ese día, con su estado: **por llegar, presente, tarde, falta, permiso o sin salida**, y cómo marcó (teléfono, secretaría o a mano).
 
 - **Marcar entrada / Marcar salida:** se abre una ventana con **Ahora** ya elegido; toque **Registrar**.
 - **Otra hora (contingencia):** si se cayó el internet o alguien olvidó marcar, toque **Otra hora**, escriba la hora y elija el motivo con los botones. Queda señalada para revisión.
 - **Días anteriores:** con las flechas o la fecha. Para un día pasado siempre se escribe la hora y el motivo.
 - **Permiso:** desde la fila, carga un permiso para esa persona.
 - Una **falta** puesta por el cierre diario se corrige marcando la entrada.
-- Filtros: **Mostrar** (por llegar, llegaron, sin salida, faltas, permisos, marcan en secretaría), categoría y búsqueda.
+- Filtros: **Mostrar** (por llegar, llegaron, llegaron tarde, sin salida, faltas, permisos, marcan en secretaría), categoría y búsqueda.
 
-## 8. Por revisar
+## 9. Pendientes
 
-Marcaciones con advertencia: GPS impreciso, hora escrita a mano o ubicación de prueba. Muestra el motivo, la distancia y un enlace al mapa. Verifique y toque **Revisada** (o «Marcar las … como revisadas»).
+**Panel de control › Pendientes.** Lo que espera una acción, cada cosa con su botón: **Aprobar** un teléfono nuevo, **Cargar permiso** por una falta, **Ver** una salida sin marcar, **Revisar** marcaciones señaladas, personas **sin jornada** o **sin cuenta**. Los botones de arriba filtran por tipo.
 
-## 9. Permisos
+También tiene un **buscador grande** (nombre o cédula: abre el panel de esa persona), el estado de hoy y los accesos de todos los días: marcar, cargar permiso, planilla de hoy, resumen del mes y nuevo personal.
 
-**Asistencia › Permisos** → **Nuevo permiso** (o «Cargar permiso» desde el panel de la persona): escriba el nombre o la cédula y elija a la persona; toque **Hoy**, **Mañana** u **Otras fechas**; elija el motivo con los botones y **Guardar permiso**. Las faltas de esas fechas pasan a permiso; si lo elimina, vuelven a falta. No se permiten dos permisos que se crucen. También están en la ficha de cada persona.
+## 10. Las demás secciones del panel
 
-## 10. Teléfonos y cuentas (ficha de la persona)
+- **Asistencia:** asistencia, faltas, permisos y horas del período; tendencia con la línea del promedio (o del colegio, si eligió una categoría); calendario; tabla día por día con botones **Lun · Mar · Mié…** para ver un solo día de la semana.
+- **Puntualidad:** cuántos llegan a la hora, en tolerancia o tarde; gráfica de **hora de llegada** (toque un tramo para ver esas llegadas); asistencia por día de la semana; tabla de quiénes llegan tarde, con veces y retraso promedio.
+- **Ausencias y permisos:** faltas sin justificar del período (cada una con **Cargar permiso**), faltas por semana, quiénes faltan más y los permisos de esta semana.
+- **Por categoría:** la mejor, la más baja y cuántas están por debajo de 90 %; barras y tabla de comparación. Al tocar una categoría se abre **su vista**: comparada con el colegio («8 puntos por debajo del colegio»), su tendencia, **sus personas** de menor a mayor asistencia y accesos a las demás categorías.
 
+## 11. Por revisar
+
+**Permisos › Por revisar.** Marcaciones con advertencia: GPS impreciso, hora escrita a mano o ubicación de prueba. Muestra el motivo, la distancia y un enlace al mapa. Verifique y toque **Revisada** (o «Marcar las … como revisadas»).
+
+## 12. Permisos
+
+**Permisos** → **Nuevo permiso** (o «Cargar permiso» desde el panel de la persona, *Pendientes* o *Ausencias*): escriba el nombre o la cédula y elija a la persona; toque **Hoy**, **Mañana** u **Otras fechas**; elija el motivo con los botones y **Guardar permiso**. Las faltas de esas fechas pasan a permiso; si lo elimina, vuelven a falta. No se permiten dos permisos que se crucen.
+
+## 13. Personal: fichas, teléfonos y cuentas
+
+- **Nuevo personal** (directiva): desde *Acciones* o *Pendientes* se abre una ventana con lo esencial (nombre, apellido, cédula, categoría y vínculo) y la casilla **«Crear su cuenta ahora»** (cédula + 0000). La jornada se asigna sola según la categoría.
+- **La ficha** muestra arriba su asistencia de los últimos 30 días con su etiqueta (Bien, Atención o Bajo) y, en *Resumen*, **cómo le ha ido semana a semana** en las últimas 8 semanas.
 - **Cambiar de teléfono:** quita el teléfono actual; el próximo con el que la persona marque queda aprobado solo.
 - **Aprobar / Revocar:** para un teléfono pendiente o uno que ya no se debe usar.
-- **No tiene teléfono: marca en secretaría:** la persona aparece primero en el registro del día y no marca desde la app.
+- **No tiene teléfono: marca en secretaría:** la persona aparece primero en *Hoy* y no marca desde la app.
 - **Restablecer a 0000:** si olvidó su contraseña. Al entrar crea una nueva.
 
 **Crear cuentas (directiva):** **Personal › Cuentas** → elija las personas → **Crear cuentas con contraseña 0000** → **Imprimir** la hoja de claves y entregue cada tira. En «Sin activar» ve quién no ha creado su contraseña y puede reimprimir su tira.
 
+**Gestionar una cuenta (directiva):** **Ajustes › Usuarios › Gestionar** (o «Gestionar cuenta» en el panel de la persona) abre una ventana para cambiar el tipo de cuenta, la contraseña o desactivarla.
+
 > **Cuándo crear las cuentas**
 > Mientras alguien no entra por primera vez, cualquiera que conozca su cédula podría hacerlo con 0000. Créelas cerca de la capacitación.
 
-## 11. Reportes
+## 14. Reportes
 
 - **Planilla diaria:** el formato oficial del día (docentes o personal), en **PDF** o **Excel**, con la firma de la dirección.
-- **Resumen del período:** elija las fechas (o «Este mes», «Mes anterior», «Últimos 30 días») y la categoría. Por persona: días laborables, presente, tarde, faltas, permisos, días sin registro, % de asistencia, horas y marcaciones en secretaría. Ordene por columna y descargue en **PDF** o **Excel**.
+- **Resumen del período:** elija las fechas y la categoría. Por persona: días laborables, presente, tarde, faltas, permisos, días sin registro, % de asistencia, horas y marcaciones en secretaría. Ordene por columna y descargue en **PDF** o **Excel**.
+- Desde cualquier sección del panel, **«Descargar en Excel»** baja el resumen con el período y la categoría que se están viendo.
 
-## 12. Panel y avisos
+## 15. Avisos
 
-El **Panel** muestra el día de hoy, los indicadores del período, lo que **requiere atención** (por revisar, teléfonos por aprobar, personas con muchas faltas) y el análisis en secciones plegables.
+La **campana** muestra los avisos: faltas y salidas sin marcar del cierre diario, teléfonos nuevos y el QR por vencer. Al abrir un aviso, lleva a la pantalla correspondiente. En **Avisos** se pueden ver por tipo.
 
-La **campana** muestra los avisos: faltas y salidas sin marcar del cierre diario, teléfonos nuevos y el QR por vencer. Al abrir un aviso, lleva a la pantalla correspondiente.
+## 16. Ajustes (directiva)
 
-## 13. Ajustes (directiva)
-
-- **Puesta en marcha:** lista de lo que falta para empezar el uso real.
+- **Puesta en marcha:** lista de lo que falta para empezar el uso real, con su barra de avance.
 - **Marcación:** ubicación del colegio y radio, ubicaciones de prueba, franjas horarias y **cierre diario** (fecha de inicio del control).
 - **Código QR:** generar, imprimir y desactivar. El anterior deja de funcionar al instante. Recomendado: renovarlo cada lapso o si circula una foto.
-- **Jornadas y feriados**, **Categorías**, **Usuarios** (cuentas de directiva y secretaría), **Importar personal**, **Institución** (datos de la planilla) y **Datos de demostración**.
+- **Institución:** datos de la planilla; a la derecha se ve **cómo saldrá el encabezado** mientras se escribe.
+- **Jornadas y feriados**, **Categorías**, **Usuarios**, **Importar personal** y **Datos de demostración**.
 
-## 14. Cierre diario
+## 17. Cierre diario
 
 Todos los días a las 18:00 el sistema cierra las jornadas terminadas: quien no marcó queda con **falta** (o **permiso** si tiene uno), y quien no marcó la salida queda **sin salida** para que secretaría la complete. Solo funciona desde la **fecha de inicio del control** (Ajustes › Marcación).
 
 ---
 
-*Manual v2.1 · 20/10/2026 · ventanas y panel lateral (D-49) · sin kiosco ni PIN (D-37); cuentas por cédula (D-42).*
+*Manual v3.0 · 28/10/2026 · Panel de control en tres niveles con secciones (D-55) · cada dato lleva a su detalle (D-56) · animaciones y lectura Bien/Atención/Bajo (D-53, D-54) · formularios en ventanas (D-49, D-51) · sin kiosco ni PIN (D-37); cuentas por cédula (D-42).*
+
+---
+
+# GRU-system · Guía rápida para marcar asistencia
+
+**Dirección:** control-de-asistencia-vert.vercel.app
+
+## Una sola vez
+1. Abra la dirección en el teléfono (Chrome en Android, Safari en iPhone) e **instale la app**: Android, menú ⋮ → *Instalar aplicación*; iPhone, Compartir → *Agregar a pantalla de inicio*.
+2. Abra la app desde el ícono **GRU-system**.
+3. Entre con su **cédula** (solo números) y la contraseña **0000**.
+4. Cree **su propia contraseña** (al menos 6 caracteres, que no sea su cédula).
+
+## Todos los días
+1. Al llegar: **Marcar entrada** → permita ubicación y cámara → apunte al **QR de la entrada**.
+2. Verá *Entrada registrada a tiempo* o *con retraso*, con la hora.
+3. Al salir: **Marcar salida** → mismo QR.
+
+## Si algo falla
+| Mensaje | Qué hacer |
+|---|---|
+| Debe estar en el colegio | Acérquese a la entrada |
+| Active la ubicación | Encienda la ubicación y dé permiso a la app |
+| Código QR no válido | Escanee el QR pegado en la entrada |
+| Teléfono pendiente de aprobación | Avise en secretaría |
+| Sin conexión / sin teléfono / olvidé la salida | Pase por secretaría |
+
+**Recuerde:** marque siempre desde el mismo teléfono. ¿Olvidó la contraseña? Secretaría la restablece a 0000.
+
+---
+
+# GRU-system · Guía rápida de secretaría
+
+**Al entrar** llega a **Pendientes**: lo que espera una acción, cada cosa con su botón.
+**Menú:** Panel de control (Hoy · Asistencia · Puntualidad · Ausencias y permisos · Por categoría · Pendientes) · Permisos · Personal · Reportes. La campana muestra los avisos.
+
+## Cada mañana
+1. **Pendientes:** resuelva lo de arriba (teléfonos por aprobar, faltas, salidas sin marcar).
+2. **Panel de control › Hoy** → «Mostrar: Por llegar».
+3. Quien llegue sin teléfono o marque en secretaría: **Marcar entrada** en su fila.
+4. Si falló el internet o la persona olvidó marcar: **Otra hora** + **motivo**.
+
+## Cada tarde
+1. **Hoy** → «Mostrar: Sin salida marcada» → **Marcar salida** (o escribir la hora con motivo).
+2. **Permisos › Por revisar:** verifique lo señalado y toque **Revisada**.
+
+## Cuando ocurra
+| Situación | Dónde |
+|---|---|
+| Buscar a alguien | Buscador de **Pendientes** (o botón **Acciones**) → nombre o cédula |
+| Permiso o reposo | **Permisos › Nuevo permiso**, o «Cargar permiso» junto a la falta en *Pendientes* (las faltas de esas fechas pasan a permiso) |
+| Cambió de teléfono | Toque su nombre › **Cambiar de teléfono** |
+| No tiene teléfono | Ficha › Teléfono › **Marca en secretaría** |
+| Olvidó su contraseña | Toque su nombre › **Restablecer a 0000** |
+| Falta puesta por el cierre, pero vino | **Hoy** (ese día) › **Marcar entrada** con la hora y el motivo |
+| ¿Quién llega tarde? | **Panel de control › Puntualidad** |
+| ¿Cómo va una categoría? | **Panel de control › Por categoría** → toque la categoría |
+| Planilla del día | **Pendientes › Planilla de hoy**, o Reportes › Planilla diaria (PDF o Excel) |
+| Resumen del mes | Reportes › Resumen del período, o «Descargar en Excel» en cualquier sección del panel |
+
+**Para leer el panel:** 🟢 **Bien** = 90 % o más · 🟠 **Atención** = 80 a 89 % · 🔴 **Bajo** = menos de 80 %. Toque cualquier barra, punto o día para ver su detalle; la **✕** de «Viendo solo: …» quita el filtro.
+
+**Cierre diario:** a las 18:00 el sistema pone falta a quien no marcó (o permiso si tiene uno) y avisa de las salidas sin marcar.
 
 ---
 
@@ -2314,9 +2648,33 @@ Todos los días a las 18:00 el sistema cierra las jornadas terminadas: quien no 
 | F40 | Crear cuentas en lote e imprimir la hoja de claves | Una tira por persona con cédula y 0000 |
 | F41 | Publicar una versión nueva con la app abierta | Aparece «Hay una versión nueva»; al tocar «Actualizar» recarga |
 
+### Panel de control (D-53 a D-56)
+
+| # | Paso | Esperado |
+|---|---|---|
+| F42 | Entrar como directiva / como secretaría | Directiva en el resumen del panel; secretaría en *Pendientes* |
+| F43 | Tocar un recuadro del resumen | Se abre el vistazo a la derecha sin salir de la pantalla |
+| F44 | En el vistazo, «Ver todo en …» | Abre la sección completa; arriba «Volver al vistazo» |
+| F45 | Elegir «Últimos 30 días» y cambiar de sección desde el menú | El período se conserva |
+| F46 | Tocar la barra de una categoría | Vista de esa categoría comparada con el colegio; pastilla «Viendo solo: …» |
+| F47 | Tocar un día del calendario o un punto de la tendencia | *Hoy* de esa fecha |
+| F48 | Tocar un tramo de llegada | Lista de esas llegadas |
+| F49 | Tocar la ✕ de una pastilla | Se quita solo ese filtro |
+| F50 | Elegir un filtro sin datos | Mensaje que explica por qué y ofrece cambiar el período o quitar el filtro |
+| F51 | «Descargar en Excel» desde una sección filtrada | El archivo trae ese período y esa categoría |
+| F52 | Entrar con «reducir movimiento» activado | Todo aparece al instante, sin animaciones |
+| F53 | Abrir `/asistencia/registro` (enlace viejo) | Lleva a *Hoy* con el mismo filtro |
+
 ## 2b. Pruebas en navegador (automatizadas)
 
-`npm run test:e2e` (Playwright) verifica en Chromium real: filtros sin recarga, esqueletos de carga, búsqueda que conserva el foco, botón atrás, paginación, período del panel, filtros en celular, sesión vencida y ausencia de errores de JavaScript. `npm run capturas` genera capturas para revisión visual.
+`npm run test:e2e` (Playwright) verifica en Chromium real: filtros sin recarga, esqueletos de carga, búsqueda que conserva el foco, botón atrás, paginación, filtros en celular, sesión vencida, ventanas y formularios rápidos, y ausencia de errores de JavaScript. Para el **Panel de control** comprueba:
+
+- el resumen (seis recuadros, sin tablas en la primera capa, menú con las seis secciones, «reducir movimiento»);
+- el vistazo (abre sin recarga, tres cifras enlazadas, «Ver todo» lleva a la sección y cierra el vistazo);
+- las secciones (período que se conserva, tabla ordenable, buscador, lecturas y acciones, redirección del Registro del día);
+- cada dato a su detalle (barra de categoría → su vista con pastilla y comparación con el colegio, «Volver al vistazo», día del calendario → *Hoy*, filtro por día de la semana con ✕, tramo de llegada → sus llegadas).
+
+`npm run diseno:revisar` pasa el detector de diseño en 27 pantallas (PC y celular). `npm run capturas` genera capturas para revisión visual. Contra producción: `E2E_URL=https://control-de-asistencia-vert.vercel.app npm run test:e2e`.
 
 ## 3. Pruebas de seguridad
 
@@ -2342,9 +2700,208 @@ Todos los días a las 18:00 el sistema cierra las jornadas terminadas: quien no 
 
 | Fecha | Versión | Ejecutado por | Aprobado | Observaciones |
 |---|---|---|---|---|
+| 2026-10-27 | Cada dato a su detalle (D-56) y tendencia sin desbordes | Desarrollador (automatizado) | ✅ | 178 pruebas unitarias. 78/78 en navegador, en local y en producción. Detector de diseño sin hallazgos. |
+| 2026-10-27 | Panel de control en tres niveles (D-55) | Desarrollador (automatizado) | ✅ | 177 unitarias; 71/71 en navegador (local y producción). Recorrido de usabilidad simulado: todas las tareas en 0–3 toques. |
+| 2026-10-27 | Animaciones y gráficas (D-54) | Desarrollador (automatizado) | ✅ | 66/66 en navegador; «reducir movimiento» verificado; sin fotogramas largos en la entrada. |
+| 2026-10-25 | Panel en palabras (D-53) | Desarrollador (automatizado) | ✅ | 176 unitarias; 64/64 en navegador. |
+| 2026-10-20 | Sensación de app y ventanas (D-46 a D-52) | Desarrollador (automatizado) | ✅ | 173 unitarias; 59 → 65 verificaciones en navegador según se agregaron funciones. |
 | 2026-10-08 | Refinamiento visual | Desarrollador (Impeccable + Playwright) | ✅ | Detector de diseño: 95 → 0 hallazgos (PC y celular). 22/22 en navegador. Corregido listado de jornadas/categorías. |
 | 2026-10-08 | Navegación parcial | Desarrollador (Playwright) | ✅ | 20/20 verificaciones en navegador real. |
 | 2026-10-06 | Semana 1 | Desarrollador (automatizado) | ✅ | 62 tests unitarios (R0, R1, R2, R5, R10, acceso, validación). E2E: F1–F5, CRUD de personal/jornadas/feriados/cuentas, CSRF, redirección abierta, cuenta desactivada. RLS probado contra la API real con anon, personal y secretaría. |
+
+---
+
+# Prueba de usabilidad con personas del colegio
+
+> **Para qué sirve**
+> Comprobar que personas poco acostumbradas a las aplicaciones modernas logran las tareas principales **solas, rápido y sin estrés**, antes de la capacitación. Responsables: Hector (conduce) y Mariansel (anota). Duración: 20 minutos por persona.
+
+## Participantes
+
+- 1 o 2 personas de **secretaría** (usarán el PC).
+- 2 personas del **personal** (docente u obrero) con su propio teléfono, idealmente una con Android y otra con iPhone, y al menos una que diga que «no es buena con el teléfono».
+
+Usar las cuentas de prueba (`Documentacion/_privado/Usuarios-de-prueba.md`). No usar datos de personas reales para las tareas que cambian datos.
+
+## Cómo conducirla
+
+1. Explicar: «Estamos probando la app, no a usted. Si algo no sale, es culpa de la app».
+2. Dar cada tarea en voz alta, tal como está escrita. **No ayudar** salvo que la persona se rinda; anotar dónde dudó.
+3. Pedir que piense en voz alta («¿qué está buscando ahora?»).
+4. Cronometrar desde que termina la consigna hasta que la tarea queda hecha.
+
+## Tareas
+
+### Personal (teléfono)
+
+| # | Consigna | Éxito | Meta |
+|---|---|---|---|
+| P1 | «Entre a la app con su cédula y la contraseña que le dimos» (0000) | Crea su contraseña y llega a Mi asistencia | < 2 min |
+| P2 | «Marque su entrada» (con el QR de prueba) | Ve «Entrada registrada» | < 30 s |
+| P3 | «¿Cuántas veces llegó tarde este mes?» | Lo encuentra en Historial | < 1 min |
+| P4 | «Revise si tiene algún aviso» | Abre la campana | < 20 s |
+
+### Secretaría (PC)
+
+| # | Consigna | Éxito | Meta |
+|---|---|---|---|
+| S1 | «Daniel llegó sin teléfono. Regístrele la entrada» | Panel de control › Hoy › Marcar entrada › Registrar | < 45 s |
+| S2 | «Ayer se cayó el internet y Daniel llegó a las 7:10. Regístrelo» | Día anterior, hora y motivo | < 1,5 min |
+| S3 | «Daniel trae un reposo de 3 días desde mañana. Cárguelo» | Permiso con fechas y motivo | < 1 min |
+| S4 | «Daniel cambió de teléfono» | Tocar su nombre › Cambiar de teléfono | < 45 s |
+| S5 | «Descargue el resumen de este mes en Excel» | Reportes › Resumen › Excel | < 45 s |
+| S6 | «Equivocó una marcación: deshágala» | Usa «Deshacer» del mensaje | < 20 s |
+| S10 | «¿Cómo le fue a Cocina este mes comparada con el colegio?» | Panel de control › Por categoría › tocar «Cocina» | < 45 s |
+| S11 | «¿Quién faltó el martes pasado?» | Asistencia › tocar el día en el calendario (abre Hoy de esa fecha) › Mostrar: Faltas | < 1 min |
+
+### Directiva y secretaría: panel (D-53)
+
+Se prueba que la administración **lee el panel sin interpretar cifras** y que llega al detalle buscando.
+
+| # | Consigna | Éxito | Meta |
+|---|---|---|---|
+| D1 | «¿Cuántas personas faltan por llegar hoy?» | Lo dice el recuadro Hoy, sin tocar nada | < 15 s |
+| D2 | «¿La asistencia de este mes va bien o mal?» | Lee «Bien / Atención / Bajo» en Este mes | < 15 s |
+| D3 | «¿Quién llega tarde más seguido?» | Toca el recuadro Puntualidad y lee la lista del vistazo | < 30 s |
+| D4 | «Vea cómo les fue a los docentes el mes anterior» | Menú › Panel de control › Asistencia › Mes anterior › Categoría Docente (o tocar la barra «Docente» en Por categoría) | < 1 min |
+| D5 | (Directiva) «Ahora vea lo que tiene pendiente la secretaría» | Menú › Panel de control › Pendientes | < 20 s |
+| D6 | «Vea todas las faltas del mes» | Recuadro de Ausencias › «Ver todo en Ausencias» | < 30 s |
+| S7 | «Busque a Daniel y cárguele un permiso» | Buscador › su panel › Cargar permiso | < 45 s |
+| S8 | «¿Cuántos están por llegar hoy?» | Lo lee en la tarjeta «Hoy» de Pendientes | < 15 s |
+| S9 | «Abra la planilla de hoy» | Pendientes › Accesos › «Planilla de hoy (PDF)» | < 20 s |
+
+## Qué anotar
+
+| Persona | Tarea | Tiempo | ¿Lo logró sola? (sí / con ayuda / no) | Dónde dudó o qué dijo |
+|---|---|---|---|---|
+| | | | | |
+
+Al final, tres preguntas:
+1. Del 1 al 5, ¿qué tan fácil le pareció? 
+2. ¿Qué fue lo más confuso?
+3. ¿Hay alguna palabra que no entendió?
+
+## Después
+
+- Toda tarea que no se logró sola o pasó la meta se convierte en un cambio de la app o del manual.
+- Resultados en una nota nueva: `05-Entregables/Resultados-usabilidad.md`.
+
+---
+
+# Resultados de usabilidad
+
+## 2026-10-27 · Recorrido simulado del Panel de control en tres niveles (D-55)
+
+> **Tampoco reemplaza la prueba con personas**
+> Mismo método que el anterior: cuenta toques y comprueba que la respuesta aparece.
+
+| Tarea | Toques | Cómo |
+|---|---|---|
+| D1 · ¿Cuántos faltan por llegar hoy? | 0 | Recuadro Hoy |
+| D2 · ¿La asistencia del mes va bien o mal? | 0 | «Bien» en el recuadro del mes |
+| D3 · ¿Quién llega tarde más seguido? | 1 | Vistazo de Puntualidad |
+| D4 · Docentes, mes anterior | 3 | Menú › Panel de control › Asistencia › Mes anterior › Docente |
+| D5 · Ver lo pendiente (lo de secretaría) | 1 | Menú › Pendientes |
+| D6 · Del vistazo a la sección completa | 2 | Recuadro › «Ver todo en …» |
+| S0 · ¿Dónde entra la secretaría? | 0 | Directo en Pendientes |
+| S7 · Buscar a Daniel y cargarle un permiso | 3 | Buscador › su panel › Cargar permiso |
+| S8 · ¿Cuántos por llegar hoy? | 0 | Tarjeta «Hoy» de Pendientes |
+| S9 · Planilla de hoy | 0 | Accesos de Pendientes |
+
+**A observar con personas:** si el botón «Ver todo en …» se entiende como «más detalle», si las subsecciones del menú se descubren solas y si la secretaría echa de menos el «Registro del día» con ese nombre (ahora es *Hoy*).
+
+## 2026-10-25 · Recorrido simulado del nuevo panel (antes de probar con personas)
+
+> **Historial**
+> Este recorrido es de la versión con selector «Resumen / Acción rápida» (D-53). Ese selector se quitó el 27/10: «Acción rápida» es ahora la sección *Pendientes* (ver el recorrido de arriba).
+
+> **No reemplaza la prueba con personas**
+> Es un recorrido automático de las tareas D1–D5 y S7–S9 de la guía: mide cuántos toques hacen falta y si la respuesta se encuentra. No mide dudas ni comprensión. La prueba con la directiva y secretaría queda para la visita al colegio.
+
+| Tarea | Toques | Respuesta encontrada |
+|---|---|---|
+| D1 · ¿Cuántos faltan por llegar hoy? | 0 | «2 personas aún sin marcar» (módulo Hoy) |
+| D2 · ¿La asistencia del mes va bien o mal? | 0 | «Bien» (módulo Este mes) |
+| D3 · ¿Quién llega tarde más seguido? | 1 | Lista en el detalle de Puntualidad |
+| D4 · Docentes, mes anterior | 3 | Este mes › Mes anterior › Docente |
+| D5 · Ver la vista de secretaría | 1 | «Acción rápida» |
+| S7 · Buscar a Daniel y cargar permiso | 3 | Buscador › su panel › Cargar permiso |
+| S8 · ¿Cuántos por llegar hoy? | 0 | Línea «Hoy:» |
+| S9 · Planilla de hoy | 0 | Botón visible en la primera pantalla |
+
+**Cambio que salió del recorrido:** «quién llega tarde más seguido» solo estaba dentro de *Por categoría*, donde nadie lo buscaría. Se agregó también al detalle de *Puntualidad*.
+
+**A observar con personas:** si entienden que el módulo completo se toca (el texto «Ver detalle» ayuda), si «Acción rápida» es un nombre claro para secretaría y si el filtro de categoría dentro del detalle se descubre solo.
+
+---
+
+# Informe de auditoría — Semana 4
+
+Revisión hecha el 19/10/2026 sobre la versión publicada en https://control-de-asistencia-vert.vercel.app. Decisión asociada: D-43.
+
+> **Medición anterior a las mejoras del panel**
+> Las cifras de Lighthouse son del 19/10, antes de rehacer el Panel de control (D-53 a D-56). «Asistencia › Registro del día» es hoy **Panel de control › Hoy**. Desde entonces se verifican en cada publicación las pruebas de navegador y el detector de diseño (ver Plan de pruebas), pero **Lighthouse no se ha vuelto a medir**: queda pendiente para el panel nuevo y sus secciones.
+
+## 1. Rendimiento, accesibilidad y buenas prácticas (Lighthouse 12)
+
+Medido en producción con sesión iniciada. «Celular» es el perfil móvil de Lighthouse (4G lenta simulada); «PC» es el perfil de escritorio.
+
+| Pantalla | Rendimiento (celular / PC) | Accesibilidad | Buenas prácticas |
+|---|---|---|---|
+| Inicio de sesión | 100 | 100 | 100 |
+| Panel | 96 / 99 | 100 | 100 |
+| Mi asistencia (marcar) | 99 / 99 | 100 | 100 |
+| Asistencia › Registro del día | 99 / 99 | 100 | 100 |
+| Reportes › Resumen del período | 98 / 99 | 100 | 100 |
+| Personal | 99 / 98 | 100 | 100 |
+
+Corregido durante la auditoría:
+- **Panel (accesibilidad 96 → 100):** los indicadores tenían `role="tooltip"` dentro de una lista de definiciones, y los días del calendario tenían un nombre accesible que no incluía el número visible.
+- **Personal en celular (salto de diseño 0,15 → 0):** los filtros plegables se ocultaban después del primer pintado. Ahora la clase `js` se agrega antes.
+- **Primer ingreso con la app nueva:** la primera instalación del service worker recargaba la página mientras la persona escribía. Ahora solo se recarga al tocar «Actualizar».
+
+RNF-01 (< 3 s en 4G): se cumple; la primera pintura de contenido ocurre en ≈ 1 s en el perfil móvil. RNF-04 (≥ 90): se cumple en todas las pantallas medidas.
+
+Además, el detector de diseño (`npm run diseno:revisar`) no reporta hallazgos en las 18 pantallas, ni en PC ni en celular.
+
+## 2. Seguridad
+
+| Requisito | Estado | Cómo se cumple |
+|---|---|---|
+| RNF-08 Rutas privadas protegidas | ✅ | `middleware.ts` verifica la sesión y el rol en cada página; las API validan por su cuenta |
+| RNF-09 RLS con mínimo privilegio | ✅ | RLS en todas las tablas; las escrituras sensibles (marcaciones, QR, teléfonos, intentos) solo desde el servidor |
+| RNF-10 Contraseñas en Supabase Auth | ✅ | Nunca se guardan en la app. Cuentas por cédula: ver nota sobre 0000 |
+| RNF-11 Claves fuera del repositorio | ✅ | Variables de entorno en Vercel; `.env` y `Documentacion/_privado/` en `.gitignore` |
+| RNF-12 Hora del servidor | ✅ | La marcación y el reloj de la pantalla usan la hora del servidor |
+| RNF-13 Quién marcó por otro | ✅ | `registrado_por` y `salida_registrada_por` |
+| RNF-27 QR solo como hash | ✅ | 144 bits aleatorios; en la base solo su SHA-256 |
+| RNF-28 Validación en el servidor | ✅ | `/api/marcacion` valida QR, ubicación, teléfono, jornada y duplicados |
+| RNF-29 Bloqueo por intentos | ✅ (adaptado) | Sin kiosco ni PIN (D-37). El inicio de sesión se bloquea 15 min tras 5 intentos fallidos por cédula o correo |
+| RNF-30 Ubicación solo al marcar | ✅ | No hay rastreo; la ven solo directiva y secretaría |
+
+Medidas agregadas en esta auditoría:
+- **Cabeceras:** `Content-Security-Policy` (solo recursos propios, sin marcos, formularios solo hacia la app) y `Strict-Transport-Security`, además de las que ya existían (`X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`).
+- **Registro público de cuentas desactivado** en Supabase: las cuentas solo se crean desde la app (directiva).
+- **Asesor de seguridad de Supabase:** se revocó el acceso por la API a la función de eventos `rls_auto_enable` y se fijó el `search_path` de `tocar_actualizado_en` (migración 011).
+
+Riesgos aceptados o pendientes:
+- **Contraseña inicial 0000.** Mientras una persona no entra por primera vez, cualquiera que conozca su cédula puede hacerlo y registrar su propio teléfono. Mitigación: crear las cuentas cerca de la capacitación, revisar en Personal › Cuentas quién sigue «sin activar», y usar «Restablecer a 0000» y «Cambiar de teléfono» si hubo un problema.
+- **Sufijo interno de las contraseñas por cédula.** Supabase exige al menos 6 caracteres. A las cuentas por cédula se les agrega un sufijo fijo; no agrega ni quita seguridad, porque la protección real es la contraseña que elige la persona (mínimo 6 caracteres, no trivial, distinta de la cédula).
+- **`'unsafe-inline'` en la política de contenido.** Lo exigen los scripts y estilos en línea de Astro; la política igual bloquea scripts de otros sitios.
+- **`npm audit`: 3 alertas altas** en `path-to-regexp`, dependencia de `@astrojs/vercel`. Se usa al construir las rutas de Vercel, no con datos del usuario. La «solución» de npm sería bajar el adaptador a una versión vieja e incompatible. Se revisará cuando el adaptador publique una actualización.
+- **Contraseñas filtradas (HaveIBeenPwned):** Supabase solo lo ofrece en el plan pago.
+
+## 3. Otros requisitos
+
+| Requisito | Estado |
+|---|---|
+| RNF-05 Abre sin internet y avisa | ✅ Página sin conexión; aviso en Mi asistencia |
+| RNF-06 Sin duplicados | ✅ Única por `(personal_id, fecha)` y R7 en el servidor |
+| RNF-16 WCAG 2.1 AA básico | ✅ Accesibilidad 100 en Lighthouse; contraste revisado por el detector |
+| RNF-18 Lint sin errores | ✅ |
+| RNF-19 Pruebas de reglas | ✅ Vitest |
+| RNF-24 Respaldo de la base | ✅ `npm run db:respaldo` (ver Puesta-en-marcha) |
+| RNF-25/26 Navegadores y pantallas | 🟡 Probado en Chromium (PC y celular simulado). Falta la prueba en Android y iPhone reales |
 
 ---
 
@@ -2402,11 +2959,12 @@ Estructura sugerida para exponer ante el docente y el equipo (10-12 minutos + de
 
 ## Diapositiva 10 — Demo en vivo
 
-1. Login como directiva → dashboard con KPIs.
-2. Marcar entrada/salida (celular).
-3. Tabla del día + marcación asistida y kiosco en el PC.
-4. Generar reporte mensual → exportar PDF.
-5. (Bonus) Instalar la app / intentar marcar fuera del colegio → bloqueado.
+1. Entrar como directiva → **Panel de control**: los seis recuadros dicen en palabras cómo vamos.
+2. Tocar «Por categoría» → vistazo → tocar la barra de una categoría → su vista comparada con el colegio.
+3. Marcar entrada/salida (celular).
+4. Entrar como secretaría → **Pendientes** → aprobar un teléfono; **Hoy** → marcar a alguien sin teléfono.
+5. Descargar la planilla del día en PDF.
+6. (Bonus) Instalar la app / intentar marcar fuera del colegio → bloqueado.
 
 ## Diapositiva 11 — Resultados y métricas
 
@@ -3126,6 +3684,9 @@ Datos que debemos confirmar con la institución antes de cerrar el diseño. Marc
 
 # 📖 Glosario
 
+> **Actualización 28/10/2026**
+> Agregados los términos del **Panel de control** (D-53 a D-56): recuadro, vistazo, sección, lectura, pastilla de filtro, Pendientes, Hoy y tramo de llegada.
+
 > **Actualización 19/10/2026**
 > El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, D-37): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
 
@@ -3136,7 +3697,7 @@ Términos técnicos usados en la documentación.
 |---|---|
 | **PWA** | _Progressive Web App_: aplicación web que se instala en el celular/escritorio y funciona como una app nativa, incluso sin internet. |
 | **SSR** | _Server-Side Rendering_: el servidor genera el HTML de la página (Astro en modo servidor), lo que permite proteger rutas con sesión. |
-| **SPA** | _Single Page Application_: sitio que todo se resuelve en el navegador con un solo HTML (no es nuestro caso principal). |
+| **SPA / navegación sin recarga** | _Single Page Application_: la página no se recarga al cambiar de pantalla. GRU-system genera el HTML en el servidor (SSR) pero navega sin recarga (D-46). |
 | **Service Worker** | Script que corre en segundo plano del navegador: cachea la app para que abra rápido y sin conexión. |
 | **Manifest** | Archivo `manifest.webmanifest` que define nombre, iconos y colores de la app para poder **instalarla**. |
 | **IndexedDB** | Base de datos del navegador. Guarda el identificador del dispositivo (y en v2, marcaciones offline). |
@@ -3159,7 +3720,7 @@ Términos técnicos usados en la documentación.
 | **Precisión GPS** | Margen de error de la ubicación en metros; si es muy alto, la marcación queda **señalada**. |
 | **Marcación señalada ⚠️** | Marcación permitida pero que requiere revisión de directiva/secretaría. |
 | **Dispositivo aprobado** | El único teléfono autorizado para marcar con una cuenta. |
-| **Kiosco** | Pantalla de autoservicio en el PC del colegio para marcar con cédula + PIN. |
+| **Kiosco** | *(Descartado, D-37.)* Pantalla de autoservicio en el PC para marcar con cédula + PIN. |
 | **Marcación asistida** | Marcación que secretaría hace en nombre de otra persona desde el PC. |
 | **Jornada (plantilla)** | Conjunto configurable de horas de entrada/salida, tolerancia, pausa y días laborables. |
 | **Hash** | Transformación irreversible usada para guardar QR y PIN sin almacenarlos en claro. |
@@ -3169,6 +3730,17 @@ Términos técnicos usados en la documentación.
 | **Falta** | Día laborable sin marcación de entrada y sin permiso justificado. |
 | **Permiso justificado** | Ausencia autorizada que **no** cuenta como falta. |
 | **Cierre diario** | Proceso automático de fin de jornada que consolida el día y genera faltas/alertas. |
+| **Panel de control** | Pantalla principal de directiva y secretaría para medir la asistencia de todo el colegio. Se lee en tres niveles: resumen, vistazo y sección. |
+| **Recuadro** | Cada uno de los seis bloques del resumen del panel (Hoy, Pendientes, Asistencia, Puntualidad, Ausencias, Por categoría). Todo el recuadro es un solo botón. |
+| **Vistazo** | Panel que se abre a la derecha al tocar un recuadro: tres cifras, una gráfica, lo más importante y el botón «Ver todo en …». |
+| **Sección** | Página completa de un tema del panel (por ejemplo `/panel/puntualidad`), con filtros, tablas y descargas. |
+| **Lectura** | Palabra que acompaña a un porcentaje: **Bien** (≥ 90 %), **Atención** (80–89 %), **Bajo** (< 80 %). |
+| **Pastilla de filtro** | Etiqueta «Viendo solo: Cocina ✕» que muestra un filtro activo; la ✕ lo quita. |
+| **Pendientes** | Sección con lo que espera una acción (teléfonos, faltas, salidas sin marcar…), cada cosa con su botón. Es la entrada de la secretaría. |
+| **Hoy** | Sección del panel con el personal del día y la marcación asistida (antes «Registro del día»). |
+| **Tramo de llegada** | Grupo de llegadas según los minutos después de la hora: antes, 0–5, 6–15, 16–30, 31–60, más de 60. |
+| **Ventana lateral** | Panel que se abre a la derecha sin salir de la pantalla (persona, permiso, vistazos…). |
+| **Deshacer** | Botón del mensaje que aparece tras una acción rápida para revertirla. |
 | **MOC** | _Map of Content_: índice que enlaza toda la documentación (ver Inicio — MOC). |
 | **Wikilink** | Enlace interno de Obsidian con formato `Nota`. |
 | **Checklist** | Lista de verificación con casillas `[ ]` (ver Tareas-por-semana). |

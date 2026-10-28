@@ -31,9 +31,9 @@ La app tiene una lista de verificación en vivo en **Ajustes › Puesta en march
 
 ## Después del primer día
 
-- Revisar **Asistencia › Por revisar** (ubicación dudosa u horas escritas a mano).
+- Revisar **Permisos › Por revisar** (ubicación dudosa u horas escritas a mano).
 - Revisar **Personal › Cuentas › Sin activar**: quien no creó su contraseña.
-- Atender los avisos de la campana (teléfonos nuevos, salidas sin marcar).
+- Atender **Panel de control › Pendientes** y los avisos de la campana (teléfonos nuevos, faltas, salidas sin marcar).
 
 ## Respaldo
 

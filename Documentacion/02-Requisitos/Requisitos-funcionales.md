@@ -88,8 +88,8 @@ Prioridad: **MVP** (imprescindible) · **Importante** · **Diferible** (ver [[01
 | RF-24 | Reporte **general/mensual** de todo el personal. | MVP |
 | RF-25 | Exportar a **PDF**. | MVP |
 | RF-26 | Exportar a **Excel** (xlsx). | Importante |
-| RF-27 | Dashboard con KPIs: presentes hoy, tardanzas del mes, faltas del mes, señaladas pendientes. | Importante |
-| RF-28 | Gráficas de asistencia mensual (SVG). | Diferible |
+| RF-27 | Dashboard con KPIs: presentes hoy, tardanzas del mes, faltas del mes, señaladas pendientes. ✅ *Cumplido y ampliado por el Panel de control (RF-35 a RF-40).* | Importante |
+| RF-28 | Gráficas de asistencia mensual (SVG). ✅ *Cumplido: tendencia, calendario, barras y llegadas.* | Diferible |
 
 ## RF — Notificaciones
 
@@ -106,5 +106,18 @@ Prioridad: **MVP** (imprescindible) · **Importante** · **Diferible** (ver [[01
 | RF-32 | App **instalable** (manifest + iconos) en Android/iOS/escritorio. | MVP |
 | RF-33 | La app abre sin conexión (app shell) y muestra "Sin conexión" al intentar marcar. | Importante |
 | RF-34 | Interfaz **mobile-first** para la marcación; vistas de administración optimizadas para el PC. | MVP |
+
+## RF — Panel de control (agregados el 25–27/10/2026)
+
+Surgen de observar a la administración: le costaba leer cifras sueltas ([[03-Diseno/Registro-de-decisiones|D-53 a D-56]]).
+
+| ID | Requisito | Prioridad |
+|---|---|---|
+| RF-35 | El panel dice en **palabras** cómo va cada tema («32 de 45 ya llegaron») con una lectura **Bien / Atención / Bajo** (90 % · 80 %), nunca solo con color. | MVP |
+| RF-36 | Tres niveles de profundidad: **resumen** → **vistazo** (datos rápidos y acciones, sin salir de la pantalla) → **sección** completa. | MVP |
+| RF-37 | Seis secciones propias en el menú: Hoy, Asistencia, Puntualidad, Ausencias y permisos, Por categoría, Pendientes; con período y categoría que se conservan entre ellas. | MVP |
+| RF-38 | **Cada dato que resume lleva a su detalle** con el filtro puesto (barras, segmentos, puntos, días, tramos, semanas). | Importante |
+| RF-39 | Vista de una **categoría** comparada con el colegio, con sus personas. | Importante |
+| RF-40 | **Pendientes**: lo que espera una acción con su botón (aprobar teléfono, cargar permiso, revisar…); es la entrada de la secretaría. | MVP |
 
 Ver: [[02-Requisitos/Requisitos-no-funcionales|No funcionales]] · [[02-Requisitos/Roles-y-permisos|Roles y permisos]]

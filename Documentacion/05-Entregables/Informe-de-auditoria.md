@@ -10,6 +10,9 @@ fecha: 2026-10-19
 
 Revisión hecha el 19/10/2026 sobre la versión publicada en https://control-de-asistencia-vert.vercel.app. Decisión asociada: [[03-Diseno/Registro-de-decisiones|D-43]].
 
+> [!warning] Medición anterior a las mejoras del panel
+> Las cifras de Lighthouse son del 19/10, antes de rehacer el Panel de control (D-53 a D-56). «Asistencia › Registro del día» es hoy **Panel de control › Hoy**. Desde entonces se verifican en cada publicación las pruebas de navegador y el detector de diseño (ver [[05-Entregables/Plan-de-pruebas|Plan de pruebas]]), pero **Lighthouse no se ha vuelto a medir**: queda pendiente para el panel nuevo y sus secciones.
+
 ## 1. Rendimiento, accesibilidad y buenas prácticas (Lighthouse 12)
 
 Medido en producción con sesión iniciada. «Celular» es el perfil móvil de Lighthouse (4G lenta simulada); «PC» es el perfil de escritorio.

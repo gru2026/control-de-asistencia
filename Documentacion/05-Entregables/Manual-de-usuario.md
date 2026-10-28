@@ -3,7 +3,7 @@ titulo: Manual de usuario
 proyecto: PWA Control de Asistencia — U.E.E. General Rafael Urdaneta
 tipo: entregable
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-28
 ---
 
 # Manual de usuario — GRU-system
@@ -96,74 +96,131 @@ La campana de arriba muestra sus **avisos**.
 
 # Parte 2 · Secretaría y directiva (PC del colegio)
 
-En el PC se entra con el **correo** de la cuenta (o con la cédula, si la cuenta se creó así). Menú: **Panel · Asistencia · Personal · Reportes**, y **Ajustes** para la directiva.
+En el PC se entra con el **correo** de la cuenta (o con la cédula, si la cuenta se creó así). Al entrar, la **directiva** llega al resumen del *Panel de control* y la **secretaría** a *Pendientes*.
+
+**Menú de la izquierda:**
+
+| Opción | Para qué |
+|---|---|
+| **Panel de control** | Cómo va la asistencia del colegio. Debajo están sus seis secciones: **Hoy · Asistencia · Puntualidad · Ausencias y permisos · Por categoría · Pendientes** |
+| **Permisos** | Cargar y consultar permisos; pestaña **Por revisar** |
+| **Personal** | Lista del personal, fichas, cuentas |
+| **Reportes** | Planilla diaria y resumen del período (PDF y Excel) |
+| **Ajustes** (directiva) | QR, marcación, jornadas, categorías, usuarios, institución |
+
+En el celular, el menú está abajo y las secciones del panel aparecen como pestañas arriba.
 
 > [!tip] Todo sin salir de la pantalla
-> - **Toque el nombre de una persona** (en Personal, Panel de control › Hoy, Reportes o el Panel) y se abre a la derecha su resumen: hoy, el mes, permisos, teléfono y cuenta, con botones para marcar, cargar un permiso, aprobar o cambiar el teléfono, crear la cuenta o restablecer la contraseña. «Abrir ficha completa» lleva a todos los datos.
+> - **Toque el nombre de una persona** en cualquier lista y se abre a la derecha su resumen, con botones para marcar, cargar un permiso, aprobar o cambiar el teléfono, crear la cuenta o restablecer la contraseña. «Abrir ficha completa» lleva a todos los datos.
 > - Después de cada acción aparece un mensaje abajo. Si se equivocó, toque **Deshacer**.
-> - La **campana** abre los avisos encima de la pantalla; tóquelos para ir a lo que indican.
-> - El **Panel de control** se lee en tres pasos: los **recuadros** dicen cómo vamos; al tocar uno se abre a la derecha un **vistazo** con las cifras principales y lo más importante; y el botón **«Ver todo en …»** abre la **sección completa**, con filtros, tablas y descargas. Las secciones (Hoy, Asistencia, Puntualidad, Ausencias y permisos, Por categoría, Pendientes) también están en el menú, dentro de *Panel de control*.
-> - **Hoy** es el antiguo Registro del día: ahí se marcan entradas y salidas. **Pendientes** reúne lo que espera una acción, con su botón, y el buscador de personas; la secretaría entra directamente ahí.
-> - El período elegido (Esta semana, Este mes, Últimos 30 días, Mes anterior) y la categoría se mantienen al pasar de una sección a otra.
-> - **Casi todo se puede tocar:** una barra de categoría abre esa categoría (comparada con el colegio y con su gente); un día del calendario o un punto de la gráfica abre *Hoy* de esa fecha; un tramo de llegada muestra quiénes llegaron así. Arriba aparece lo que se está viendo («Viendo solo: Cocina ✕»): toque la ✕ para quitarlo.
-> - Si llegó desde un vistazo, **«Volver al vistazo»** lo devuelve donde estaba. Las descargas salen con los mismos filtros que está viendo.
 > - El botón **Acciones** (arriba) reúne lo más frecuente: buscar a una persona, registrar personal nuevo, cargar un permiso, crear cuentas y descargar la planilla de hoy o el resumen del mes.
-> - En la PC, los formularios muestran a la derecha una columna de ayuda: por ejemplo, en Ajustes se ve cómo saldrá el encabezado de la planilla mientras se escribe, y en un permiso cuántos días abarca.
-> - En **Ajustes › Usuarios**, «Gestionar» abre una ventana para cambiar el tipo de cuenta, la contraseña o desactivarla.
+> - La **campana** abre los avisos encima de la pantalla.
 
-## 7. Hoy (Panel de control › Hoy, antes «Registro del día»)
+## 7. Cómo leer el Panel de control
 
-Lista de todo el personal que trabaja ese día, con su estado: **por llegar, presente, tarde, falta, permiso o sin salida**, y cómo marcó (teléfono, secretaría o a mano).
+El panel se lee en **tres pasos**, de lo general a lo detallado:
+
+| Paso | Qué ve | Cómo se llega |
+|---|---|---|
+| **1. Resumen** | Seis recuadros que dicen en palabras cómo vamos: «32 de 45 ya llegaron», «96 % de asistencia» | Panel de control |
+| **2. Vistazo** | A la derecha: tres cifras, una gráfica, lo más importante (hasta 5) y una o dos acciones | Tocando un recuadro |
+| **3. Sección** | La página completa: filtros, gráfica grande, tabla que se ordena y busca, descargas | Botón **«Ver todo en …»** del vistazo, o el menú |
+
+**Las etiquetas de color** dicen cómo va cada cosa, siempre con una palabra:
+
+| Etiqueta | Significa |
+|---|---|
+| 🟢 **Bien** | 90 % o más |
+| 🟠 **Atención** | De 80 % a 89 % |
+| 🔴 **Bajo** | Menos de 80 % |
+
+Los mismos colores se usan en las barras, los puntos de las gráficas y los días del calendario.
+
+**Filtros.** Arriba de cada sección se elige el **período** (Esta semana, Este mes, Últimos 30 días, Mes anterior) y la **categoría**. Se mantienen al pasar de una sección a otra. Lo que se está filtrando aparece como una pastilla — «Viendo solo: Cocina ✕» —; toque la **✕** para quitarlo.
+
+**Casi todo se puede tocar.** Cada barra, punto o día lleva a su detalle con el filtro ya puesto:
+
+| Toque | Y verá |
+|---|---|
+| La barra de una categoría | Esa categoría comparada con el colegio y su gente |
+| Un día del calendario o un punto de la gráfica | *Hoy* de esa fecha: quién vino y quién no |
+| Un segmento de la barra de hoy (tarde, sin marcar…) | *Hoy* con solo esas personas |
+| Un día de la semana (Martes) | *Asistencia* con solo los martes |
+| Un tramo de llegada («De 16 a 30 min») | La lista de esas llegadas: quién, qué día, cuántos minutos |
+| Una semana de faltas | Las faltas de esa semana |
+
+Si llegó desde un vistazo, **«Volver al vistazo»** lo devuelve donde estaba. Las **descargas** salen con los mismos filtros que está viendo. Si un filtro deja la pantalla vacía, el panel le dice por qué y le ofrece ver los últimos 30 días o quitar el filtro.
+
+## 8. Hoy (antes «Registro del día»)
+
+**Panel de control › Hoy.** Lista de todo el personal que trabaja ese día, con su estado: **por llegar, presente, tarde, falta, permiso o sin salida**, y cómo marcó (teléfono, secretaría o a mano).
 
 - **Marcar entrada / Marcar salida:** se abre una ventana con **Ahora** ya elegido; toque **Registrar**.
 - **Otra hora (contingencia):** si se cayó el internet o alguien olvidó marcar, toque **Otra hora**, escriba la hora y elija el motivo con los botones. Queda señalada para revisión.
 - **Días anteriores:** con las flechas o la fecha. Para un día pasado siempre se escribe la hora y el motivo.
 - **Permiso:** desde la fila, carga un permiso para esa persona.
 - Una **falta** puesta por el cierre diario se corrige marcando la entrada.
-- Filtros: **Mostrar** (por llegar, llegaron, sin salida, faltas, permisos, marcan en secretaría), categoría y búsqueda.
+- Filtros: **Mostrar** (por llegar, llegaron, llegaron tarde, sin salida, faltas, permisos, marcan en secretaría), categoría y búsqueda.
 
-## 8. Por revisar
+## 9. Pendientes
 
-Marcaciones con advertencia: GPS impreciso, hora escrita a mano o ubicación de prueba. Muestra el motivo, la distancia y un enlace al mapa. Verifique y toque **Revisada** (o «Marcar las … como revisadas»).
+**Panel de control › Pendientes.** Lo que espera una acción, cada cosa con su botón: **Aprobar** un teléfono nuevo, **Cargar permiso** por una falta, **Ver** una salida sin marcar, **Revisar** marcaciones señaladas, personas **sin jornada** o **sin cuenta**. Los botones de arriba filtran por tipo.
 
-## 9. Permisos
+También tiene un **buscador grande** (nombre o cédula: abre el panel de esa persona), el estado de hoy y los accesos de todos los días: marcar, cargar permiso, planilla de hoy, resumen del mes y nuevo personal.
 
-**Asistencia › Permisos** → **Nuevo permiso** (o «Cargar permiso» desde el panel de la persona): escriba el nombre o la cédula y elija a la persona; toque **Hoy**, **Mañana** u **Otras fechas**; elija el motivo con los botones y **Guardar permiso**. Las faltas de esas fechas pasan a permiso; si lo elimina, vuelven a falta. No se permiten dos permisos que se crucen. También están en la ficha de cada persona.
+## 10. Las demás secciones del panel
 
-## 10. Teléfonos y cuentas (ficha de la persona)
+- **Asistencia:** asistencia, faltas, permisos y horas del período; tendencia con la línea del promedio (o del colegio, si eligió una categoría); calendario; tabla día por día con botones **Lun · Mar · Mié…** para ver un solo día de la semana.
+- **Puntualidad:** cuántos llegan a la hora, en tolerancia o tarde; gráfica de **hora de llegada** (toque un tramo para ver esas llegadas); asistencia por día de la semana; tabla de quiénes llegan tarde, con veces y retraso promedio.
+- **Ausencias y permisos:** faltas sin justificar del período (cada una con **Cargar permiso**), faltas por semana, quiénes faltan más y los permisos de esta semana.
+- **Por categoría:** la mejor, la más baja y cuántas están por debajo de 90 %; barras y tabla de comparación. Al tocar una categoría se abre **su vista**: comparada con el colegio («8 puntos por debajo del colegio»), su tendencia, **sus personas** de menor a mayor asistencia y accesos a las demás categorías.
 
+## 11. Por revisar
+
+**Permisos › Por revisar.** Marcaciones con advertencia: GPS impreciso, hora escrita a mano o ubicación de prueba. Muestra el motivo, la distancia y un enlace al mapa. Verifique y toque **Revisada** (o «Marcar las … como revisadas»).
+
+## 12. Permisos
+
+**Permisos** → **Nuevo permiso** (o «Cargar permiso» desde el panel de la persona, *Pendientes* o *Ausencias*): escriba el nombre o la cédula y elija a la persona; toque **Hoy**, **Mañana** u **Otras fechas**; elija el motivo con los botones y **Guardar permiso**. Las faltas de esas fechas pasan a permiso; si lo elimina, vuelven a falta. No se permiten dos permisos que se crucen.
+
+## 13. Personal: fichas, teléfonos y cuentas
+
+- **Nuevo personal** (directiva): desde *Acciones* o *Pendientes* se abre una ventana con lo esencial (nombre, apellido, cédula, categoría y vínculo) y la casilla **«Crear su cuenta ahora»** (cédula + 0000). La jornada se asigna sola según la categoría.
+- **La ficha** muestra arriba su asistencia de los últimos 30 días con su etiqueta (Bien, Atención o Bajo) y, en *Resumen*, **cómo le ha ido semana a semana** en las últimas 8 semanas.
 - **Cambiar de teléfono:** quita el teléfono actual; el próximo con el que la persona marque queda aprobado solo.
 - **Aprobar / Revocar:** para un teléfono pendiente o uno que ya no se debe usar.
-- **No tiene teléfono: marca en secretaría:** la persona aparece primero en el registro del día y no marca desde la app.
+- **No tiene teléfono: marca en secretaría:** la persona aparece primero en *Hoy* y no marca desde la app.
 - **Restablecer a 0000:** si olvidó su contraseña. Al entrar crea una nueva.
 
 **Crear cuentas (directiva):** **Personal › Cuentas** → elija las personas → **Crear cuentas con contraseña 0000** → **Imprimir** la hoja de claves y entregue cada tira. En «Sin activar» ve quién no ha creado su contraseña y puede reimprimir su tira.
 
+**Gestionar una cuenta (directiva):** **Ajustes › Usuarios › Gestionar** (o «Gestionar cuenta» en el panel de la persona) abre una ventana para cambiar el tipo de cuenta, la contraseña o desactivarla.
+
 > [!warning] Cuándo crear las cuentas
 > Mientras alguien no entra por primera vez, cualquiera que conozca su cédula podría hacerlo con 0000. Créelas cerca de la capacitación.
 
-## 11. Reportes
+## 14. Reportes
 
 - **Planilla diaria:** el formato oficial del día (docentes o personal), en **PDF** o **Excel**, con la firma de la dirección.
-- **Resumen del período:** elija las fechas (o «Este mes», «Mes anterior», «Últimos 30 días») y la categoría. Por persona: días laborables, presente, tarde, faltas, permisos, días sin registro, % de asistencia, horas y marcaciones en secretaría. Ordene por columna y descargue en **PDF** o **Excel**.
+- **Resumen del período:** elija las fechas y la categoría. Por persona: días laborables, presente, tarde, faltas, permisos, días sin registro, % de asistencia, horas y marcaciones en secretaría. Ordene por columna y descargue en **PDF** o **Excel**.
+- Desde cualquier sección del panel, **«Descargar en Excel»** baja el resumen con el período y la categoría que se están viendo.
 
-## 12. Panel y avisos
+## 15. Avisos
 
-El **Panel** muestra el día de hoy, los indicadores del período, lo que **requiere atención** (por revisar, teléfonos por aprobar, personas con muchas faltas) y el análisis en secciones plegables.
+La **campana** muestra los avisos: faltas y salidas sin marcar del cierre diario, teléfonos nuevos y el QR por vencer. Al abrir un aviso, lleva a la pantalla correspondiente. En **Avisos** se pueden ver por tipo.
 
-La **campana** muestra los avisos: faltas y salidas sin marcar del cierre diario, teléfonos nuevos y el QR por vencer. Al abrir un aviso, lleva a la pantalla correspondiente.
+## 16. Ajustes (directiva)
 
-## 13. Ajustes (directiva)
-
-- **Puesta en marcha:** lista de lo que falta para empezar el uso real.
+- **Puesta en marcha:** lista de lo que falta para empezar el uso real, con su barra de avance.
 - **Marcación:** ubicación del colegio y radio, ubicaciones de prueba, franjas horarias y **cierre diario** (fecha de inicio del control).
 - **Código QR:** generar, imprimir y desactivar. El anterior deja de funcionar al instante. Recomendado: renovarlo cada lapso o si circula una foto.
-- **Jornadas y feriados**, **Categorías**, **Usuarios** (cuentas de directiva y secretaría), **Importar personal**, **Institución** (datos de la planilla) y **Datos de demostración**.
+- **Institución:** datos de la planilla; a la derecha se ve **cómo saldrá el encabezado** mientras se escribe.
+- **Jornadas y feriados**, **Categorías**, **Usuarios**, **Importar personal** y **Datos de demostración**.
 
-## 14. Cierre diario
+## 17. Cierre diario
 
 Todos los días a las 18:00 el sistema cierra las jornadas terminadas: quien no marcó queda con **falta** (o **permiso** si tiene uno), y quien no marcó la salida queda **sin salida** para que secretaría la complete. Solo funciona desde la **fecha de inicio del control** (Ajustes › Marcación).
 
 ---
 
-*Manual v2.1 · 20/10/2026 · ventanas y panel lateral (D-49) · sin kiosco ni PIN (D-37); cuentas por cédula (D-42).*
+*Manual v3.0 · 28/10/2026 · Panel de control en tres niveles con secciones (D-55) · cada dato lleva a su detalle (D-56) · animaciones y lectura Bien/Atención/Bajo (D-53, D-54) · formularios en ventanas (D-49, D-51) · sin kiosco ni PIN (D-37); cuentas por cédula (D-42).*

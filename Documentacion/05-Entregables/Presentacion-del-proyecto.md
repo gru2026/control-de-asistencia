@@ -60,11 +60,12 @@ Estructura sugerida para exponer ante el docente y el equipo (10-12 minutos + de
 
 ## Diapositiva 10 — Demo en vivo
 
-1. Login como directiva → dashboard con KPIs.
-2. Marcar entrada/salida (celular).
-3. Tabla del día + marcación asistida y kiosco en el PC.
-4. Generar reporte mensual → exportar PDF.
-5. (Bonus) Instalar la app / intentar marcar fuera del colegio → bloqueado.
+1. Entrar como directiva → **Panel de control**: los seis recuadros dicen en palabras cómo vamos.
+2. Tocar «Por categoría» → vistazo → tocar la barra de una categoría → su vista comparada con el colegio.
+3. Marcar entrada/salida (celular).
+4. Entrar como secretaría → **Pendientes** → aprobar un teléfono; **Hoy** → marcar a alguien sin teléfono.
+5. Descargar la planilla del día en PDF.
+6. (Bonus) Instalar la app / intentar marcar fuera del colegio → bloqueado.
 
 ## Diapositiva 11 — Resultados y métricas
 

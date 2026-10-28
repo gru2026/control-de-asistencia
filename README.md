@@ -78,11 +78,14 @@ Una aplicación que se instala en el teléfono del personal y digitaliza todo el
 - **Revisión** de marcaciones señaladas (ubicación dudosa u hora escrita a mano).
 - **Lista de puesta en marcha** y respaldo de la base de datos.
 
-**Panel para la directiva**
+**Panel de control (directiva y secretaría)**
 
-- Indicadores del período con comparación frente al período anterior: asistencia, puntualidad, faltas, retraso promedio y horas.
-- Gráficas: tendencia diaria, asistencia por día de la semana, hora de llegada, comparación por categoría y seguimiento individual.
-- Lectura rápida con observaciones calculadas a partir de los datos.
+- Se lee en **tres niveles**: un resumen de seis recuadros que dicen en palabras cómo vamos («32 de 45 ya llegaron»), un **vistazo** lateral con las cifras clave y acciones, y la **sección** completa.
+- **Seis secciones** en el menú: **Hoy** (personal del día y marcación asistida), **Asistencia**, **Puntualidad**, **Ausencias y permisos**, **Por categoría** y **Pendientes** (lo que espera una acción, cada cosa con su botón).
+- Lectura **Bien / Atención / Bajo** (90 % y 80 %), siempre con palabras además del color.
+- **Cada dato lleva a su detalle**: una barra de categoría abre esa categoría comparada con el colegio; un día del calendario abre _Hoy_ de esa fecha; un tramo de llegada muestra quiénes llegaron así.
+- Filtros por período (esta semana, este mes, 30 días, mes anterior) y categoría que se conservan entre secciones; tablas ordenables con buscador; descargas con los mismos filtros.
+- Animaciones suaves que respetan «reducir movimiento».
 - **Avisos** con campana: faltas y salidas sin marcar, teléfonos nuevos, QR por vencer.
 
 **Cálculos y reportes**
@@ -102,17 +105,17 @@ Una aplicación que se instala en el teléfono del personal y digitaliza todo el
 
 ## Roles de usuario
 
-| Capacidad                                       | Directiva | Secretaría | Personal |
-| ----------------------------------------------- | :-------: | :--------: | :------: |
-| Marcar su propia asistencia (si tiene ficha)    |    Sí     |     Sí     |    Sí    |
-| Ver su historial                                |    Sí     |     Sí     |    Sí    |
-| Registrar asistencia de otros y cargar permisos |    Sí     |     Sí     |    —     |
+| Capacidad                                        | Directiva | Secretaría | Personal |
+| ------------------------------------------------ | :-------: | :--------: | :------: |
+| Marcar su propia asistencia (si tiene ficha)     |    Sí     |     Sí     |    Sí    |
+| Ver su historial                                 |    Sí     |     Sí     |    Sí    |
+| Registrar asistencia de otros y cargar permisos  |    Sí     |     Sí     |    —     |
 | Aprobar cambios de teléfono y restablecer a 0000 |    Sí     |     Sí     |    —     |
-| Revisar marcaciones señaladas                   |    Sí     |     Sí     |    —     |
-| Consultar personal, reportes y panel            |    Sí     |     Sí     |    —     |
-| Gestionar personal, jornadas y feriados         |    Sí     |     —      |    —     |
-| Generar el código QR y configurar el sistema    |    Sí     |     —      |    —     |
-| Administrar cuentas y roles; puesta en marcha   |    Sí     |     —      |    —     |
+| Revisar marcaciones señaladas                    |    Sí     |     Sí     |    —     |
+| Consultar personal, reportes y panel             |    Sí     |     Sí     |    —     |
+| Gestionar personal, jornadas y feriados          |    Sí     |     —      |    —     |
+| Generar el código QR y configurar el sistema     |    Sí     |     —      |    —     |
+| Administrar cuentas y roles; puesta en marcha    |    Sí     |     —      |    —     |
 
 ## Cómo funciona una marcación
 
@@ -175,12 +178,13 @@ Si una validación falla, la persona recibe un mensaje claro sobre qué hacer (a
 
 Plan de trabajo de cuatro semanas, organizado por entregas funcionales completas.
 
-| Semana | Alcance                                                                         | Estado         |
-| ------ | ------------------------------------------------------------------------------- | -------------- |
-| 1      | Base del sistema, inicio de sesión, roles, personal, jornadas y feriados        | **Completada** |
-| 2      | Código QR, geocerca, aprobación de teléfonos, marcación y cierre diario         | **Completada** |
-| 3      | Registro del día en el PC, revisión, resumen del período, avisos e historial    | **Completada** |
-| 4      | Cuentas por cédula, aviso de actualización, auditoría, puesta en marcha         | Desarrollo listo; faltan pruebas en teléfonos reales y la capacitación |
+| Semana      | Alcance                                                                                                                   | Estado                                                                  |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| 1           | Base del sistema, inicio de sesión, roles, personal, jornadas y feriados                                                  | **Completada**                                                          |
+| 2           | Código QR, geocerca, aprobación de teléfonos, marcación y cierre diario                                                   | **Completada**                                                          |
+| 3           | Registro del día en el PC, revisión, resumen del período, avisos e historial                                              | **Completada**                                                          |
+| 4           | Cuentas por cédula, aviso de actualización, auditoría, puesta en marcha                                                   | Desarrollo listo; faltan pruebas en teléfonos reales y la capacitación  |
+| 4 (mejoras) | Sensación de app, ventanas, Panel de control en tres niveles con secciones, cada dato enlazado a su detalle (D-46 a D-56) | **Publicadas** (27/10/2026); falta la prueba de usabilidad con personas |
 
 El kiosco con cédula y PIN se descartó: el colegio no tiene un equipo para eso (decisión D-37).
 
@@ -213,21 +217,21 @@ npm run crear-usuario -- correo@ejemplo.com directiva Nombre Apellido
 
 ### Comandos
 
-| Comando                  | Descripción                                                            |
-| ------------------------ | ---------------------------------------------------------------------- |
-| `npm run dev`            | Servidor de desarrollo                                                 |
-| `npm run build`          | Compilación para producción                                            |
-| `npm run check`          | Verificación de tipos                                                  |
-| `npm run lint`           | Análisis estático del código                                           |
-| `npm run format`         | Formato automático                                                     |
-| `npm test`               | Pruebas unitarias                                                      |
-| `npm run test:e2e`       | Pruebas en un navegador real (requiere `npm run dev` en otra terminal) |
-| `npm run capturas`       | Capturas de pantalla en PC y celular (`tests/e2e/capturas/`)           |
-| `npm run diseno:revisar` | Revisión de diseño automática (detector de Impeccable)                 |
-| `npm run db:migrar`      | Aplica las migraciones pendientes                                      |
-| `npm run db:seed`        | Carga los datos iniciales                                              |
-| `npm run db:respaldo`    | Respaldo JSON de la base en `Documentacion/_privado/respaldos/`        |
-| `npm run docs`           | Regenera el documento consolidado de la documentación                  |
+| Comando                  | Descripción                                                                                          |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `npm run dev`            | Servidor de desarrollo                                                                               |
+| `npm run build`          | Compilación para producción                                                                          |
+| `npm run check`          | Verificación de tipos                                                                                |
+| `npm run lint`           | Análisis estático del código                                                                         |
+| `npm run format`         | Formato automático                                                                                   |
+| `npm test`               | Pruebas unitarias                                                                                    |
+| `npm run test:e2e`       | Pruebas en un navegador real (requiere `npm run dev` en otra terminal; otra dirección con `E2E_URL`) |
+| `npm run capturas`       | Capturas de pantalla en PC y celular (`tests/e2e/capturas/`)                                         |
+| `npm run diseno:revisar` | Revisión de diseño automática (detector de Impeccable)                                               |
+| `npm run db:migrar`      | Aplica las migraciones pendientes                                                                    |
+| `npm run db:seed`        | Carga los datos iniciales                                                                            |
+| `npm run db:respaldo`    | Respaldo JSON de la base en `Documentacion/_privado/respaldos/`                                      |
+| `npm run docs`           | Regenera el documento consolidado de la documentación                                                |
 
 ## Estructura del repositorio
 

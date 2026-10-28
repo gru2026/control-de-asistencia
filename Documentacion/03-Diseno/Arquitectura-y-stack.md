@@ -3,7 +3,7 @@ titulo: Arquitectura y stack
 proyecto: PWA Control de Asistencia — U.E.E. General Rafael Urdaneta
 tipo: diseno
 estado: activo
-fecha: 2026-10-06
+fecha: 2026-10-28
 ---
 
 # Arquitectura y Stack
@@ -88,13 +88,36 @@ Usuario toca "Marcar entrada"
 ## Flujo en el PC (respaldo)
 
 ```
-Asistido: secretaria → /asistencia/registro → "Marcar" en la fila
-          → POST /api/marcacion-asistida → metodo = asistido, registrado_por
-
-Kiosco:   persona → /kiosco → cédula + PIN
-          → POST /api/kiosco → verifica dispositivo kiosco + PIN (hash, bloqueo)
-          → metodo = kiosco
+Asistido: secretaría → /panel/hoy → «Marcar entrada» en la fila (Ahora u Otra hora + motivo)
+          → POST /api/acciones (JSON) → metodo = asistido, registrado_por; con otra hora queda señalada
 ```
+
+(El kiosco con cédula + PIN se descartó: [[03-Diseno/Registro-de-decisiones|D-37]].)
+
+## Interfaz: navegación y ventanas
+
+- **Sin recarga** (D-46): Astro `ClientRouter` reemplaza solo el contenido; `scripts/precarga.ts` precarga pantallas al pasar el mouse (15 s) con la cabecera `X-Precarga`.
+- **Ventana lateral** (D-49): un solo `<dialog id="ventana">` en `PanelLayout`. Se llena con un fragmento del servidor (`/ventanas/*`) o, en el panel, con un `<template>` de la misma página (vistazos, D-55). Los formularios `data-api` envían a `/api/acciones` y reciben `{ ok, mensaje, errores }`.
+- **Caché del servidor** (D-47): perfil y categorías por 60 s; cabecera `Server-Timing` para medir.
+
+## Panel de control: datos y niveles (D-53 a D-56)
+
+```
+/panel, /panel/*  → leerFiltros(url)  → periodo (semana|mes|30d|anterior) + categoría
+                  → cargarPanel(sb, { hoy, filtros, categorias, esDirectiva })
+                       · registros del período, del período anterior y de la última semana
+                       · personal activo con su jornada · feriados · permisos de 7 días
+                       · teléfonos pendientes · marcaciones por revisar
+                       · con categoría: también el colegio completo (comparación)
+                  → resumen, serie diaria, días de la semana, tramos de llegada,
+                    categorías, personas, tareas pendientes y frases en palabras
+```
+
+- **Un solo cargador** (`src/lib/datos/panel.ts`) para el resumen, los vistazos y las seis secciones; «Hoy» usa siempre el día de hoy, sin depender del período.
+- **Lectura** en palabras: `lecturaPorcentaje` → Bien (≥ 90 %), Atención (80–89 %), Bajo (< 80 %); el calendario usa los mismos umbrales.
+- **Filtros en la URL**: `periodo` y `categoria` viajan entre secciones; los de cada sección (`dia`, `tramo`, `semana`, `ver`, `tipo`) no. Detalle en [[03-Diseno/Mapa-de-pantallas|Mapa de pantallas]].
+- **Cada dato es un enlace** a su detalle (D-56): los componentes de `components/graficas/` aceptan un destino por barra, segmento, punto o tramo.
+- **Animaciones** solo con `transform`, `opacity` y `clip-path`, sin rebote, y apagadas con «reducir movimiento» (D-54).
 
 ## Sin conexión
 

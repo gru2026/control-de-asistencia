@@ -3,31 +3,38 @@ titulo: Guía rápida de secretaría
 proyecto: PWA Control de Asistencia — U.E.E. General Rafael Urdaneta
 tipo: entregable
 estado: activo
-fecha: 2026-10-19
+fecha: 2026-10-28
 ---
 
 # GRU-system · Guía rápida de secretaría
 
-**Menú:** Panel · Asistencia · Personal · Reportes. La campana muestra los avisos.
+**Al entrar** llega a **Pendientes**: lo que espera una acción, cada cosa con su botón.
+**Menú:** Panel de control (Hoy · Asistencia · Puntualidad · Ausencias y permisos · Por categoría · Pendientes) · Permisos · Personal · Reportes. La campana muestra los avisos.
 
 ## Cada mañana
-1. **Asistencia › Registro del día** → «Mostrar: Por llegar».
-2. Quien llegue sin teléfono o marque en secretaría: **Marcar entrada** en su fila.
-3. Si falló el internet o la persona olvidó marcar: **Escribir otra hora** + **motivo**.
+1. **Pendientes:** resuelva lo de arriba (teléfonos por aprobar, faltas, salidas sin marcar).
+2. **Panel de control › Hoy** → «Mostrar: Por llegar».
+3. Quien llegue sin teléfono o marque en secretaría: **Marcar entrada** en su fila.
+4. Si falló el internet o la persona olvidó marcar: **Otra hora** + **motivo**.
 
 ## Cada tarde
-1. «Mostrar: Sin salida marcada» → **Marcar salida** (o escribir la hora con motivo).
-2. **Por revisar:** verifique lo señalado y toque **Revisada**.
+1. **Hoy** → «Mostrar: Sin salida marcada» → **Marcar salida** (o escribir la hora con motivo).
+2. **Permisos › Por revisar:** verifique lo señalado y toque **Revisada**.
 
 ## Cuando ocurra
 | Situación | Dónde |
 |---|---|
-| Permiso o reposo | Asistencia › Permisos › **Nuevo permiso** (las faltas de esas fechas pasan a permiso) |
-| Cambió de teléfono | Ficha › Teléfono › **Cambiar de teléfono** |
+| Buscar a alguien | Buscador de **Pendientes** (o botón **Acciones**) → nombre o cédula |
+| Permiso o reposo | **Permisos › Nuevo permiso**, o «Cargar permiso» junto a la falta en *Pendientes* (las faltas de esas fechas pasan a permiso) |
+| Cambió de teléfono | Toque su nombre › **Cambiar de teléfono** |
 | No tiene teléfono | Ficha › Teléfono › **Marca en secretaría** |
-| Olvidó su contraseña | Ficha › Cuenta › **Restablecer a 0000** |
-| Falta puesta por el cierre, pero vino | Registro del día (ese día) › **Marcar entrada** con la hora y el motivo |
-| Planilla del día | Reportes › Planilla diaria › PDF o Excel |
-| Resumen del mes | Reportes › Resumen del período › PDF o Excel |
+| Olvidó su contraseña | Toque su nombre › **Restablecer a 0000** |
+| Falta puesta por el cierre, pero vino | **Hoy** (ese día) › **Marcar entrada** con la hora y el motivo |
+| ¿Quién llega tarde? | **Panel de control › Puntualidad** |
+| ¿Cómo va una categoría? | **Panel de control › Por categoría** → toque la categoría |
+| Planilla del día | **Pendientes › Planilla de hoy**, o Reportes › Planilla diaria (PDF o Excel) |
+| Resumen del mes | Reportes › Resumen del período, o «Descargar en Excel» en cualquier sección del panel |
+
+**Para leer el panel:** 🟢 **Bien** = 90 % o más · 🟠 **Atención** = 80 a 89 % · 🔴 **Bajo** = menos de 80 %. Toque cualquier barra, punto o día para ver su detalle; la **✕** de «Viendo solo: …» quita el filtro.
 
 **Cierre diario:** a las 18:00 el sistema pone falta a quien no marcó (o permiso si tiene uno) y avisa de las salidas sin marcar.

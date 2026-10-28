@@ -18,7 +18,7 @@ fecha: 2026-10-25
 | D1 · ¿Cuántos faltan por llegar hoy? | 0 | Recuadro Hoy |
 | D2 · ¿La asistencia del mes va bien o mal? | 0 | «Bien» en el recuadro del mes |
 | D3 · ¿Quién llega tarde más seguido? | 1 | Vistazo de Puntualidad |
-| D4 · Docentes, mes anterior | 3 | Menú › Asistencia › Mes anterior › Docente |
+| D4 · Docentes, mes anterior | 3 | Menú › Panel de control › Asistencia › Mes anterior › Docente |
 | D5 · Ver lo pendiente (lo de secretaría) | 1 | Menú › Pendientes |
 | D6 · Del vistazo a la sección completa | 2 | Recuadro › «Ver todo en …» |
 | S0 · ¿Dónde entra la secretaría? | 0 | Directo en Pendientes |
@@ -29,6 +29,9 @@ fecha: 2026-10-25
 **A observar con personas:** si el botón «Ver todo en …» se entiende como «más detalle», si las subsecciones del menú se descubren solas y si la secretaría echa de menos el «Registro del día» con ese nombre (ahora es *Hoy*).
 
 ## 2026-10-25 · Recorrido simulado del nuevo panel (antes de probar con personas)
+
+> [!note] Historial
+> Este recorrido es de la versión con selector «Resumen / Acción rápida» (D-53). Ese selector se quitó el 27/10: «Acción rápida» es ahora la sección *Pendientes* (ver el recorrido de arriba).
 
 > [!warning] No reemplaza la prueba con personas
 > Es un recorrido automático de las tareas D1–D5 y S7–S9 de la [[Prueba-de-usabilidad|guía]]: mide cuántos toques hacen falta y si la respuesta se encuentra. No mide dudas ni comprensión. La prueba con la directiva y secretaría queda para la visita al colegio.

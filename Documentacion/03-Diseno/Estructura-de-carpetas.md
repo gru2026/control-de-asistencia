@@ -3,139 +3,128 @@ titulo: Estructura de carpetas
 proyecto: PWA Control de Asistencia — U.E.E. General Rafael Urdaneta
 tipo: diseno
 estado: activo
-fecha: 2026-10-06
+fecha: 2026-10-28
 ---
 
 # Estructura de Carpetas del Repositorio
 
-> [!note] Actualización 19/10/2026
-> El **kiosco con cédula + PIN se descartó** (el colegio no tiene un equipo para eso, [[03-Diseno/Registro-de-decisiones|D-37]]): el respaldo es el registro del día en el PC de secretaría. El personal entra a la app con su **cédula** y la contraseña inicial **0000**, que cambia en el primer ingreso (D-42). Las menciones al kiosco y al PIN de esta nota quedan como historial.
-
+> [!note] Actualización 28/10/2026
+> Árbol revisado contra el repositorio publicado. Lo más reciente: el **Panel de control** vive en `src/pages/panel/` con su plantilla `PanelSeccionLayout` y su cargador de datos `src/lib/datos/panel.ts` (D-55, D-56); el antiguo `asistencia/registro.astro` es ahora `panel/hoy.astro` y deja una redirección. El kiosco con PIN se descartó (D-37) y ya no tiene archivos.
 
 ```
-servicio comunitario/            # raíz del repositorio
-├── astro.config.mjs              # output: server, adaptador Vercel
-├── package.json
-├── tsconfig.json
-├── vitest.config.ts
-├── .env.local                    # claves Supabase (NO se commitea)
-├── .env.example                  # plantilla de variables
-├── .gitignore                    # node_modules, .env*, dist, _privado/
-├── .prettierrc                   # formato
-├── eslint.config.js              # lint
-├── vercel.json                   # cron diario (cierre de jornada)
+servicio comunitario/              # raíz del repositorio
+├── astro.config.mjs               # output: server, adaptador Vercel, sin prefetch de Astro (D-46)
+├── vercel.json                    # cron diario → /api/cierre-diario
+├── package.json                   # scripts: dev, build, lint, check, test, test:e2e, diseno:revisar, docs
+├── DESIGN.md                      # sistema de diseño y reglas de interfaz (fuente de verdad visual)
+├── PRODUCT.md                     # para quién es y qué debe sentirse
 ├── README.md
 │
 ├── public/
-│   ├── manifest.webmanifest      # nombre, iconos, colores (instalable)
-│   ├── icons/                    # 192, 512, maskable, apple-touch
-│   ├── sw.js                     # service worker (app shell)
-│   └── favicon.svg
+│   ├── manifest.webmanifest       # instalable
+│   ├── sw.js                      # service worker (app shell)
+│   ├── offline.html               # pantalla sin conexión
+│   ├── fuentes/                   # Onest, autoalojada
+│   └── icons/
 │
-├── supabase/
-│   ├── migrations/               # 001_esquema.sql, 002_funciones.sql,
-│   │                             # 003_rls.sql
-│   └── seed.sql                  # jornada por defecto, configuración, feriados
+├── supabase/migrations/           # 001_esquema … 011_auditoria (esquema, RLS, funciones)
+├── scripts/                       # db.mjs (SQL), respaldo.mjs, crear-usuario.mjs
 │
 ├── src/
-│   ├── middleware.ts              # sesión + roles → redirecciones
+│   ├── middleware.ts              # sesión, rol, caché de perfil, Server-Timing
 │   │
 │   ├── layouts/
-│   │   ├── BaseLayout.astro      # html base, meta, manifest, sw
-│   │   ├── AuthLayout.astro      # pantalla de login
-│   │   └── PanelLayout.astro     # header + nav lateral/bottom
+│   │   ├── BaseLayout.astro       # html base, navegación sin recarga (ClientRouter)
+│   │   ├── AuthLayout.astro       # login y cambio de clave
+│   │   ├── PanelLayout.astro      # barra superior, menú (con subsecciones del panel),
+│   │   │                          # ventana lateral #ventana, confirmación, mensajes, avisos
+│   │   └── PanelSeccionLayout.astro  # plantilla de las secciones del Panel de control (D-55)
 │   │
 │   ├── pages/
-│   │   ├── index.astro           # redirect → /login o /panel
-│   │   ├── login.astro
-│   │   ├── panel.astro
+│   │   ├── login.astro · cambiar-clave.astro · index.astro · 404.astro · sin-permiso.astro
+│   │   ├── panel/                 # Panel de control (D-53…D-56)
+│   │   │   ├── index.astro        # resumen: 6 recuadros + vistazos en <template>
+│   │   │   ├── hoy.astro          # antes Registro del día: marcación asistida, hora manual
+│   │   │   ├── asistencia.astro · puntualidad.astro · ausencias.astro
+│   │   │   ├── categorias.astro   # comparación o vista de una categoría
+│   │   │   └── pendientes.astro   # entrada de la secretaría
 │   │   ├── asistencia/
-│   │   │   ├── index.astro       # 📱 marcación QR + GPS
-│   │   │   ├── registro.astro    # 🖥️ tabla del día + asistida + permisos
-│   │   │   └── revision.astro    # 🖥️ marcaciones señaladas
-│   │   ├── personal/
-│   │   │   ├── index.astro
-│   │   │   ├── nuevo.astro
-│   │   │   └── [id].astro        # ficha + dispositivos + PIN
-│   │   ├── jornadas.astro        # plantillas + feriados
-│   │   ├── reportes.astro
-│   │   ├── historial.astro
-│   │   ├── notificaciones.astro
-│   │   ├── kiosco.astro          # autoservicio cédula + PIN (PC)
-│   │   ├── configuracion/
-│   │   │   ├── index.astro       # institución, geocerca, franjas, kiosco
-│   │   │   ├── qr.astro          # generar / regenerar / imprimir
-│   │   │   └── usuarios.astro
-│   │   └── api/                  # endpoints server (Astro)
-│   │       ├── marcacion.ts      # POST entrada/salida (QR + GPS)
-│   │       ├── marcacion-asistida.ts
-│   │       ├── kiosco.ts         # POST cédula + PIN
-│   │       ├── dispositivos.ts   # registrar / aprobar / revocar
-│   │       ├── qr.ts             # generar / revocar
-│   │       ├── cierre-diario.ts  # usado por cron
-│   │       └── reportes.ts
+│   │   │   ├── index.astro        # 📱 marcación QR + GPS
+│   │   │   ├── revision.astro     # marcaciones señaladas
+│   │   │   └── registro.astro     # redirección 301 → /panel/hoy
+│   │   ├── personal/              # index, [id] (ficha por pestañas), nuevo, cuentas, importar
+│   │   ├── permisos/              # index, [id]
+│   │   ├── reportes.astro · reportes/resumen.astro
+│   │   ├── jornadas.astro · historial.astro · notificaciones.astro
+│   │   ├── configuracion/         # index, marcacion, qr, usuarios, puesta-en-marcha
+│   │   ├── ventanas/              # fragmentos para la ventana lateral (D-49, D-51)
+│   │   │   ├── persona/[id].astro · permiso.astro · acciones.astro
+│   │   │   ├── personal-nuevo.astro · cuenta/[id].astro · cuenta-nueva.astro
+│   │   └── api/
+│   │       ├── marcacion.ts       # POST entrada/salida (QR + GPS + dispositivo)
+│   │       ├── acciones.ts        # acciones rápidas en JSON (marcar, permiso, teléfono, cuentas…)
+│   │       ├── cierre-diario.ts   # usado por el cron
+│   │       ├── salir.ts
+│   │       └── reportes/          # planilla.ts, resumen.ts (PDF y Excel)
 │   │
 │   ├── components/
-│   │   ├── ui/                   # Atómicos reutilizables
-│   │   │   ├── Boton.astro
-│   │   │   ├── Tarjeta.astro
-│   │   │   ├── Tabla.astro
-│   │   │   ├── Modal.astro
-│   │   │   ├── Input.astro
-│   │   │   └── Badge.astro       # estados presente/tarde/falta
-│   │   ├── asistencia/
-│   │   │   ├── BotonMarca.astro
-│   │   │   ├── EscanerQR.client.ts # cámara + BarcodeDetector/jsQR
-│   │   │   ├── TablaDelDia.astro
-│   │   │   └── EstadoDia.astro
-│   │   ├── reportes/
-│   │   │   ├── FiltrosReporte.astro
-│   │   │   ├── TablaReporte.astro
-│   │   │   └── Exportador.client.ts
-│   │   └── dashboard/
-│   │       ├── Kpi.astro
-│   │       └── GraficaMensual.astro
+│   │   ├── ui/                    # Boton, Tarjeta, Tabla, Modal, Input, Select, Badge, Icono,
+│   │   │                          # BarraFiltros, Pestanas, Paginacion, Mensaje, Alerta…
+│   │   ├── graficas/              # GraficaLinea, BarrasHorizontales, BarraApilada,
+│   │   │                          # DistribucionLlegadas, Figura (todas aceptan destino al tocar)
+│   │   ├── panel/                 # Modulo, Anillo, MiniLinea, Contador, SubnavPanel,
+│   │   │                          # CalendarioPeriodo, HoyPorCategoria, ListaAusentes
+│   │   ├── personal/              # CamposPersonal, CamposCuenta
+│   │   ├── asistencia/            # PestanasAsistencia (Permisos · Por revisar)
+│   │   └── avisos/                # PanelAvisos (campana)
 │   │
 │   ├── lib/
-│   │   ├── supabase/
-│   │   │   ├── client-browser.ts
-│   │   │   └── client-server.ts
-│   │   ├── reglas/               # ⭐ lógica pura testeable
-│   │   │   ├── jornada.ts        # R0 resolución de la jornada del día
-│   │   │   ├── estados.ts        # R1 clasificación
-│   │   │   ├── calculoHoras.ts   # R2 horas
-│   │   │   ├── acumulados.ts     # R5 porcentajes
-│   │   │   └── geocerca.ts       # R10 distancia Haversine + precisión
-│   │   ├── seguridad/
-│   │   │   └── hash.ts           # hash de QR y PIN
-│   │   ├── export/
-│   │   │   ├── pdf.ts            # jsPDF
-│   │   │   └── excel.ts          # SheetJS
-│   │   └── dispositivo.ts        # dispositivo_uid en el navegador
+│   │   ├── reglas/                # ⭐ lógica pura y probada: jornada, estados, horas, cierre,
+│   │   │                          # geocerca, permisos, registro, estadisticas (lectura 90/80,
+│   │   │                          # tramos de llegada)…
+│   │   ├── datos/                 # lecturas de la base: asistencia (rangoPeriodo), categorias,
+│   │   │                          # jornadas, marcacion, cache, panel (cargarPanel y filtros)
+│   │   ├── servicios/             # escrituras: marcación, asistido, permisos, cuentas, personal,
+│   │   │                          # dispositivos, qr, cierre, notificaciones…
+│   │   ├── reportes/              # planilla y resumen en PDF y Excel
+│   │   ├── auth/                  # acceso.ts (reglas por ruta y rol, inicio por rol), cedula.ts
+│   │   ├── validacion/            # validación de formularios
+│   │   ├── supabase/servidor.ts · fecha.ts · formato.ts (números a la venezolana) · flash.ts
+│   │   └── avisos.ts · importacion.ts · qr.ts · demo/
+│   │
+│   ├── scripts/                   # JavaScript del navegador
+│   │   ├── mejoras.ts             # punto de entrada
+│   │   ├── transiciones.ts · precarga.ts · pantalla.ts   # navegación sin recarga (D-46)
+│   │   ├── ventanas.ts            # ventana lateral, vistazos locales, envío a /api/acciones,
+│   │   │                          # confirmación, buscador de personas, filtro de listas
+│   │   ├── tablas.ts              # tablas ordenables y «Ver todos» (D-55)
+│   │   ├── animaciones.ts         # cifras que cuentan desde 0 (D-54)
+│   │   └── marcar.ts · dispositivo.ts
 │   │
 │   ├── styles/
-│   │   ├── tokens.css            # variables: colores, tipografía, espaciado
-│   │   └── global.css            # reset, base, utilidades
+│   │   ├── tokens.css             # colores, tipografía, espaciado, movimiento, lectura
+│   │   ├── global.css             # base, rejilla de formularios, animaciones compartidas
+│   │   ├── ventanas.css           # ventana lateral y sus piezas (v-)
+│   │   └── panel.css              # piezas de las secciones del panel
 │   │
-│   └── types/
-│       └── index.ts              # tipos compartidos (Usuario, Registro...)
+│   └── types/index.ts
 │
 ├── tests/
-│   └── reglas/
-│       ├── jornada.test.ts
-│       ├── estados.test.ts
-│       ├── calculoHoras.test.ts
-│       ├── acumulados.test.ts
-│       └── geocerca.test.ts
+│   ├── reglas/ · auth/ · validacion/ · *.test.ts   # pruebas unitarias (Vitest)
+│   └── e2e/
+│       ├── navegacion.mjs         # pruebas de navegador (Playwright)
+│       ├── detector.mjs           # revisión de diseño automática
+│       └── capturas.mjs           # capturas para el manual impreso
 │
-└── Documentacion/                # este vault de Obsidian (fuente de verdad)
+└── Documentacion/                 # este vault de Obsidian (fuente de verdad)
 ```
 
 ## Convenciones
 
-- **`.astro`** para páginas/componentes con HTML; **`.ts`** para lógica pura.
-- Los `*.client.ts` son los pocos con JS en el navegador (interactividad).
-- `lib/reglas/` **nunca** importa de UI ni de Supabase (pure functions → fáciles de testear).
-- Archivos en español para nombres de usuario/pantallas; en inglés para código interno si se prefiere — **consistencia por encima de todo** (definir en [[04-Desarrollo/Convenciones-y-calidad]]).
+- **`.astro`** para páginas y componentes con HTML; **`.ts`** para lógica.
+- `lib/reglas/` **nunca** importa de la interfaz ni de Supabase: funciones puras, fáciles de probar.
+- `lib/datos/` lee; `lib/servicios/` escribe. Las páginas no consultan tablas directamente salvo lecturas simples.
+- Los scripts de página no se ejecutan dos veces con la navegación sin recarga: usar oyentes delegados en `document` o `enCadaPantalla` (`scripts/pantalla.ts`).
+- Nombres en español, consistentes entre archivos, rutas y textos ([[04-Desarrollo/Convenciones-y-calidad]]).
 
-Ver: [[03-Diseno/Arquitectura-y-stack|Arquitectura]] · [[04-Desarrollo/Guia-de-entorno|Guía de entorno]]
+Ver: [[03-Diseno/Arquitectura-y-stack|Arquitectura]] · [[03-Diseno/Mapa-de-pantallas|Mapa de pantallas]] · [[04-Desarrollo/Guia-de-entorno|Guía de entorno]]

@@ -41,6 +41,9 @@ fecha: 2026-10-06
 
 ## Semana 3 — Respaldo en el PC, reportes y dashboard
 
+> [!note] Plan original
+> Esta tabla es el plan tal como se escribió. Después: el kiosco con PIN se descartó (D-37), y el 27/10 el registro del día pasó a ser **Panel de control › Hoy** (`/panel/hoy`) y el panel se reorganizó en tres niveles con secciones (D-55). Estado real en [[04-Desarrollo/Tareas-por-semana|Tareas por semana]].
+
 | Día | Tarea | Entregable parcial |
 |---|---|---|
 | 1 | `/asistencia/registro`: tabla del día + marcación asistida + permisos + contingencia | Respaldo por secretaría |

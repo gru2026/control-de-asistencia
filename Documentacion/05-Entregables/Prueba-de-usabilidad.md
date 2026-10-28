@@ -3,7 +3,7 @@ titulo: Prueba de usabilidad
 proyecto: PWA Control de Asistencia — U.E.E. General Rafael Urdaneta
 tipo: entregable
 estado: activo
-fecha: 2026-10-20
+fecha: 2026-10-28
 ---
 
 # Prueba de usabilidad con personas del colegio
@@ -46,6 +46,8 @@ Usar las cuentas de prueba (`Documentacion/_privado/Usuarios-de-prueba.md`). No 
 | S4 | «Daniel cambió de teléfono» | Tocar su nombre › Cambiar de teléfono | < 45 s |
 | S5 | «Descargue el resumen de este mes en Excel» | Reportes › Resumen › Excel | < 45 s |
 | S6 | «Equivocó una marcación: deshágala» | Usa «Deshacer» del mensaje | < 20 s |
+| S10 | «¿Cómo le fue a Cocina este mes comparada con el colegio?» | Panel de control › Por categoría › tocar «Cocina» | < 45 s |
+| S11 | «¿Quién faltó el martes pasado?» | Asistencia › tocar el día en el calendario (abre Hoy de esa fecha) › Mostrar: Faltas | < 1 min |
 
 ### Directiva y secretaría: panel (D-53)
 
@@ -53,15 +55,15 @@ Se prueba que la administración **lee el panel sin interpretar cifras** y que l
 
 | # | Consigna | Éxito | Meta |
 |---|---|---|---|
-| D1 | «¿Cuántas personas faltan por llegar hoy?» | Lo dice el módulo Hoy, sin tocar nada | < 15 s |
+| D1 | «¿Cuántas personas faltan por llegar hoy?» | Lo dice el recuadro Hoy, sin tocar nada | < 15 s |
 | D2 | «¿La asistencia de este mes va bien o mal?» | Lee «Bien / Atención / Bajo» en Este mes | < 15 s |
-| D3 | «¿Quién llega tarde más seguido?» | Toca Puntualidad y lee la lista | < 30 s |
-| D4 | «Vea cómo les fue a los docentes el mes anterior» | Este mes › Mes anterior › Categoría Docente | < 1 min |
+| D3 | «¿Quién llega tarde más seguido?» | Toca el recuadro Puntualidad y lee la lista del vistazo | < 30 s |
+| D4 | «Vea cómo les fue a los docentes el mes anterior» | Menú › Panel de control › Asistencia › Mes anterior › Categoría Docente (o tocar la barra «Docente» en Por categoría) | < 1 min |
 | D5 | (Directiva) «Ahora vea lo que tiene pendiente la secretaría» | Menú › Panel de control › Pendientes | < 20 s |
 | D6 | «Vea todas las faltas del mes» | Recuadro de Ausencias › «Ver todo en Ausencias» | < 30 s |
 | S7 | «Busque a Daniel y cárguele un permiso» | Buscador › su panel › Cargar permiso | < 45 s |
-| S8 | «¿Cuántos están por llegar hoy?» | Lo lee en la línea «Hoy:» | < 15 s |
-| S9 | «Abra la planilla de hoy» | Botón «Planilla PDF» | < 20 s |
+| S8 | «¿Cuántos están por llegar hoy?» | Lo lee en la tarjeta «Hoy» de Pendientes | < 15 s |
+| S9 | «Abra la planilla de hoy» | Pendientes › Accesos › «Planilla de hoy (PDF)» | < 20 s |
 
 ## Qué anotar
 

@@ -48,7 +48,8 @@ Desarrollar una **aplicación web progresiva (PWA)** de control de asistencia qu
 ## Alcance clave
 
 - **Roles:** directiva (administración del colegio), secretaria, personal (docentes y administrativos).
-- **Módulos:** login, gestión de personal y jornadas configurables, QR imprimible, marcación con QR + GPS, aprobación de dispositivos, respaldo en el PC (asistido y kiosco), reportes PDF/Excel, dashboard y notificaciones.
+- **Módulos:** login con cédula, gestión de personal y jornadas configurables, QR imprimible, marcación con QR + GPS, aprobación de teléfonos, respaldo en el PC (*Hoy*: marcación asistida y hora manual), reportes PDF/Excel, **Panel de control** y avisos.
+- **Panel de control:** se lee en tres niveles (resumen en palabras → vistazo → sección), con seis secciones (Hoy, Asistencia, Puntualidad, Ausencias y permisos, Por categoría, Pendientes), lectura Bien/Atención/Bajo y cada dato enlazado a su detalle.
 - **Fuera de alcance:** asistencia de estudiantes (solo personal).
 
 ## Plan
@@ -57,4 +58,4 @@ Desarrollar una **aplicación web progresiva (PWA)** de control de asistencia qu
 
 ## Estado
 
-Decisiones principales cerradas con el colegio (2026-10-06) → [[03-Diseno/Registro-de-decisiones|Registro de decisiones]]. Repositorio y andamiaje creados. Pendientes: valores concretos de jornada, coordenadas y administrador inicial → [[Preguntas-para-el-colegio]].
+**28/10/2026:** desarrollo terminado y publicado en https://control-de-asistencia-vert.vercel.app, con las mejoras de uso del Panel de control (D-46 a D-56, ver [[04-Desarrollo/Historial-de-cambios|Historial de cambios]]). Falta: prueba en teléfonos reales, prueba de usabilidad con personas del colegio, puesta en marcha (QR definitivo, cuentas, inicio del control) y capacitación. Datos pendientes del colegio en [[Preguntas-para-el-colegio]].

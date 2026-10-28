@@ -15,7 +15,7 @@ web — PWA instalable (teléfonos Android/iPhone y PC con Windows 10 vía Micro
 
 GRU-system: control de asistencia del personal docente, administrativo, obrero, de cocina y de vigilancia de la U.E.E. General Rafael Urdaneta (Cúa, Miranda, Venezuela). Proyecto de Servicio Comunitario universitario.
 
-Reemplaza el libro de actas y las planillas en papel: cada persona marca entrada y salida desde su teléfono (QR impreso + ubicación + hora del servidor), y la dirección obtiene cálculos automáticos, un panel con indicadores y la planilla diaria oficial en PDF/Excel.
+Reemplaza el libro de actas y las planillas en papel: cada persona marca entrada y salida desde su teléfono (QR impreso + ubicación + hora del servidor), y la dirección obtiene cálculos automáticos, un Panel de control que dice en palabras cómo va el colegio (con su detalle a un toque) y la planilla diaria oficial en PDF/Excel.
 
 ## Users
 

@@ -71,7 +71,7 @@ fecha: 2026-10-06
 
 ## Semana 3 — PC de respaldo, reportes y dashboard ✅
 
-- [x] `/asistencia/registro`: tabla del día + marcación asistida + hora manual (contingencia) + días anteriores
+- [x] `/asistencia/registro`: tabla del día + marcación asistida + hora manual (contingencia) + días anteriores *(desde el 27/10 es `/panel/hoy`, D-55)*
 - [x] ~~`/kiosco` cédula + PIN~~ → descartado (D-37); en su lugar «Marca en secretaría» y «Cambiar de teléfono» en la ficha
 - [x] `/asistencia/revision`: marcaciones señaladas
 - [x] `/reportes/resumen` con filtros + `acumulados.ts` (R5) + tests
@@ -98,9 +98,16 @@ fecha: 2026-10-06
 - [ ] Logo del colegio y escudo para el encabezado (pendiente del colegio)
 
 - [x] Sensación de app (D-46 a D-50): navegación de una sola página, precarga, avisos en panel, panel lateral de la persona, acciones en ventanas con «Deshacer», formularios con botones, ficha por capas
-- [ ] Prueba de usabilidad con personas del colegio → [[05-Entregables/Prueba-de-usabilidad]]
+- [x] Acciones rápidas y orden visual (D-51): botón «Acciones», alta de personal y gestión de cuentas en ventanas
+- [x] Formularios a todo el ancho (D-52): rejilla por campo y columna de apoyo
+- [x] Panel más fácil de leer (D-53): frases en palabras y lectura Bien/Atención/Bajo
+- [x] Animaciones y gráficas modernas (D-54): entradas escalonadas, cifras que cuentan, tendencia con franjas, barras por lectura
+- [x] Panel de control en tres niveles (D-55): resumen → vistazo → seis secciones en el menú; Registro del día → *Hoy*; secretaría entra a *Pendientes*; período «Esta semana»
+- [x] Cada dato lleva a su detalle (D-56): barras, puntos, días y tramos enlazados; vista de una categoría comparada con el colegio; pastillas de filtros, «Volver al vistazo», estados vacíos, tendencia semanal en la ficha
+- [x] Recorridos de usabilidad simulados (25 y 27/10) → [[05-Entregables/Resultados-usabilidad]]
+- [ ] Prueba de usabilidad con personas del colegio → [[05-Entregables/Prueba-de-usabilidad]] (tareas D1–D6 y S0–S9 incluidas)
 
-**🏁 Hito:** desarrollo listo (2026-10-19); falta la prueba en teléfonos reales, la puesta en marcha y la capacitación.
+**🏁 Hito:** desarrollo listo (2026-10-19); mejoras de uso del panel publicadas (2026-10-27). Falta la prueba en teléfonos reales, la prueba de usabilidad con personas, la puesta en marcha y la capacitación.
 
 ---
 

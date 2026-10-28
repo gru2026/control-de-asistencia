@@ -136,9 +136,33 @@ fecha: 2026-10-06
 | F40 | Crear cuentas en lote e imprimir la hoja de claves | Una tira por persona con cédula y 0000 |
 | F41 | Publicar una versión nueva con la app abierta | Aparece «Hay una versión nueva»; al tocar «Actualizar» recarga |
 
+### Panel de control (D-53 a D-56)
+
+| # | Paso | Esperado |
+|---|---|---|
+| F42 | Entrar como directiva / como secretaría | Directiva en el resumen del panel; secretaría en *Pendientes* |
+| F43 | Tocar un recuadro del resumen | Se abre el vistazo a la derecha sin salir de la pantalla |
+| F44 | En el vistazo, «Ver todo en …» | Abre la sección completa; arriba «Volver al vistazo» |
+| F45 | Elegir «Últimos 30 días» y cambiar de sección desde el menú | El período se conserva |
+| F46 | Tocar la barra de una categoría | Vista de esa categoría comparada con el colegio; pastilla «Viendo solo: …» |
+| F47 | Tocar un día del calendario o un punto de la tendencia | *Hoy* de esa fecha |
+| F48 | Tocar un tramo de llegada | Lista de esas llegadas |
+| F49 | Tocar la ✕ de una pastilla | Se quita solo ese filtro |
+| F50 | Elegir un filtro sin datos | Mensaje que explica por qué y ofrece cambiar el período o quitar el filtro |
+| F51 | «Descargar en Excel» desde una sección filtrada | El archivo trae ese período y esa categoría |
+| F52 | Entrar con «reducir movimiento» activado | Todo aparece al instante, sin animaciones |
+| F53 | Abrir `/asistencia/registro` (enlace viejo) | Lleva a *Hoy* con el mismo filtro |
+
 ## 2b. Pruebas en navegador (automatizadas)
 
-`npm run test:e2e` (Playwright) verifica en Chromium real: filtros sin recarga, esqueletos de carga, búsqueda que conserva el foco, botón atrás, paginación, período del panel, filtros en celular, sesión vencida y ausencia de errores de JavaScript. `npm run capturas` genera capturas para revisión visual.
+`npm run test:e2e` (Playwright) verifica en Chromium real: filtros sin recarga, esqueletos de carga, búsqueda que conserva el foco, botón atrás, paginación, filtros en celular, sesión vencida, ventanas y formularios rápidos, y ausencia de errores de JavaScript. Para el **Panel de control** comprueba:
+
+- el resumen (seis recuadros, sin tablas en la primera capa, menú con las seis secciones, «reducir movimiento»);
+- el vistazo (abre sin recarga, tres cifras enlazadas, «Ver todo» lleva a la sección y cierra el vistazo);
+- las secciones (período que se conserva, tabla ordenable, buscador, lecturas y acciones, redirección del Registro del día);
+- cada dato a su detalle (barra de categoría → su vista con pastilla y comparación con el colegio, «Volver al vistazo», día del calendario → *Hoy*, filtro por día de la semana con ✕, tramo de llegada → sus llegadas).
+
+`npm run diseno:revisar` pasa el detector de diseño en 27 pantallas (PC y celular). `npm run capturas` genera capturas para revisión visual. Contra producción: `E2E_URL=https://control-de-asistencia-vert.vercel.app npm run test:e2e`.
 
 ## 3. Pruebas de seguridad
 
@@ -164,6 +188,11 @@ fecha: 2026-10-06
 
 | Fecha | Versión | Ejecutado por | Aprobado | Observaciones |
 |---|---|---|---|---|
+| 2026-10-27 | Cada dato a su detalle (D-56) y tendencia sin desbordes | Desarrollador (automatizado) | ✅ | 178 pruebas unitarias. 78/78 en navegador, en local y en producción. Detector de diseño sin hallazgos. |
+| 2026-10-27 | Panel de control en tres niveles (D-55) | Desarrollador (automatizado) | ✅ | 177 unitarias; 71/71 en navegador (local y producción). Recorrido de usabilidad simulado: todas las tareas en 0–3 toques. |
+| 2026-10-27 | Animaciones y gráficas (D-54) | Desarrollador (automatizado) | ✅ | 66/66 en navegador; «reducir movimiento» verificado; sin fotogramas largos en la entrada. |
+| 2026-10-25 | Panel en palabras (D-53) | Desarrollador (automatizado) | ✅ | 176 unitarias; 64/64 en navegador. |
+| 2026-10-20 | Sensación de app y ventanas (D-46 a D-52) | Desarrollador (automatizado) | ✅ | 173 unitarias; 59 → 65 verificaciones en navegador según se agregaron funciones. |
 | 2026-10-08 | Refinamiento visual | Desarrollador (Impeccable + Playwright) | ✅ | Detector de diseño: 95 → 0 hallazgos (PC y celular). 22/22 en navegador. Corregido listado de jornadas/categorías. |
 | 2026-10-08 | Navegación parcial | Desarrollador (Playwright) | ✅ | 20/20 verificaciones en navegador real. |
 | 2026-10-06 | Semana 1 | Desarrollador (automatizado) | ✅ | 62 tests unitarios (R0, R1, R2, R5, R10, acceso, validación). E2E: F1–F5, CRUD de personal/jornadas/feriados/cuentas, CSRF, redirección abierta, cuenta desactivada. RLS probado contra la API real con anon, personal y secretaría. |

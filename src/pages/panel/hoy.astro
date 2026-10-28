@@ -393,10 +393,7 @@ const MOTIVOS_MANUAL = [
     <!-- Tarjeta del día: cómo va (izquierda) y qué día se ve (derecha) -->
     <section class="tarjeta-dia" aria-label="Resumen del día">
       <div class="resumen-dia">
-        <p class="fecha-dia">
-          {fechaDia}
-          {esHoy && <span class="es-hoy">Hoy</span>}
-        </p>
+        <p class="fecha-dia">{fechaDia}</p>
         <p class="frase">{fraseDia}</p>
         {resumen.programados > 0 && !feriado && (
           <div class="avance-fila">
@@ -422,7 +419,7 @@ const MOTIVOS_MANUAL = [
           <div class="acciones-semana">
             {!esHoy && (
               <a href={navegar(hoy)} class="boton-semana">
-                Hoy
+                Ir a hoy
               </a>
             )}
             <form method="get" class="otra-fecha" data-autoenviar>
@@ -462,20 +459,19 @@ const MOTIVOS_MANUAL = [
                 ) : (
                   <a
                     href={navegar(d.fecha)}
-                    class:list={["dia-chip", d.lectura, d.fecha === fecha && "actual"]}
+                    class:list={[
+                      "dia-chip",
+                      d.lectura,
+                      d.fecha === fecha && "actual",
+                      d.fecha === hoy && "es-hoy",
+                    ]}
                     aria-current={d.fecha === fecha ? "date" : undefined}
                     aria-label={`${d.nombre} ${d.dia}${d.fecha === hoy ? " (hoy)" : ""}${d.feriado ? ", feriado" : d.pct !== null ? `, ${Math.round(d.pct)} % de asistencia` : ""}`}
                   >
                     <span class="dsem">{d.nombre}</span>
                     <span class="num">{d.dia}</span>
                     <span class="marca">
-                      {d.fecha === hoy
-                        ? "Hoy"
-                        : d.feriado
-                          ? "Feriado"
-                          : d.pct !== null
-                            ? `${Math.round(d.pct)} %`
-                            : "—"}
+                      {d.feriado ? "Feriado" : d.pct !== null ? `${Math.round(d.pct)} %` : "—"}
                     </span>
                   </a>
                 )}
@@ -827,14 +823,6 @@ const MOTIVOS_MANUAL = [
     font-size: var(--texto-sm);
     font-weight: var(--peso-medio);
   }
-  .es-hoy {
-    padding: 3px var(--esp-2);
-    border-radius: 999px;
-    background: var(--color-primario);
-    color: var(--color-primario-contraste);
-    font-size: var(--texto-xs);
-    font-weight: var(--peso-fuerte);
-  }
   .resumen-dia .frase {
     font-size: var(--texto-2xl);
     font-weight: var(--peso-titulo);
@@ -994,6 +982,20 @@ const MOTIVOS_MANUAL = [
   .dia-chip.actual .marca {
     color: inherit;
     opacity: 0.85;
+  }
+  /* Hoy, cuando se mira otro día: un punto, sin palabra */
+  .dia-chip.es-hoy:not(.actual) {
+    position: relative;
+  }
+  .dia-chip.es-hoy:not(.actual)::after {
+    content: "";
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-acento);
   }
   .dia-chip.futuro {
     opacity: 0.4;

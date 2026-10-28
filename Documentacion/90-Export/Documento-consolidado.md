@@ -640,7 +640,8 @@ Motivo: cada acción cargaba una pantalla nueva (1 a 2,6 s desde el colegio) y s
 - **Búsqueda al instante** en el navegador (también por cédula, con `data-buscar`), sin «Aplicar»; categoría que se aplica sola.
 - En días pasados, quien no tiene registro dice **«Sin registro»**, no «Por llegar».
 - **Orden visual (28/10, tras revisión):** dos grupos claros en lugar de seis bloques apilados. (1) **Tarjeta del día**: a la izquierda la fecha con la etiqueta «Hoy», la frase, la barra con su porcentaje y el detalle; a la derecha la semana y «Otra fecha». (2) **Tarjeta de la lista**: los botones de estado encabezan la búsqueda y la tabla que filtran. Sin subtítulo duplicado; 24 px entre grupos.
-- **Elegir fecha (28/10):** el campo de fecha suelto bajo la semana se reemplaza por una **cabecera de la semana**: el mes a la izquierda («Octubre 2026» u «Oct – Nov 2026») y, a la derecha, los botones **«Hoy»** (si se ve otro día) y **«📅 Elegir fecha»**, del mismo estilo. El botón abre el calendario del sistema (`showPicker`; el campo real queda invisible bajo el botón).
+- **Elegir fecha (28/10):** el campo de fecha suelto bajo la semana se reemplaza por una **cabecera de la semana**: el mes a la izquierda («Octubre 2026» u «Oct – Nov 2026») y, a la derecha, los botones **«Ir a hoy»** (si se ve otro día) y **«📅 Elegir fecha»**, del mismo estilo.
+- **Un solo «Hoy» (28/10):** la palabra queda solo en el título de la sección. Se quitan la etiqueta junto a la fecha y la marca «Hoy» del día en la semana (muestra su porcentaje como los demás); cuando se mira otro día, el día de hoy se reconoce por un punto, sin texto. El botón abre el calendario del sistema (`showPicker`; el campo real queda invisible bajo el botón).
 
 ### D-56 · Cada dato lleva a su detalle
 - **Regla:** cada barra, segmento, punto, día o cifra que agrupa registros es un enlace real a esos registros con el filtro puesto (lista de comprobación en `DESIGN.md`).
@@ -2063,7 +2064,8 @@ Qué cambió en la app después del cierre del desarrollo (19/10/2026), en palab
 - La búsqueda filtra **al instante**, también por cédula; sin botón «Aplicar».
 - En un día pasado, quien no marcó dice «Sin registro».
 - La parte de arriba quedó en **dos bloques ordenados**: la tarjeta del día (cómo va y qué día se ve) y la lista con sus botones de estado.
-- Sobre la semana: el mes que se ve y los botones **«Hoy»** y **«Elegir fecha»** (abre el calendario), en lugar del campo de fecha suelto.
+- Sobre la semana: el mes que se ve y los botones **«Ir a hoy»** y **«Elegir fecha»** (abre el calendario), en lugar del campo de fecha suelto.
+- La palabra «Hoy» aparece una sola vez (el título); el día de hoy se reconoce por un punto cuando se mira otro día.
 
 ## 27/10/2026 — Cada dato lleva a su detalle (D-56)
 
@@ -2406,7 +2408,7 @@ Si llegó desde un vistazo, **«Volver al vistazo»** lo devuelve donde estaba. 
 
 **Panel de control › Hoy.** Arriba dice en palabras cómo va el día («32 de 54 ya llegaron») con una barra de avance.
 
-- **La semana:** toque cualquier día para verlo. Cada día muestra su porcentaje con el color de su lectura. Las flechas pasan a la semana anterior o siguiente. Arriba de la semana, **«Elegir fecha»** abre el calendario para ir a cualquier día, y **«Hoy»** regresa al día de hoy.
+- **La semana:** toque cualquier día para verlo. Cada día muestra su porcentaje con el color de su lectura. Las flechas pasan a la semana anterior o siguiente. Arriba de la semana, **«Elegir fecha»** abre el calendario para ir a cualquier día, y **«Ir a hoy»** regresa al día de hoy (cuando se mira otro día, el día de hoy lleva un punto azul).
 - **Los botones de estado** (Todos, Por llegar, Llegaron, Tarde, Sin salida, Faltas, Permiso…) muestran cuántas personas hay en cada uno; tóquelos para ver solo esas.
 - **Buscar:** escriba el nombre o la cédula y la lista se filtra al instante.
 

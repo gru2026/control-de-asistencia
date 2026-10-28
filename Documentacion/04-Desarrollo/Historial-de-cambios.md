@@ -23,6 +23,7 @@ Qué cambió en la app después del cierre del desarrollo (19/10/2026), en palab
 - **Botones de estado con su cantidad** (Por llegar 12, Tarde 3…) en lugar del desplegable «Mostrar».
 - La búsqueda filtra **al instante**, también por cédula; sin botón «Aplicar».
 - En un día pasado, quien no marcó dice «Sin registro».
+- La parte de arriba quedó en **dos bloques ordenados**: la tarjeta del día (cómo va y qué día se ve) y la lista con sus botones de estado.
 
 ## 27/10/2026 — Cada dato lleva a su detalle (D-56)
 

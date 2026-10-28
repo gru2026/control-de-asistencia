@@ -639,6 +639,7 @@ Motivo: cada acción cargaba una pantalla nueva (1 a 2,6 s desde el colegio) y s
 - **Estados como botones con su cantidad** (Todos, Por llegar, Llegaron, Tarde, Sin salida, Faltas, Permiso, En secretaría, Sin jornada); se muestran los que tienen personas. Reemplazan al desplegable «Mostrar».
 - **Búsqueda al instante** en el navegador (también por cédula, con `data-buscar`), sin «Aplicar»; categoría que se aplica sola.
 - En días pasados, quien no tiene registro dice **«Sin registro»**, no «Por llegar».
+- **Orden visual (28/10, tras revisión):** dos grupos claros en lugar de seis bloques apilados. (1) **Tarjeta del día**: a la izquierda la fecha con la etiqueta «Hoy», la frase, la barra con su porcentaje y el detalle; a la derecha la semana y «Otra fecha». (2) **Tarjeta de la lista**: los botones de estado encabezan la búsqueda y la tabla que filtran. Sin subtítulo duplicado; 24 px entre grupos.
 
 ### D-56 · Cada dato lleva a su detalle
 - **Regla:** cada barra, segmento, punto, día o cifra que agrupa registros es un enlace real a esos registros con el filtro puesto (lista de comprobación en `DESIGN.md`).
@@ -2060,6 +2061,7 @@ Qué cambió en la app después del cierre del desarrollo (19/10/2026), en palab
 - **Botones de estado con su cantidad** (Por llegar 12, Tarde 3…) en lugar del desplegable «Mostrar».
 - La búsqueda filtra **al instante**, también por cédula; sin botón «Aplicar».
 - En un día pasado, quien no marcó dice «Sin registro».
+- La parte de arriba quedó en **dos bloques ordenados**: la tarjeta del día (cómo va y qué día se ve) y la lista con sus botones de estado.
 
 ## 27/10/2026 — Cada dato lleva a su detalle (D-56)
 

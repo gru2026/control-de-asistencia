@@ -16,6 +16,14 @@ Qué cambió en la app después del cierre del desarrollo (19/10/2026), en palab
 > 3. El panel **dice en palabras** cómo vamos (Bien / Atención / Bajo) y **todo se puede tocar** para ver el detalle.
 > 4. En el menú, «Asistencia» pasó a llamarse **«Permisos»** (con la pestaña *Por revisar*).
 
+## 28/10/2026 — Hoy, más claro y rápido (D-57)
+
+- Arriba, en palabras, cómo va el día («32 de 54 ya llegaron») con una barra de avance.
+- **La semana a la vista:** siete días que se tocan, cada uno con su porcentaje y su color. Ya no hay que escribir la fecha.
+- **Botones de estado con su cantidad** (Por llegar 12, Tarde 3…) en lugar del desplegable «Mostrar».
+- La búsqueda filtra **al instante**, también por cédula; sin botón «Aplicar».
+- En un día pasado, quien no marcó dice «Sin registro».
+
 ## 27/10/2026 — Cada dato lleva a su detalle (D-56)
 
 - Las barras, los segmentos, los puntos de las gráficas, los días del calendario, los tramos de llegada y las semanas de faltas se pueden tocar y llevan a su lista con el filtro puesto.

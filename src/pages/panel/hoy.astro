@@ -6,7 +6,6 @@ import Badge, { type TipoBadge } from "@/components/ui/Badge.astro";
 import Boton from "@/components/ui/Boton.astro";
 import Icono from "@/components/ui/Icono.astro";
 import Modal from "@/components/ui/Modal.astro";
-import BarraFiltros from "@/components/ui/BarraFiltros.astro";
 import ChipCategoria from "@/components/ui/ChipCategoria.astro";
 import SubnavPanel from "@/components/panel/SubnavPanel.astro";
 import "@/styles/panel.css";
@@ -22,7 +21,9 @@ import { resolverJornada } from "@/lib/reglas/jornada";
 import { estadoFila, type ClaveFila } from "@/lib/reglas/registro";
 import { permisoCubre } from "@/lib/reglas/permisos";
 import { horaEnZona, sumarDias } from "@/lib/reglas/tiempo";
-import { esUuid, terminosBusqueda, texto } from "@/lib/validacion";
+import { esUuid, texto } from "@/lib/validacion";
+import { lunesDe, NOMBRE_DIA_SEMANA } from "@/lib/datos/panel";
+import { lecturaPorcentaje } from "@/lib/reglas/estadisticas";
 import { fechaLarga, hoyEnZona } from "@/lib/fecha";
 import { ponerFlash } from "@/lib/flash";
 import { deshacerAsistido, marcarAsistido } from "@/lib/servicios/asistido";
@@ -140,6 +141,40 @@ const [categorias, gente, regs, perms, { data: feriado }] = await Promise.all([
     .gte("fecha_hasta", fecha),
   sb.from("feriados").select("descripcion").eq("fecha", fecha).maybeSingle(),
 ]);
+// Semana del día elegido (D-57): cada día con su lectura, sin contar datos de demostración
+const lunes = lunesDe(fecha);
+const domingo = sumarDias(lunes, 6);
+const [{ data: regsSemana }, { data: feriadosSemana }] = await Promise.all([
+  sb
+    .from("registros_asistencia")
+    .select("fecha, estado")
+    .gte("fecha", lunes)
+    .lte("fecha", domingo < hoy ? domingo : hoy)
+    .eq("es_demo", false),
+  sb.from("feriados").select("fecha").gte("fecha", lunes).lte("fecha", domingo),
+]);
+const porDiaSemana = new Map<string, { total: number; cumplidas: number }>();
+for (const r of (regsSemana ?? []) as { fecha: string; estado: EstadoAsistencia }[]) {
+  const x = porDiaSemana.get(r.fecha) ?? { total: 0, cumplidas: 0 };
+  x.total++;
+  if (r.estado !== "falta") x.cumplidas++;
+  porDiaSemana.set(r.fecha, x);
+}
+const esFeriado = new Set(((feriadosSemana ?? []) as { fecha: string }[]).map((f) => f.fecha));
+const semanaDias = Array.from({ length: 7 }, (_, i) => {
+  const f = sumarDias(lunes, i);
+  const d = porDiaSemana.get(f);
+  const pct = d?.total ? (d.cumplidas / d.total) * 100 : null;
+  return {
+    fecha: f,
+    dia: Number(f.slice(8, 10)),
+    nombre: NOMBRE_DIA_SEMANA[i + 1]!.slice(0, 3),
+    futuro: f > hoy,
+    feriado: esFeriado.has(f),
+    pct,
+    lectura: pct === null ? null : lecturaPorcentaje(pct),
+  };
+});
 const catPorId = new Map(categorias.map((c) => [c.id, c]));
 const regPorPersona = new Map(((regs.data ?? []) as FilaReg[]).map((r) => [r.personal_id, r]));
 const permisos = (perms.data ?? []).map((x) => ({
@@ -193,11 +228,10 @@ const vista: Vista = (Object.keys(VISTAS) as Vista[]).includes(p.get("ver") as V
   : "todos";
 const categoria = categorias.some((c) => c.id === p.get("categoria")) ? p.get("categoria") : null;
 const q = (p.get("q") ?? "").slice(0, 80);
-const terminos = terminosBusqueda(q).map((t) => t.toLowerCase());
 
 const LLEGARON: ClaveFila[] = ["presente", "tarde", "sin_salida"];
-const enVista = (f: (typeof filasTodas)[number]) => {
-  switch (vista) {
+const enVistaDe = (v: Vista) => (f: (typeof filasTodas)[number]) => {
+  switch (v) {
     case "pendientes":
       return f.clave === "pendiente";
     case "llegaron":
@@ -218,13 +252,19 @@ const enVista = (f: (typeof filasTodas)[number]) => {
       return f.clave !== "no_programado";
   }
 };
+const enVista = enVistaDe(vista);
+const deCategoria = (f: (typeof filasTodas)[number]) =>
+  !categoria || f.persona.categoria_id === categoria;
+// Cuántas personas hay en cada estado (con la categoría elegida): los botones de estado los muestran
+const conteo = Object.fromEntries(
+  (Object.keys(VISTAS) as Vista[]).map((v) => [
+    v,
+    filasTodas.filter(enVistaDe(v)).filter(deCategoria).length,
+  ]),
+) as Record<Vista, number>;
 const filas = filasTodas
   .filter(enVista)
-  .filter((f) => !categoria || f.persona.categoria_id === categoria)
-  .filter((f) => {
-    const texto = `${f.persona.nombre} ${f.persona.apellido} ${f.persona.cedula}`.toLowerCase();
-    return terminos.every((t) => texto.includes(t));
-  })
+  .filter(deCategoria)
   // Primero quienes faltan por llegar y marcan en secretaría
   .sort(
     (a, b) =>
@@ -264,7 +304,46 @@ const navegar = (f: string) => {
   else u.searchParams.set("fecha", f);
   return u.pathname + u.search;
 };
-const hayFiltros = Boolean(q || categoria || vista !== "todos");
+const hayFiltros = Boolean(categoria || vista !== "todos");
+// Botones de estado: nombre corto y color de su punto
+const ESTADOS_BOTON: { v: Vista; texto: string; tono?: string }[] = [
+  { v: "todos", texto: "Todos" },
+  { v: "pendientes", texto: esHoy ? "Por llegar" : "Sin registro", tono: "info" },
+  { v: "llegaron", texto: "Llegaron", tono: "exito" },
+  { v: "tarde", texto: "Tarde", tono: "alerta" },
+  { v: "salida", texto: "Sin salida", tono: "alerta" },
+  { v: "faltas", texto: "Faltas", tono: "error" },
+  { v: "permisos", texto: "Permiso", tono: "gris" },
+  { v: "secretaria", texto: "En secretaría" },
+  { v: "libres", texto: "Sin jornada" },
+];
+const siempre: Vista[] = ["todos", "pendientes", "llegaron"];
+const conVer = (v: Vista) => {
+  const u = new URL(Astro.url);
+  if (v === "todos") u.searchParams.delete("ver");
+  else u.searchParams.set("ver", v);
+  return u.pathname + u.search;
+};
+// Frase en palabras (como en el resto del panel)
+const pctLlegaron = resumen.programados ? (resumen.llegaron / resumen.programados) * 100 : 0;
+const fraseDia = feriado
+  ? `Feriado: ${feriado.descripcion}`
+  : resumen.programados === 0
+    ? "Nadie tiene jornada este día"
+    : esHoy
+      ? `${resumen.llegaron} de ${resumen.programados} ya llegaron`
+      : `${resumen.llegaron} de ${resumen.programados} vinieron`;
+const detalleDia =
+  resumen.programados && !feriado
+    ? [
+        resumen.pendientes && `${resumen.pendientes} ${esHoy ? "por llegar" : "sin registro"}`,
+        conteo.tarde && `${conteo.tarde} tarde`,
+        resumen.faltas && `${resumen.faltas} ${resumen.faltas === 1 ? "falta" : "faltas"}`,
+        resumen.permisos && `${resumen.permisos} de permiso`,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
 const volver = encodeURIComponent("/panel/hoy");
 const MOTIVOS_MANUAL = [
   "Falla de conexión",
@@ -290,187 +369,254 @@ const MOTIVOS_MANUAL = [
       </p>
     )}
 
-    <div class="cabecera">
-      <form method="get" class="dia" data-autoenviar>
-        <a href={navegar(sumarDias(fecha, -1))} class="flecha" aria-label="Día anterior">
-          <Icono nombre="anterior" />
-        </a>
-        <label class="visualmente-oculto" for="r-fecha">
-          Fecha
-        </label>
-        <input id="r-fecha" type="date" name="fecha" value={fecha} max={hoy} />
-        {!esHoy ? (
-          <a href={navegar(sumarDias(fecha, 1))} class="flecha" aria-label="Día siguiente">
-            <Icono nombre="siguiente" />
-          </a>
-        ) : (
-          <span class="flecha inactiva" aria-hidden="true">
-            <Icono nombre="siguiente" />
-          </span>
-        )}
-        {!esHoy && (
-          <a href={navegar(hoy)} class="ir-hoy">
-            Hoy
-          </a>
-        )}
-        {vista !== "todos" && <input type="hidden" name="ver" value={vista} />}
-      </form>
-      <dl class="cifras" data-datos="linea">
-        <div>
-          <dt>Programados</dt>
-          <dd>{resumen.programados}</dd>
+    <!-- Lectura del día en palabras -->
+    <div class="lectura-dia">
+      <p class="frase">{fraseDia}</p>
+      {detalleDia && <p class="detalle">{detalleDia}</p>}
+      {resumen.programados > 0 && !feriado && (
+        <div
+          class="avance"
+          role="progressbar"
+          aria-label="Llegaron"
+          aria-valuemin="0"
+          aria-valuemax={resumen.programados}
+          aria-valuenow={resumen.llegaron}
+        >
+          <span style={`width: ${pctLlegaron}%`}></span>
         </div>
-        <div>
-          <dt>Llegaron</dt>
-          <dd>{resumen.llegaron}</dd>
-        </div>
-        <div>
-          <dt>Por llegar</dt>
-          <dd>{resumen.pendientes}</dd>
-        </div>
-        <div>
-          <dt>Permisos</dt>
-          <dd>{resumen.permisos}</dd>
-        </div>
-        {resumen.faltas > 0 && (
-          <div>
-            <dt>Faltas</dt>
-            <dd>{resumen.faltas}</dd>
-          </div>
-        )}
-      </dl>
+      )}
     </div>
+
+    <!-- Semana: cada día se toca; el color dice cómo fue -->
+    <nav class="semana" aria-label="Elegir el día">
+      <a href={navegar(sumarDias(fecha, -7))} class="flecha" aria-label="Semana anterior">
+        <Icono nombre="anterior" />
+      </a>
+      <ol class="dias">
+        {semanaDias.map((d) => (
+          <li>
+            {d.futuro ? (
+              <span class="dia-chip futuro" aria-hidden="true">
+                <span class="dsem">{d.nombre}</span>
+                <span class="num">{d.dia}</span>
+                <span class="marca">&nbsp;</span>
+              </span>
+            ) : (
+              <a
+                href={navegar(d.fecha)}
+                class:list={["dia-chip", d.lectura, d.fecha === fecha && "actual"]}
+                aria-current={d.fecha === fecha ? "date" : undefined}
+                aria-label={`${d.nombre} ${d.dia}${d.fecha === hoy ? " (hoy)" : ""}${d.feriado ? ", feriado" : d.pct !== null ? `, ${Math.round(d.pct)} % de asistencia` : ""}`}
+              >
+                <span class="dsem">{d.nombre}</span>
+                <span class="num">{d.dia}</span>
+                <span class="marca">
+                  {d.fecha === hoy
+                    ? "Hoy"
+                    : d.feriado
+                      ? "Feriado"
+                      : d.pct !== null
+                        ? `${Math.round(d.pct)} %`
+                        : "—"}
+                </span>
+              </a>
+            )}
+          </li>
+        ))}
+      </ol>
+      {sumarDias(fecha, 7) <= hoy ? (
+        <a href={navegar(sumarDias(fecha, 7))} class="flecha" aria-label="Semana siguiente">
+          <Icono nombre="siguiente" />
+        </a>
+      ) : (
+        <span class="flecha inactiva" aria-hidden="true">
+          <Icono nombre="siguiente" />
+        </span>
+      )}
+      <form method="get" class="otra-fecha" data-autoenviar>
+        <label>
+          <Icono nombre="calendario" tamano={18} />
+          <span class="visualmente-oculto">Otra fecha</span>
+          <input type="date" name="fecha" value={fecha} max={hoy} aria-label="Elegir otra fecha" />
+        </label>
+        {vista !== "todos" && <input type="hidden" name="ver" value={vista} />}
+        {categoria && <input type="hidden" name="categoria" value={categoria} />}
+        <noscript>
+          <button type="submit">Ir</button>
+        </noscript>
+      </form>
+      {!esHoy && (
+        <a href={navegar(hoy)} class="ir-hoy">
+          Volver a hoy
+        </a>
+      )}
+    </nav>
+
+    <!-- Estados: filtran la lista y dicen cuántos hay -->
+    <nav class="estados" aria-label="Mostrar">
+      {ESTADOS_BOTON.filter((e) => siempre.includes(e.v) || conteo[e.v] > 0 || e.v === vista).map(
+        (e) => (
+          <a href={conVer(e.v)} aria-current={vista === e.v ? "true" : undefined}>
+            {e.tono && <span class:list={["punto", e.tono]} aria-hidden="true" />}
+            {e.texto}
+            <span class="cuenta">{conteo[e.v]}</span>
+          </a>
+        ),
+      )}
+    </nav>
 
     {feriado && (
       <p class="aviso-linea">Feriado: {feriado.descripcion}. Nadie tiene jornada este día.</p>
     )}
 
     <Tarjeta>
-      <BarraFiltros
-        busqueda={{ placeholder: "Nombre, apellido o cédula" }}
-        total={filas.length}
-        unidad={["persona", "personas"]}
-        conservar={["fecha"]}
-        filtros={[
-          {
-            nombre: "ver",
-            etiqueta: "Mostrar",
-            porDefecto: "todos",
-            opciones: Object.entries(VISTAS).map(([valor, texto]) => ({ valor, texto })),
-          },
-          {
-            nombre: "categoria",
-            etiqueta: "Categoría",
-            vacia: "Todas",
-            opciones: categorias.map((c) => ({ valor: c.id, texto: c.nombre })),
-          },
-        ]}
-      />
+      <div class="herramientas">
+        <label class="buscar">
+          <Icono nombre="buscar" tamano={18} />
+          <input
+            type="search"
+            data-filtrar="hoy"
+            value={q}
+            placeholder="Buscar por nombre o cédula"
+            aria-label="Buscar por nombre o cédula"
+            autocomplete="off"
+          />
+        </label>
+        <form method="get" class="cat" data-autoenviar>
+          {!esHoy && <input type="hidden" name="fecha" value={fecha} />}
+          {vista !== "todos" && <input type="hidden" name="ver" value={vista} />}
+          <label for="hoy-cat" class="visualmente-oculto">
+            Categoría
+          </label>
+          <select id="hoy-cat" name="categoria">
+            <option value="">Todas las categorías</option>
+            {categorias.map((c) => (
+              <option value={c.id} selected={c.id === categoria}>
+                {c.nombre}
+              </option>
+            ))}
+          </select>
+          <noscript>
+            <button type="submit">Aplicar</button>
+          </noscript>
+        </form>
+        <span class="total">
+          <strong>{filas.length}</strong> {filas.length === 1 ? "persona" : "personas"}
+        </span>
+      </div>
 
-      <Tabla
-        titulo="Registro del día"
-        tarjetas
-        hayFilas={filas.length > 0}
-        vacio={hayFiltros ? "Nadie coincide con esos filtros." : "Nadie tiene jornada este día."}
-      >
-        <Fragment slot="vacio">
-          {hayFiltros && (
-            <a href={esHoy ? "/panel/hoy" : `/panel/hoy?fecha=${fecha}`}>Limpiar filtros</a>
-          )}
-        </Fragment>
-        <thead>
-          <tr>
-            <th scope="col">Persona</th>
-            <th scope="col">Categoría</th>
-            <th scope="col" class="col-jornada">
-              Jornada
-            </th>
-            <th scope="col">Entrada</th>
-            <th scope="col">Salida</th>
-            <th scope="col">Estado</th>
-            <th scope="col">
-              <span class="visualmente-oculto">Acciones</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {filas.map((f) => {
-            const c = catPorId.get(f.persona.categoria_id);
-            const nombre = `${f.persona.nombre} ${f.persona.apellido}`;
-            const ent = hora(f.real?.hora_entrada, f.real?.entrada_metodo);
-            const sal = hora(f.real?.hora_salida, f.real?.salida_metodo);
-            const [badge, textoEstado] = ESTADO[f.clave];
-            return (
-              <tr>
-                <td class="principal">
-                  <a href={`/personal/${f.persona.id}`} class="nombre" data-persona={f.persona.id}>
-                    {f.persona.apellido}, {f.persona.nombre}
-                  </a>
-                  {f.persona.marca_en_pc && <span class="sin-tel">Marca en secretaría</span>}
-                </td>
-                <td data-etiqueta="Categoría">
-                  {c ? <ChipCategoria nombre={c.nombre} color={c.color} /> : "—"}
-                </td>
-                <td data-etiqueta="Jornada" class="solo-pc col-jornada hora">
-                  {f.regla ? `${f.regla.horaEntrada}–${f.regla.horaSalida}` : "—"}
-                </td>
-                <td data-etiqueta="Entrada" class="hora">
-                  {ent ? (
-                    <span>
-                      {ent.h} <span class="suave">{ent.m}</span>
+      <div data-filtrable="hoy">
+        <Tabla
+          titulo="Registro del día"
+          tarjetas
+          hayFilas={filas.length > 0}
+          vacio={hayFiltros ? "Nadie coincide con esos filtros." : "Nadie tiene jornada este día."}
+        >
+          <Fragment slot="vacio">
+            {hayFiltros && (
+              <a href={esHoy ? "/panel/hoy" : `/panel/hoy?fecha=${fecha}`}>Limpiar filtros</a>
+            )}
+          </Fragment>
+          <thead>
+            <tr>
+              <th scope="col">Persona</th>
+              <th scope="col">Categoría</th>
+              <th scope="col" class="col-jornada">
+                Jornada
+              </th>
+              <th scope="col">Entrada</th>
+              <th scope="col">Salida</th>
+              <th scope="col">Estado</th>
+              <th scope="col">
+                <span class="visualmente-oculto">Acciones</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map((f) => {
+              const c = catPorId.get(f.persona.categoria_id);
+              const nombre = `${f.persona.nombre} ${f.persona.apellido}`;
+              const ent = hora(f.real?.hora_entrada, f.real?.entrada_metodo);
+              const sal = hora(f.real?.hora_salida, f.real?.salida_metodo);
+              const [badge, textoBase] = ESTADO[f.clave];
+              // En un día pasado, quien no marcó no está «por llegar»
+              const textoEstado = !esHoy && f.clave === "pendiente" ? "Sin registro" : textoBase;
+              return (
+                <tr data-buscar={f.persona.cedula}>
+                  <td class="principal">
+                    <a
+                      href={`/personal/${f.persona.id}`}
+                      class="nombre"
+                      data-persona={f.persona.id}
+                    >
+                      {f.persona.apellido}, {f.persona.nombre}
+                    </a>
+                    {f.persona.marca_en_pc && <span class="sin-tel">Marca en secretaría</span>}
+                  </td>
+                  <td data-etiqueta="Categoría">
+                    {c ? <ChipCategoria nombre={c.nombre} color={c.color} /> : "—"}
+                  </td>
+                  <td data-etiqueta="Jornada" class="solo-pc col-jornada hora">
+                    {f.regla ? `${f.regla.horaEntrada}–${f.regla.horaSalida}` : "—"}
+                  </td>
+                  <td data-etiqueta="Entrada" class="hora">
+                    {ent ? (
+                      <span>
+                        {ent.h} <span class="suave">{ent.m}</span>
+                      </span>
+                    ) : (
+                      <span class="suave">—</span>
+                    )}
+                  </td>
+                  <td data-etiqueta="Salida" class="hora">
+                    {sal ? (
+                      <span>
+                        {sal.h} <span class="suave">{sal.m}</span>
+                      </span>
+                    ) : (
+                      <span class="suave">—</span>
+                    )}
+                  </td>
+                  <td data-etiqueta="Estado">
+                    <span class="estado">
+                      <Badge tipo={badge}>{textoEstado}</Badge>
+                      {f.real?.senalado && !f.real.revisado_por && (
+                        <a href="/asistencia/revision" class="senal" title="Señalada para revisión">
+                          <Icono nombre="alerta" tamano={16} etiqueta="Señalada para revisión" />
+                        </a>
+                      )}
                     </span>
-                  ) : (
-                    <span class="suave">—</span>
-                  )}
-                </td>
-                <td data-etiqueta="Salida" class="hora">
-                  {sal ? (
-                    <span>
-                      {sal.h} <span class="suave">{sal.m}</span>
-                    </span>
-                  ) : (
-                    <span class="suave">—</span>
-                  )}
-                </td>
-                <td data-etiqueta="Estado">
-                  <span class="estado">
-                    <Badge tipo={badge}>{textoEstado}</Badge>
-                    {f.real?.senalado && !f.real.revisado_por && (
-                      <a href="/asistencia/revision" class="senal" title="Señalada para revisión">
-                        <Icono nombre="alerta" tamano={16} etiqueta="Señalada para revisión" />
+                  </td>
+                  <td class="acciones-fila">
+                    {f.accion && (
+                      <Boton
+                        tamano="pequeno"
+                        variante="secundario"
+                        data-abrir-modal="modal-marcar"
+                        data-marcar-persona={f.persona.id}
+                        data-marcar-nombre={nombre}
+                        data-marcar-tipo={f.accion}
+                      >
+                        {f.accion === "entrada" ? "Marcar entrada" : "Marcar salida"}
+                      </Boton>
+                    )}
+                    {(f.clave === "pendiente" || f.clave === "falta") && (
+                      <a
+                        class="enlace-permiso"
+                        href={`/permisos/nuevo?persona=${f.persona.id}&desde=${fecha}&volver=${volver}`}
+                        data-ventana={`/ventanas/permiso?persona=${f.persona.id}&desde=${fecha}`}
+                        data-ventana-modo="centro"
+                      >
+                        Permiso
                       </a>
                     )}
-                  </span>
-                </td>
-                <td class="acciones-fila">
-                  {f.accion && (
-                    <Boton
-                      tamano="pequeno"
-                      variante="secundario"
-                      data-abrir-modal="modal-marcar"
-                      data-marcar-persona={f.persona.id}
-                      data-marcar-nombre={nombre}
-                      data-marcar-tipo={f.accion}
-                    >
-                      {f.accion === "entrada" ? "Marcar entrada" : "Marcar salida"}
-                    </Boton>
-                  )}
-                  {(f.clave === "pendiente" || f.clave === "falta") && (
-                    <a
-                      class="enlace-permiso"
-                      href={`/permisos/nuevo?persona=${f.persona.id}&desde=${fecha}&volver=${volver}`}
-                      data-ventana={`/ventanas/permiso?persona=${f.persona.id}&desde=${fecha}`}
-                      data-ventana-modo="centro"
-                    >
-                      Permiso
-                    </a>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </Tabla>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </Tabla>
+      </div>
     </Tarjeta>
   </div>
 
@@ -532,6 +678,12 @@ const MOTIVOS_MANUAL = [
 </PanelLayout>
 
 <script>
+  import { enCadaPantalla } from "@/scripts/pantalla";
+  // ?q= (enlaces desde otras pantallas) se aplica al llegar; luego se filtra al escribir
+  enCadaPantalla(() => {
+    const buscar = document.querySelector<HTMLInputElement>('input[data-filtrar="hoy"]');
+    if (buscar?.value) buscar.dispatchEvent(new Event("input", { bubbles: true }));
+  });
   // Prepara el diálogo con la persona y el tipo de marcación de la fila.
   document.addEventListener("click", (ev) => {
     const b = (ev.target as HTMLElement).closest<HTMLElement>("[data-marcar-persona]");
@@ -586,24 +738,107 @@ const MOTIVOS_MANUAL = [
     display: grid;
     gap: var(--esp-4);
   }
-  .cabecera {
+  /* Lectura del día */
+  .lectura-dia {
+    display: grid;
+    gap: var(--esp-2);
+  }
+  .lectura-dia .frase {
+    margin: 0;
+    font-size: var(--texto-2xl);
+    font-weight: var(--peso-titulo);
+    letter-spacing: -0.01em;
+  }
+  .lectura-dia .detalle {
+    margin: 0;
+    color: var(--color-texto-suave);
+  }
+  .avance {
+    height: 10px;
+    max-width: 32rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--color-superficie-hover);
+  }
+  .avance span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--color-exito);
+    transform-origin: left;
+    animation: a-crecer-x 700ms var(--curva) both;
+  }
+
+  /* Semana */
+  .semana {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--esp-4);
-  }
-  .dia {
-    display: flex;
-    align-items: center;
     gap: var(--esp-2);
   }
-  .dia input {
-    min-height: 44px;
-    padding: 0 var(--esp-3);
-    border: 1px solid var(--color-borde-fuerte);
-    border-radius: var(--radio-sm);
+  .dias {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(3.25rem, 4.5rem));
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .dia-chip {
+    display: grid;
+    justify-items: center;
+    gap: 1px;
+    padding: var(--esp-2) 4px;
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
     background: var(--color-superficie);
+    color: var(--color-texto);
+    text-decoration: none;
+    transition:
+      border-color var(--duracion-rapida) var(--curva),
+      transform var(--duracion-rapida) var(--curva);
+  }
+  a.dia-chip:hover {
+    border-color: var(--color-acento);
+    transform: translateY(-2px);
+  }
+  .dia-chip .dsem {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-xs);
+    text-transform: capitalize;
+  }
+  .dia-chip .num {
+    font-size: var(--texto-lg);
+    font-weight: var(--peso-titulo);
+    font-variant-numeric: tabular-nums;
+  }
+  .dia-chip .marca {
+    font-size: var(--texto-xs);
+    font-weight: var(--peso-medio);
+    color: var(--color-texto-suave);
+    font-variant-numeric: tabular-nums;
+  }
+  .dia-chip.bien .marca {
+    color: var(--color-exito);
+  }
+  .dia-chip.atencion .marca {
+    color: var(--color-alerta);
+  }
+  .dia-chip.bajo .marca {
+    color: var(--color-error);
+  }
+  .dia-chip.actual {
+    border-color: var(--color-primario);
+    background: var(--color-primario);
+    color: var(--color-primario-contraste);
+  }
+  .dia-chip.actual .dsem,
+  .dia-chip.actual .marca {
+    color: inherit;
+    opacity: 0.85;
+  }
+  .dia-chip.futuro {
+    opacity: 0.4;
   }
   .flecha {
     display: grid;
@@ -619,24 +854,159 @@ const MOTIVOS_MANUAL = [
   .flecha.inactiva {
     color: var(--color-borde-fuerte);
   }
+  .otra-fecha label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+    min-height: 44px;
+    padding: 0 var(--esp-3);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio-sm);
+    background: var(--color-superficie);
+    color: var(--color-texto-suave);
+  }
+  .otra-fecha input {
+    border: 0;
+    background: none;
+    color: var(--color-texto);
+    font: inherit;
+  }
   .ir-hoy {
     font-weight: var(--peso-medio);
   }
-  .cifras {
+
+  /* Estados como filtros con su cantidad */
+  .estados {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--esp-2) var(--esp-6);
-    margin: 0;
+    gap: var(--esp-2);
   }
-  .cifras dt {
+  .estados a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+    min-height: 40px;
+    padding: 0 var(--esp-3);
+    border: 1px solid var(--color-borde);
+    border-radius: 999px;
+    background: var(--color-superficie);
+    color: var(--color-texto);
     font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+    text-decoration: none;
+  }
+  .estados a:hover {
+    border-color: var(--color-acento);
+  }
+  .estados .cuenta {
+    min-width: 1.5em;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: var(--color-superficie-hover);
+    color: var(--color-texto-suave);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .estados a[aria-current] {
+    border-color: var(--color-primario);
+    background: var(--color-primario);
+    color: var(--color-primario-contraste);
+  }
+  .estados a[aria-current] .cuenta {
+    background: rgb(255 255 255 / 0.18);
+    color: inherit;
+  }
+  .punto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .punto.info {
+    background: var(--color-acento);
+  }
+  .punto.exito {
+    background: var(--color-exito);
+  }
+  .punto.alerta {
+    background: var(--color-alerta);
+  }
+  .punto.error {
+    background: var(--color-error);
+  }
+  .punto.gris {
+    background: #94a3b8;
+  }
+
+  /* Herramientas de la lista */
+  .herramientas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-3);
+    margin-bottom: var(--esp-4);
+  }
+  .buscar {
+    flex: 1 1 18rem;
+    display: flex;
+    align-items: center;
+    gap: var(--esp-2);
+    min-height: 44px;
+    padding: 0 var(--esp-3);
+    border: 1px solid var(--color-borde-fuerte);
+    border-radius: var(--radio-sm);
     color: var(--color-texto-suave);
   }
-  .cifras dd {
-    margin: 0;
-    font-size: var(--texto-xl);
-    font-weight: var(--peso-fuerte);
-    font-variant-numeric: tabular-nums;
+  .buscar input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: none;
+    color: var(--color-texto);
+    font: inherit;
+    outline: none;
+  }
+  .buscar:focus-within {
+    border-color: var(--color-acento);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-acento) 20%, transparent);
+  }
+  .cat select {
+    min-height: 44px;
+    padding: 0 var(--esp-3);
+    border: 1px solid var(--color-borde-fuerte);
+    border-radius: var(--radio-sm);
+    background: var(--color-superficie);
+  }
+  .total {
+    margin-left: auto;
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  @media (max-width: 700px) {
+    .dias {
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      flex: 1 1 100%;
+      order: -1;
+    }
+    .semana .flecha {
+      order: 0;
+    }
+    .estados {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+      margin-inline: calc(-1 * var(--esp-4));
+      padding-inline: var(--esp-4);
+    }
+    .estados a {
+      flex: none;
+    }
+    .cat,
+    .cat select {
+      width: 100%;
+    }
+    .total {
+      margin-left: 0;
+    }
   }
   .aviso-linea,
   .error-linea {

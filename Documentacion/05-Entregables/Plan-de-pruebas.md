@@ -152,6 +152,9 @@ fecha: 2026-10-06
 | F51 | «Descargar en Excel» desde una sección filtrada | El archivo trae ese período y esa categoría |
 | F52 | Entrar con «reducir movimiento» activado | Todo aparece al instante, sin animaciones |
 | F53 | Abrir `/asistencia/registro` (enlace viejo) | Lleva a *Hoy* con el mismo filtro |
+| F54 | En *Hoy*, tocar un día de la semana | Se ve ese día; el día queda resaltado |
+| F55 | En *Hoy*, tocar «Tarde» | Solo quienes llegaron tarde; el botón muestra la misma cantidad que la lista |
+| F56 | En *Hoy*, escribir parte de una cédula | La lista se filtra al instante |
 
 ## 2b. Pruebas en navegador (automatizadas)
 
@@ -188,6 +191,7 @@ fecha: 2026-10-06
 
 | Fecha | Versión | Ejecutado por | Aprobado | Observaciones |
 |---|---|---|---|---|
+| 2026-10-28 | *Hoy* rediseñado (D-57) | Desarrollador (automatizado) | ✅ | 178 unitarias; 80/80 en navegador. Detector de diseño sin hallazgos. |
 | 2026-10-27 | Cada dato a su detalle (D-56) y tendencia sin desbordes | Desarrollador (automatizado) | ✅ | 178 pruebas unitarias. 78/78 en navegador, en local y en producción. Detector de diseño sin hallazgos. |
 | 2026-10-27 | Panel de control en tres niveles (D-55) | Desarrollador (automatizado) | ✅ | 177 unitarias; 71/71 en navegador (local y producción). Recorrido de usabilidad simulado: todas las tareas en 0–3 toques. |
 | 2026-10-27 | Animaciones y gráficas (D-54) | Desarrollador (automatizado) | ✅ | 66/66 en navegador; «reducir movimiento» verificado; sin fotogramas largos en la entrada. |

@@ -338,10 +338,24 @@ try {
   await pag.goto(`${B}/panel/hoy`);
   await marcarPagina(pag);
   r.ok("registro del día con personal programado", (await pag.locator("tbody tr").count()) > 0);
-  await pag.selectOption("#filtro-ver", "pendientes");
+  r.ok(
+    "Hoy: semana con siete días y estados con su cantidad",
+    (await pag.locator(".semana .dias li").count()) === 7 &&
+      (await pag.locator(".estados a .cuenta").count()) >= 3,
+  );
+  await pag.click('.estados a:has-text("Por llegar")');
   await pag.waitForFunction(() => location.search.includes("ver=pendientes"));
   await esperarDatos(pag);
   r.ok("registro del día: filtro sin recarga", await sinRecarga(pag));
+  const antesBuscar = await pag.locator('[data-filtrable="hoy"] tbody tr:visible').count();
+  await pag.fill('input[data-filtrar="hoy"]', "zzzzzz");
+  r.ok(
+    "Hoy: la búsqueda filtra al instante, sin botón «Aplicar»",
+    antesBuscar > 0 &&
+      (await pag.locator('[data-filtrable="hoy"] tbody tr:visible').count()) === 0 &&
+      (await pag.locator(".herramientas button:has-text('Aplicar'):visible").count()) === 0,
+  );
+  await pag.fill('input[data-filtrar="hoy"]', "");
   await pag.locator("[data-marcar-persona]").first().click();
   r.ok(
     "el diálogo de marcar muestra a la persona",

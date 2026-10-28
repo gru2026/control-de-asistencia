@@ -397,6 +397,8 @@ document.addEventListener("input", (ev) => {
   const sel = `[data-filtrable="${id}"]`;
   raiz.querySelector(sel)?.classList.toggle("buscando", q !== "");
   raiz.querySelectorAll<HTMLElement>(`${sel} li, ${sel} tbody tr`).forEach((li) => {
-    li.hidden = q !== "" && !sinTildes(li.textContent ?? "").includes(q);
+    // data-buscar: texto extra que se busca sin mostrarse (p. ej. la cédula)
+    const texto = `${li.textContent ?? ""} ${li.dataset.buscar ?? ""}`;
+    li.hidden = q !== "" && !sinTildes(texto).includes(q);
   });
 });

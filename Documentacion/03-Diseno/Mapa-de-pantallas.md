@@ -143,10 +143,12 @@ Nivel 3 · Sección (/panel/…)        filtros · cifras · gráfica completa �
 ### `/panel` — Resumen
 Seis recuadros con frase, cifra que cuenta desde 0, mini gráfica y lectura. Cada uno abre su vistazo. Barra de período y categoría arriba.
 
-### `/panel/hoy` — Hoy (antes Registro del día)
+### `/panel/hoy` — Hoy (antes Registro del día, rediseñado en D-57)
+- Frase del día con barra de avance; **semana tocable** (siete días con su lectura), flechas de semana, otra fecha y «Volver a hoy».
+- **Estados como botones con su cantidad** (`?ver=`), búsqueda al instante por nombre o cédula, categoría que se aplica sola.
 - Todo el personal programado ese día, con estado, horas y método.
 - **Marcar entrada / salida** con «Ahora» u «Otra hora» + motivo (queda señalada). Días anteriores con las flechas.
-- Cargar permiso desde la fila. Filtros: Mostrar, categoría y búsqueda.
+- Cargar permiso desde la fila. En días pasados, quien no marcó figura como «Sin registro».
 
 ### `/panel/asistencia`
 Cifras (con el colegio como referencia si hay categoría), tendencia, calendario, tabla día por día con filtro por día de la semana; descargas.

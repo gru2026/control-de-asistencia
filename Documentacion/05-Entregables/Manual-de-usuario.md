@@ -153,14 +153,20 @@ Si llegó desde un vistazo, **«Volver al vistazo»** lo devuelve donde estaba. 
 
 ## 8. Hoy (antes «Registro del día»)
 
-**Panel de control › Hoy.** Lista de todo el personal que trabaja ese día, con su estado: **por llegar, presente, tarde, falta, permiso o sin salida**, y cómo marcó (teléfono, secretaría o a mano).
+**Panel de control › Hoy.** Arriba dice en palabras cómo va el día («32 de 54 ya llegaron») con una barra de avance.
+
+- **La semana:** toque cualquier día para verlo. Cada día muestra su porcentaje con el color de su lectura. Las flechas pasan a la semana anterior o siguiente; el calendario pequeño elige otra fecha y **«Volver a hoy»** regresa.
+- **Los botones de estado** (Todos, Por llegar, Llegaron, Tarde, Sin salida, Faltas, Permiso…) muestran cuántas personas hay en cada uno; tóquelos para ver solo esas.
+- **Buscar:** escriba el nombre o la cédula y la lista se filtra al instante.
+
+Debajo está la lista de todo el personal que trabaja ese día, con su estado: **por llegar** (o **sin registro** en un día pasado), **presente, tarde, falta, permiso o sin salida**, y cómo marcó (teléfono, secretaría o a mano).
 
 - **Marcar entrada / Marcar salida:** se abre una ventana con **Ahora** ya elegido; toque **Registrar**.
 - **Otra hora (contingencia):** si se cayó el internet o alguien olvidó marcar, toque **Otra hora**, escriba la hora y elija el motivo con los botones. Queda señalada para revisión.
 - **Días anteriores:** con las flechas o la fecha. Para un día pasado siempre se escribe la hora y el motivo.
 - **Permiso:** desde la fila, carga un permiso para esa persona.
 - Una **falta** puesta por el cierre diario se corrige marcando la entrada.
-- Filtros: **Mostrar** (por llegar, llegaron, llegaron tarde, sin salida, faltas, permisos, marcan en secretaría), categoría y búsqueda.
+- La **categoría** se elige en la lista y se aplica sola.
 
 ## 9. Pendientes
 

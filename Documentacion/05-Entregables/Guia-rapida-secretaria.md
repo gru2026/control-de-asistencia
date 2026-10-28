@@ -13,12 +13,12 @@ fecha: 2026-10-28
 
 ## Cada mañana
 1. **Pendientes:** resuelva lo de arriba (teléfonos por aprobar, faltas, salidas sin marcar).
-2. **Panel de control › Hoy** → «Mostrar: Por llegar».
+2. **Panel de control › Hoy** → botón **Por llegar**.
 3. Quien llegue sin teléfono o marque en secretaría: **Marcar entrada** en su fila.
 4. Si falló el internet o la persona olvidó marcar: **Otra hora** + **motivo**.
 
 ## Cada tarde
-1. **Hoy** → «Mostrar: Sin salida marcada» → **Marcar salida** (o escribir la hora con motivo).
+1. **Hoy** → botón **Sin salida** → **Marcar salida** (o escribir la hora con motivo).
 2. **Permisos › Por revisar:** verifique lo señalado y toque **Revisada**.
 
 ## Cuando ocurra
@@ -29,7 +29,7 @@ fecha: 2026-10-28
 | Cambió de teléfono | Toque su nombre › **Cambiar de teléfono** |
 | No tiene teléfono | Ficha › Teléfono › **Marca en secretaría** |
 | Olvidó su contraseña | Toque su nombre › **Restablecer a 0000** |
-| Falta puesta por el cierre, pero vino | **Hoy** (ese día) › **Marcar entrada** con la hora y el motivo |
+| Falta puesta por el cierre, pero vino | **Hoy** → toque ese día en la semana › **Marcar entrada** con la hora y el motivo |
 | ¿Quién llega tarde? | **Panel de control › Puntualidad** |
 | ¿Cómo va una categoría? | **Panel de control › Por categoría** → toque la categoría |
 | Planilla del día | **Pendientes › Planilla de hoy**, o Reportes › Planilla diaria (PDF o Excel) |

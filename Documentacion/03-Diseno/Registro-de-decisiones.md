@@ -42,6 +42,7 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-57 | 2026-10-28 | *Hoy* rediseñado: frase del día con barra de avance, semana de días tocables con su lectura, estados como botones con su cantidad y búsqueda al instante | ✅ Vigente |
 | D-56 | 2026-10-27 | Todo dato que resume lleva a su detalle (barras, segmentos, puntos, días, tramos); vista de una categoría comparada con el colegio; pastillas de filtros, «Volver al vistazo», descargas con filtros, estados vacíos útiles y tendencia semanal en la ficha | ✅ Vigente |
 | D-55 | 2026-10-27 | Panel de control en tres niveles: resumen (recuadros), vistazo (panel lateral con datos rápidos y «Ver todo») y seis secciones propias en el menú; el Registro del día pasa a ser Panel › Hoy; la secretaría entra a Pendientes | ✅ Vigente |
 | D-54 | 2026-10-27 | Animaciones de intensidad media (entrada escalonada, cifras que cuentan, gráficas que se dibujan) y gráficas con color por lectura y franjas Bien/Atención/Bajo | ✅ Vigente |
@@ -109,6 +110,14 @@ Motivo: cada acción cargaba una pantalla nueva (1 a 2,6 s desde el colegio) y s
 - **D-48 · Avisos y mensajes.** La campana abre un panel (en el celular, desde abajo) con los avisos sin leer, en la misma consulta que el contador. Los resultados de las acciones aparecen abajo y se cierran solos; los reversibles ofrecen **Deshacer** (marcación asistida de los últimos 15 min, revisión, aviso leído). Las acciones graves siguen pidiendo confirmación.
 - **D-49 · Ventanas.** Tocar un nombre abre el **panel lateral** de la persona (hoy, mes, permisos, teléfono, cuenta) con acciones: marcar, cargar permiso, aprobar o cambiar teléfono, «no tiene teléfono», crear cuenta, restablecer a 0000. Los formularios en ventana van a `/api/acciones` (JSON); si sale bien se cierra y se actualiza la pantalla; si no, los errores quedan junto al campo. Confirmaciones con una ventana propia. El contenido llega como fragmento y usa `ventanas.css` (clases `v-`). La ficha completa queda a un toque, por capas (pestañas).
 - **D-50 · Formularios sin estrés.** Marcar empieza en «Ahora»; «Otra hora» pide hora y motivo con botones. Permiso: buscador de persona (escribir nombre o cédula), fecha con botones (Hoy · Mañana · Otras fechas) y motivo con botones. En el celular, las tablas muestran solo lo esencial. Guía de prueba con personas reales: [[05-Entregables/Prueba-de-usabilidad]].
+
+### D-57 · Hoy, como el resto del panel
+- **Motivo:** la pantalla tenía una fecha suelta con flechas, cifras en una esquina, un desplegable «Mostrar» y un botón «Aplicar»: distinta del panel y lenta de usar.
+- **Frase del día** en palabras («32 de 54 ya llegaron» / «… vinieron» en días pasados), detalle (por llegar, tarde, faltas, permiso) y **barra de avance**.
+- **Semana tocable:** los siete días de la semana del día elegido, cada uno con su porcentaje y color de lectura (solo marcaciones reales, sin demostración); flechas de semana anterior/siguiente, «Otra fecha» y «Volver a hoy».
+- **Estados como botones con su cantidad** (Todos, Por llegar, Llegaron, Tarde, Sin salida, Faltas, Permiso, En secretaría, Sin jornada); se muestran los que tienen personas. Reemplazan al desplegable «Mostrar».
+- **Búsqueda al instante** en el navegador (también por cédula, con `data-buscar`), sin «Aplicar»; categoría que se aplica sola.
+- En días pasados, quien no tiene registro dice **«Sin registro»**, no «Por llegar».
 
 ### D-56 · Cada dato lleva a su detalle
 - **Regla:** cada barra, segmento, punto, día o cifra que agrupa registros es un enlace real a esos registros con el filtro puesto (lista de comprobación en `DESIGN.md`).

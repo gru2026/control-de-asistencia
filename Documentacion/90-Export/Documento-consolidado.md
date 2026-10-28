@@ -563,6 +563,7 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-57 | 2026-10-28 | *Hoy* rediseñado: frase del día con barra de avance, semana de días tocables con su lectura, estados como botones con su cantidad y búsqueda al instante | ✅ Vigente |
 | D-56 | 2026-10-27 | Todo dato que resume lleva a su detalle (barras, segmentos, puntos, días, tramos); vista de una categoría comparada con el colegio; pastillas de filtros, «Volver al vistazo», descargas con filtros, estados vacíos útiles y tendencia semanal en la ficha | ✅ Vigente |
 | D-55 | 2026-10-27 | Panel de control en tres niveles: resumen (recuadros), vistazo (panel lateral con datos rápidos y «Ver todo») y seis secciones propias en el menú; el Registro del día pasa a ser Panel › Hoy; la secretaría entra a Pendientes | ✅ Vigente |
 | D-54 | 2026-10-27 | Animaciones de intensidad media (entrada escalonada, cifras que cuentan, gráficas que se dibujan) y gráficas con color por lectura y franjas Bien/Atención/Bajo | ✅ Vigente |
@@ -630,6 +631,14 @@ Motivo: cada acción cargaba una pantalla nueva (1 a 2,6 s desde el colegio) y s
 - **D-48 · Avisos y mensajes.** La campana abre un panel (en el celular, desde abajo) con los avisos sin leer, en la misma consulta que el contador. Los resultados de las acciones aparecen abajo y se cierran solos; los reversibles ofrecen **Deshacer** (marcación asistida de los últimos 15 min, revisión, aviso leído). Las acciones graves siguen pidiendo confirmación.
 - **D-49 · Ventanas.** Tocar un nombre abre el **panel lateral** de la persona (hoy, mes, permisos, teléfono, cuenta) con acciones: marcar, cargar permiso, aprobar o cambiar teléfono, «no tiene teléfono», crear cuenta, restablecer a 0000. Los formularios en ventana van a `/api/acciones` (JSON); si sale bien se cierra y se actualiza la pantalla; si no, los errores quedan junto al campo. Confirmaciones con una ventana propia. El contenido llega como fragmento y usa `ventanas.css` (clases `v-`). La ficha completa queda a un toque, por capas (pestañas).
 - **D-50 · Formularios sin estrés.** Marcar empieza en «Ahora»; «Otra hora» pide hora y motivo con botones. Permiso: buscador de persona (escribir nombre o cédula), fecha con botones (Hoy · Mañana · Otras fechas) y motivo con botones. En el celular, las tablas muestran solo lo esencial. Guía de prueba con personas reales: Prueba-de-usabilidad.
+
+### D-57 · Hoy, como el resto del panel
+- **Motivo:** la pantalla tenía una fecha suelta con flechas, cifras en una esquina, un desplegable «Mostrar» y un botón «Aplicar»: distinta del panel y lenta de usar.
+- **Frase del día** en palabras («32 de 54 ya llegaron» / «… vinieron» en días pasados), detalle (por llegar, tarde, faltas, permiso) y **barra de avance**.
+- **Semana tocable:** los siete días de la semana del día elegido, cada uno con su porcentaje y color de lectura (solo marcaciones reales, sin demostración); flechas de semana anterior/siguiente, «Otra fecha» y «Volver a hoy».
+- **Estados como botones con su cantidad** (Todos, Por llegar, Llegaron, Tarde, Sin salida, Faltas, Permiso, En secretaría, Sin jornada); se muestran los que tienen personas. Reemplazan al desplegable «Mostrar».
+- **Búsqueda al instante** en el navegador (también por cédula, con `data-buscar`), sin «Aplicar»; categoría que se aplica sola.
+- En días pasados, quien no tiene registro dice **«Sin registro»**, no «Por llegar».
 
 ### D-56 · Cada dato lleva a su detalle
 - **Regla:** cada barra, segmento, punto, día o cifra que agrupa registros es un enlace real a esos registros con el filtro puesto (lista de comprobación en `DESIGN.md`).
@@ -1435,10 +1444,12 @@ Nivel 3 · Sección (/panel/…)        filtros · cifras · gráfica completa �
 ### `/panel` — Resumen
 Seis recuadros con frase, cifra que cuenta desde 0, mini gráfica y lectura. Cada uno abre su vistazo. Barra de período y categoría arriba.
 
-### `/panel/hoy` — Hoy (antes Registro del día)
+### `/panel/hoy` — Hoy (antes Registro del día, rediseñado en D-57)
+- Frase del día con barra de avance; **semana tocable** (siete días con su lectura), flechas de semana, otra fecha y «Volver a hoy».
+- **Estados como botones con su cantidad** (`?ver=`), búsqueda al instante por nombre o cédula, categoría que se aplica sola.
 - Todo el personal programado ese día, con estado, horas y método.
 - **Marcar entrada / salida** con «Ahora» u «Otra hora» + motivo (queda señalada). Días anteriores con las flechas.
-- Cargar permiso desde la fila. Filtros: Mostrar, categoría y búsqueda.
+- Cargar permiso desde la fila. En días pasados, quien no marcó figura como «Sin registro».
 
 ### `/panel/asistencia`
 Cifras (con el colegio como referencia si hay categoría), tendencia, calendario, tabla día por día con filtro por día de la semana; descargas.
@@ -2042,6 +2053,14 @@ Qué cambió en la app después del cierre del desarrollo (19/10/2026), en palab
 > 3. El panel **dice en palabras** cómo vamos (Bien / Atención / Bajo) y **todo se puede tocar** para ver el detalle.
 > 4. En el menú, «Asistencia» pasó a llamarse **«Permisos»** (con la pestaña *Por revisar*).
 
+## 28/10/2026 — Hoy, más claro y rápido (D-57)
+
+- Arriba, en palabras, cómo va el día («32 de 54 ya llegaron») con una barra de avance.
+- **La semana a la vista:** siete días que se tocan, cada uno con su porcentaje y su color. Ya no hay que escribir la fecha.
+- **Botones de estado con su cantidad** (Por llegar 12, Tarde 3…) en lugar del desplegable «Mostrar».
+- La búsqueda filtra **al instante**, también por cédula; sin botón «Aplicar».
+- En un día pasado, quien no marcó dice «Sin registro».
+
 ## 27/10/2026 — Cada dato lleva a su detalle (D-56)
 
 - Las barras, los segmentos, los puntos de las gráficas, los días del calendario, los tramos de llegada y las semanas de faltas se pueden tocar y llevan a su lista con el filtro puesto.
@@ -2381,14 +2400,20 @@ Si llegó desde un vistazo, **«Volver al vistazo»** lo devuelve donde estaba. 
 
 ## 8. Hoy (antes «Registro del día»)
 
-**Panel de control › Hoy.** Lista de todo el personal que trabaja ese día, con su estado: **por llegar, presente, tarde, falta, permiso o sin salida**, y cómo marcó (teléfono, secretaría o a mano).
+**Panel de control › Hoy.** Arriba dice en palabras cómo va el día («32 de 54 ya llegaron») con una barra de avance.
+
+- **La semana:** toque cualquier día para verlo. Cada día muestra su porcentaje con el color de su lectura. Las flechas pasan a la semana anterior o siguiente; el calendario pequeño elige otra fecha y **«Volver a hoy»** regresa.
+- **Los botones de estado** (Todos, Por llegar, Llegaron, Tarde, Sin salida, Faltas, Permiso…) muestran cuántas personas hay en cada uno; tóquelos para ver solo esas.
+- **Buscar:** escriba el nombre o la cédula y la lista se filtra al instante.
+
+Debajo está la lista de todo el personal que trabaja ese día, con su estado: **por llegar** (o **sin registro** en un día pasado), **presente, tarde, falta, permiso o sin salida**, y cómo marcó (teléfono, secretaría o a mano).
 
 - **Marcar entrada / Marcar salida:** se abre una ventana con **Ahora** ya elegido; toque **Registrar**.
 - **Otra hora (contingencia):** si se cayó el internet o alguien olvidó marcar, toque **Otra hora**, escriba la hora y elija el motivo con los botones. Queda señalada para revisión.
 - **Días anteriores:** con las flechas o la fecha. Para un día pasado siempre se escribe la hora y el motivo.
 - **Permiso:** desde la fila, carga un permiso para esa persona.
 - Una **falta** puesta por el cierre diario se corrige marcando la entrada.
-- Filtros: **Mostrar** (por llegar, llegaron, llegaron tarde, sin salida, faltas, permisos, marcan en secretaría), categoría y búsqueda.
+- La **categoría** se elige en la lista y se aplica sola.
 
 ## 9. Pendientes
 
@@ -2490,12 +2515,12 @@ Todos los días a las 18:00 el sistema cierra las jornadas terminadas: quien no 
 
 ## Cada mañana
 1. **Pendientes:** resuelva lo de arriba (teléfonos por aprobar, faltas, salidas sin marcar).
-2. **Panel de control › Hoy** → «Mostrar: Por llegar».
+2. **Panel de control › Hoy** → botón **Por llegar**.
 3. Quien llegue sin teléfono o marque en secretaría: **Marcar entrada** en su fila.
 4. Si falló el internet o la persona olvidó marcar: **Otra hora** + **motivo**.
 
 ## Cada tarde
-1. **Hoy** → «Mostrar: Sin salida marcada» → **Marcar salida** (o escribir la hora con motivo).
+1. **Hoy** → botón **Sin salida** → **Marcar salida** (o escribir la hora con motivo).
 2. **Permisos › Por revisar:** verifique lo señalado y toque **Revisada**.
 
 ## Cuando ocurra
@@ -2506,7 +2531,7 @@ Todos los días a las 18:00 el sistema cierra las jornadas terminadas: quien no 
 | Cambió de teléfono | Toque su nombre › **Cambiar de teléfono** |
 | No tiene teléfono | Ficha › Teléfono › **Marca en secretaría** |
 | Olvidó su contraseña | Toque su nombre › **Restablecer a 0000** |
-| Falta puesta por el cierre, pero vino | **Hoy** (ese día) › **Marcar entrada** con la hora y el motivo |
+| Falta puesta por el cierre, pero vino | **Hoy** → toque ese día en la semana › **Marcar entrada** con la hora y el motivo |
 | ¿Quién llega tarde? | **Panel de control › Puntualidad** |
 | ¿Cómo va una categoría? | **Panel de control › Por categoría** → toque la categoría |
 | Planilla del día | **Pendientes › Planilla de hoy**, o Reportes › Planilla diaria (PDF o Excel) |
@@ -2664,6 +2689,9 @@ Todos los días a las 18:00 el sistema cierra las jornadas terminadas: quien no 
 | F51 | «Descargar en Excel» desde una sección filtrada | El archivo trae ese período y esa categoría |
 | F52 | Entrar con «reducir movimiento» activado | Todo aparece al instante, sin animaciones |
 | F53 | Abrir `/asistencia/registro` (enlace viejo) | Lleva a *Hoy* con el mismo filtro |
+| F54 | En *Hoy*, tocar un día de la semana | Se ve ese día; el día queda resaltado |
+| F55 | En *Hoy*, tocar «Tarde» | Solo quienes llegaron tarde; el botón muestra la misma cantidad que la lista |
+| F56 | En *Hoy*, escribir parte de una cédula | La lista se filtra al instante |
 
 ## 2b. Pruebas en navegador (automatizadas)
 
@@ -2700,6 +2728,7 @@ Todos los días a las 18:00 el sistema cierra las jornadas terminadas: quien no 
 
 | Fecha | Versión | Ejecutado por | Aprobado | Observaciones |
 |---|---|---|---|---|
+| 2026-10-28 | *Hoy* rediseñado (D-57) | Desarrollador (automatizado) | ✅ | 178 unitarias; 80/80 en navegador. Detector de diseño sin hallazgos. |
 | 2026-10-27 | Cada dato a su detalle (D-56) y tendencia sin desbordes | Desarrollador (automatizado) | ✅ | 178 pruebas unitarias. 78/78 en navegador, en local y en producción. Detector de diseño sin hallazgos. |
 | 2026-10-27 | Panel de control en tres niveles (D-55) | Desarrollador (automatizado) | ✅ | 177 unitarias; 71/71 en navegador (local y producción). Recorrido de usabilidad simulado: todas las tareas en 0–3 toques. |
 | 2026-10-27 | Animaciones y gráficas (D-54) | Desarrollador (automatizado) | ✅ | 66/66 en navegador; «reducir movimiento» verificado; sin fotogramas largos en la entrada. |

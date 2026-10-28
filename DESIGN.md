@@ -60,7 +60,7 @@ Ritmo: dentro de un grupo 6–12 px; entre controles 16 px; entre bloques 32 px 
 - Gráfica de tendencia: solo línea y área en SVG; ejes, promedio y globos en HTML (13 px); puntos por fecha real; 3 marcas en el eje Y.
 - Marcación (celular): una sola superficie con el reloj grande (hora del servidor), la jornada y un botón de ancho completo según el momento (entrada primario, salida secundario). El escáner ocupa toda la pantalla en azul noche con el visor cuadrado; el resultado se muestra en grande (sello verde a tiempo, ámbar con retraso, rojo si no se registró) con la hora.
 - Pestañas entre páginas hermanas (`Pestanas.astro`): enlaces con subrayado azul en la actual y contador ámbar opcional (Permisos · Por revisar; Planilla diaria · Resumen del período; avisos). Las secciones del Panel de control usan el menú lateral y, en el celular, `SubnavPanel` (pastillas deslizables).
-- Panel de control › Hoy (antes Registro del día): cifras del día en línea (sin tarjetas), tabla con botón «Marcar» secundario por fila; el diálogo pide la hora solo si es contingencia.
+- Panel de control › Hoy (D-57): frase del día con barra de avance; semana de siete días tocables con su lectura; estados como botones con su cantidad (no desplegables); búsqueda al instante; tabla con botón «Marcar» secundario por fila; el diálogo pide la hora solo si es contingencia.
 - Barra superior: campana de avisos con contador rojo; en celular se oculta el avatar.
 - Historial: calendario del mes con celdas cuadradas tintadas por estado (verde, ámbar, rojo, azul) y leyenda; hoy con contorno azul.
 - Hoja de claves: tiras recortables con borde punteado (nombre, usuario = cédula, contraseña 0000 y 3 pasos), dos por fila al imprimir.

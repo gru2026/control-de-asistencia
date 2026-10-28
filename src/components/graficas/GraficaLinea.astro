@@ -153,6 +153,7 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
           nivel(c.valor),
           i === coords.length - 1 && "ultimo",
           c.x > 70 && "a-la-izquierda",
+          c.x < 20 && "a-la-derecha",
         ]}
         style={`left: ${c.x}%; top: ${c.y}%; --y: ${c.y}; --i: ${Math.min(i, 30)}`}
         tabindex={c.href ? undefined : "0"}
@@ -167,14 +168,14 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
     ))}
 
     {ultimo && (
-      <span class="valor-final" style={`left: ${ultimo.x}%; top: ${ultimo.y}%`} aria-hidden="true">
+      <span
+        class:list={["valor-final", ultimo.x > 88 && "al-borde"]}
+        style={`left: ${ultimo.x}%; top: ${ultimo.y}%`}
+        aria-hidden="true"
+      >
         {formato(ultimo.valor)}
       </span>
     )}
-  </div>
-
-  <div class="eje-ref" aria-hidden="true">
-    {referencia && <span style={`top: ${yPct(referencia.valor)}%`}>{referencia.etiqueta}</span>}
   </div>
 
   <div class="eje-x" aria-hidden="true">
@@ -191,15 +192,25 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
       </span>
     ))}
   </div>
-  {franjas.length > 0 && (
-    <p class="leyenda-franjas">
-      Fondo:{" "}
-      {franjas.map((f, i) => (
-        <span class={f.clase}>
-          {i > 0 && " · "}
-          {f.texto.toLowerCase()}
+  {(referencia || franjas.length > 0) && (
+    <p class="leyenda-grafica">
+      {referencia && (
+        <span class="ley-referencia">
+          <span class="muestra-linea" aria-hidden="true" />
+          {referencia.etiqueta}
         </span>
-      ))}
+      )}
+      {franjas.length > 0 && (
+        <span>
+          Fondo:{" "}
+          {franjas.map((f, i) => (
+            <span class={f.clase}>
+              {i > 0 && " · "}
+              {f.texto.toLowerCase()}
+            </span>
+          ))}
+        </span>
+      )}
     </p>
   )}
 </div>
@@ -208,7 +219,7 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
   .tendencia {
     --alto: 220px;
     display: grid;
-    grid-template-columns: 2.75rem 1fr auto;
+    grid-template-columns: 2.75rem minmax(0, 1fr);
     grid-template-rows: var(--alto) auto;
     column-gap: var(--esp-2);
     padding-top: var(--esp-6); /* espacio para el valor final y los globos */
@@ -259,18 +270,32 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
     right: 0;
     animation: a-aparecer 500ms var(--curva) both;
   }
-  .leyenda-franjas {
+  .leyenda-grafica {
     grid-column: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-1) var(--esp-5);
     margin: var(--esp-2) 0 0;
     font-size: var(--texto-xs);
   }
-  .leyenda-franjas .bien {
+  .ley-referencia {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+    color: var(--color-texto);
+    font-weight: var(--peso-medio);
+  }
+  .muestra-linea {
+    width: 18px;
+    border-top: 1.5px dashed var(--color-texto-tenue);
+  }
+  .leyenda-grafica .bien {
     color: #166534;
   }
-  .leyenda-franjas .atencion {
+  .leyenda-grafica .atencion {
     color: #92400e;
   }
-  .leyenda-franjas .bajo {
+  .leyenda-grafica .bajo {
     color: #991b1b;
   }
   .franja.bien {
@@ -293,28 +318,12 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
     stroke-linecap: round;
   }
 
-  /* Promedio: línea discreta con su etiqueta al final, fuera del trazo */
+  /* Promedio: línea discreta dentro del área; su nombre va en la leyenda (nunca sobresale) */
   .referencia {
     position: absolute;
     left: -6px;
-    right: -14px;
+    right: -6px;
     border-top: 1.5px dashed var(--color-texto-tenue);
-  }
-  /* Etiqueta del promedio en su propia columna: nunca tapa la línea */
-  .eje-ref {
-    position: relative;
-    width: 5.25rem;
-  }
-  .eje-ref span {
-    position: absolute;
-    left: 0;
-    transform: translateY(-50%);
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: var(--color-superficie-hover);
-    color: var(--color-texto-suave);
-    font-weight: var(--peso-medio);
-    white-space: nowrap;
   }
 
   /* Puntos (HTML: siempre redondos) con zona de toque generosa */
@@ -413,6 +422,14 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
     right: 50%;
     transform: translate(14px, 4px);
   }
+  .a-la-derecha .globo {
+    left: 50%;
+    transform: translate(-14px, 4px);
+  }
+  .a-la-derecha:hover .globo,
+  .a-la-derecha:focus-visible .globo {
+    transform: translate(-14px, 0) !important;
+  }
   .punto:hover .globo,
   .punto:focus-visible .globo {
     opacity: 1;
@@ -436,6 +453,10 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
     pointer-events: none;
     animation: a-subir 400ms var(--curva-salida) both;
     animation-delay: 1000ms;
+  }
+  /* Cerca del borde derecho, la etiqueta se alinea hacia adentro */
+  .valor-final.al-borde {
+    transform: translate(calc(-100% + 10px), calc(-100% - 12px));
   }
   .trazado:has(.punto:hover, .punto:focus-visible) .valor-final {
     opacity: 0;
@@ -461,18 +482,11 @@ const nivel = (v: number) => (v >= 90 ? "alto" : v >= 80 ? "medio" : "bajo");
     transform: translateX(calc(-100% + 6px));
   }
 
-  /* Celular: sin columna del promedio (ya está en el título de la sección)
-     y la mitad de las fechas del eje X */
+  /* Celular: la mitad de las fechas del eje X */
   @media (max-width: 600px) {
     .tendencia {
       --alto: 180px;
-      grid-template-columns: 2.25rem 1fr;
-    }
-    .eje-ref {
-      display: none;
-    }
-    .referencia {
-      right: -6px;
+      grid-template-columns: 2.25rem minmax(0, 1fr);
     }
     .eje-x span:nth-child(even):not(.final),
     .eje-x .cerca-borde {

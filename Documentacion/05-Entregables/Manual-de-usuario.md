@@ -155,7 +155,7 @@ Si llegó desde un vistazo, **«Volver al vistazo»** lo devuelve donde estaba. 
 
 **Panel de control › Hoy.** Arriba dice en palabras cómo va el día («32 de 54 ya llegaron») con una barra de avance.
 
-- **La semana:** toque cualquier día para verlo. Cada día muestra su porcentaje con el color de su lectura. Las flechas pasan a la semana anterior o siguiente; el calendario pequeño elige otra fecha y **«Volver a hoy»** regresa.
+- **La semana:** toque cualquier día para verlo. Cada día muestra su porcentaje con el color de su lectura. Las flechas pasan a la semana anterior o siguiente. Arriba de la semana, **«Elegir fecha»** abre el calendario para ir a cualquier día, y **«Hoy»** regresa al día de hoy.
 - **Los botones de estado** (Todos, Por llegar, Llegaron, Tarde, Sin salida, Faltas, Permiso…) muestran cuántas personas hay en cada uno; tóquelos para ver solo esas.
 - **Buscar:** escriba el nombre o la cédula y la lista se filtra al instante.
 

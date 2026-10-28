@@ -29,7 +29,7 @@ fecha: 2026-10-28
 | Cambió de teléfono | Toque su nombre › **Cambiar de teléfono** |
 | No tiene teléfono | Ficha › Teléfono › **Marca en secretaría** |
 | Olvidó su contraseña | Toque su nombre › **Restablecer a 0000** |
-| Falta puesta por el cierre, pero vino | **Hoy** → toque ese día en la semana › **Marcar entrada** con la hora y el motivo |
+| Falta puesta por el cierre, pero vino | **Hoy** → toque ese día en la semana (o **Elegir fecha**) › **Marcar entrada** con la hora y el motivo |
 | ¿Quién llega tarde? | **Panel de control › Puntualidad** |
 | ¿Cómo va una categoría? | **Panel de control › Por categoría** → toque la categoría |
 | Planilla del día | **Pendientes › Planilla de hoy**, o Reportes › Planilla diaria (PDF o Excel) |

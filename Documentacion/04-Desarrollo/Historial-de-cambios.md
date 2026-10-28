@@ -24,6 +24,7 @@ Qué cambió en la app después del cierre del desarrollo (19/10/2026), en palab
 - La búsqueda filtra **al instante**, también por cédula; sin botón «Aplicar».
 - En un día pasado, quien no marcó dice «Sin registro».
 - La parte de arriba quedó en **dos bloques ordenados**: la tarjeta del día (cómo va y qué día se ve) y la lista con sus botones de estado.
+- Sobre la semana: el mes que se ve y los botones **«Hoy»** y **«Elegir fecha»** (abre el calendario), en lugar del campo de fecha suelto.
 
 ## 27/10/2026 — Cada dato lleva a su detalle (D-56)
 

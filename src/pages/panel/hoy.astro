@@ -324,6 +324,26 @@ const conVer = (v: Vista) => {
   else u.searchParams.set("ver", v);
   return u.pathname + u.search;
 };
+// Mes (o meses) de la semana que se ve: «Octubre 2026» · «Oct – Nov 2026»
+const MESES = [
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
+];
+const mesDe = (f: string) => MESES[Number(f.slice(5, 7)) - 1]!;
+const mesSemana =
+  mesDe(lunes) === mesDe(domingo)
+    ? `${mesDe(lunes)} ${lunes.slice(0, 4)}`
+    : `${mesDe(lunes).slice(0, 3)} – ${mesDe(domingo).slice(0, 3)} ${domingo.slice(0, 4)}`;
 // Frase en palabras (como en el resto del panel)
 const largo = fechaLarga(fecha);
 const fechaDia = largo.charAt(0).toUpperCase() + largo.slice(1);
@@ -397,6 +417,35 @@ const MOTIVOS_MANUAL = [
       </div>
       <!-- Semana: cada día se toca; el color dice cómo fue -->
       <nav class="semana" aria-label="Elegir el día">
+        <div class="cabeza-semana">
+          <span class="mes">{mesSemana}</span>
+          <div class="acciones-semana">
+            {!esHoy && (
+              <a href={navegar(hoy)} class="boton-semana">
+                Hoy
+              </a>
+            )}
+            <form method="get" class="otra-fecha" data-autoenviar>
+              <label class="boton-semana" data-elegir-fecha>
+                <Icono nombre="calendario" tamano={18} />
+                Elegir fecha
+                <input
+                  type="date"
+                  name="fecha"
+                  value={fecha}
+                  max={hoy}
+                  aria-label="Elegir fecha"
+                  class="fecha-oculta"
+                />
+              </label>
+              {vista !== "todos" && <input type="hidden" name="ver" value={vista} />}
+              {categoria && <input type="hidden" name="categoria" value={categoria} />}
+              <noscript>
+                <button type="submit">Ir</button>
+              </noscript>
+            </form>
+          </div>
+        </div>
         <div class="fila-dias">
           <a href={navegar(sumarDias(fecha, -7))} class="flecha" aria-label="Semana anterior">
             <Icono nombre="anterior" />
@@ -441,31 +490,6 @@ const MOTIVOS_MANUAL = [
             <span class="flecha inactiva" aria-hidden="true">
               <Icono nombre="siguiente" />
             </span>
-          )}
-        </div>
-        <div class="fila-fecha">
-          <form method="get" class="otra-fecha" data-autoenviar>
-            <label>
-              <Icono nombre="calendario" tamano={18} />
-              <span class="visualmente-oculto">Otra fecha</span>
-              <input
-                type="date"
-                name="fecha"
-                value={fecha}
-                max={hoy}
-                aria-label="Elegir otra fecha"
-              />
-            </label>
-            {vista !== "todos" && <input type="hidden" name="ver" value={vista} />}
-            {categoria && <input type="hidden" name="categoria" value={categoria} />}
-            <noscript>
-              <button type="submit">Ir</button>
-            </noscript>
-          </form>
-          {!esHoy && (
-            <a href={navegar(hoy)} class="ir-hoy">
-              Volver a hoy
-            </a>
           )}
         </div>
       </nav>
@@ -703,6 +727,18 @@ const MOTIVOS_MANUAL = [
     const buscar = document.querySelector<HTMLInputElement>('input[data-filtrar="hoy"]');
     if (buscar?.value) buscar.dispatchEvent(new Event("input", { bubbles: true }));
   });
+  // «Elegir fecha» abre el calendario del sistema (el campo real está oculto bajo el botón)
+  document.addEventListener("click", (ev) => {
+    const boton = (ev.target as HTMLElement).closest("[data-elegir-fecha]");
+    const campo = boton?.querySelector<HTMLInputElement>('input[type="date"]');
+    if (!campo || typeof campo.showPicker !== "function") return;
+    ev.preventDefault();
+    try {
+      campo.showPicker();
+    } catch {
+      campo.focus();
+    }
+  });
   // Prepara el diálogo con la persona y el tipo de marcación de la fila.
   document.addEventListener("click", (ev) => {
     const b = (ev.target as HTMLElement).closest<HTMLElement>("[data-marcar-persona]");
@@ -841,19 +877,62 @@ const MOTIVOS_MANUAL = [
   .semana {
     display: grid;
     gap: var(--esp-3);
-    justify-items: center;
   }
   .fila-dias {
     display: flex;
     align-items: center;
     gap: var(--esp-1);
   }
-  .fila-fecha {
+  .cabeza-semana {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
-    gap: var(--esp-4);
+    justify-content: space-between;
+    gap: var(--esp-3);
+    width: 100%;
+    padding: 0 var(--esp-1);
+  }
+  .mes {
+    font-weight: var(--peso-fuerte);
+  }
+  .acciones-semana {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-2);
+  }
+  /* Botones de la semana: mismo tamaño y estilo (píldora con borde) */
+  .boton-semana {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+    min-height: 36px;
+    padding: 0 var(--esp-3);
+    border: 1px solid var(--color-borde);
+    border-radius: 999px;
+    background: var(--color-superficie);
+    color: var(--color-texto);
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-medio);
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color var(--duracion-rapida) var(--curva);
+  }
+  .boton-semana:hover,
+  .boton-semana:focus-within {
+    border-color: var(--color-acento);
+  }
+  .boton-semana :global(.icono) {
+    color: var(--color-acento-texto);
+  }
+  /* El campo de fecha real queda invisible debajo del botón: el botón abre su calendario */
+  .fecha-oculta {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    border: 0;
+    cursor: pointer;
   }
   .dias {
     display: grid;
@@ -932,26 +1011,6 @@ const MOTIVOS_MANUAL = [
   }
   .flecha.inactiva {
     color: var(--color-borde-fuerte);
-  }
-  .otra-fecha label {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--esp-2);
-    min-height: 44px;
-    padding: 0 var(--esp-3);
-    border: 1px solid var(--color-borde);
-    border-radius: var(--radio-sm);
-    background: var(--color-superficie);
-    color: var(--color-texto-suave);
-  }
-  .otra-fecha input {
-    border: 0;
-    background: none;
-    color: var(--color-texto);
-    font: inherit;
-  }
-  .ir-hoy {
-    font-weight: var(--peso-medio);
   }
 
   /* Estados como filtros con su cantidad (encabezan la lista que filtran) */

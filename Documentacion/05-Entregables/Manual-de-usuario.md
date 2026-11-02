@@ -223,7 +223,7 @@ La **campana** muestra los avisos: faltas y salidas sin marcar del cierre diario
 |---|---|
 | **Institución** | Datos de la planilla (encabezado, plantel, DEA, firma); a la derecha se ve **cómo saldrá** mientras se escribe |
 | **Marcación** | Ubicación del colegio y radio, ubicaciones de prueba, franjas horarias y **cierre diario** (fecha de inicio del control) |
-| **Código QR** | Generar, imprimir y desactivar. El anterior deja de funcionar al instante; renovarlo cada lapso o si circula una foto |
+| **Código QR** | Ver e imprimir de nuevo el QR actual (sin cambiarlo), generar uno nuevo o desactivarlo. Al generar uno nuevo, el anterior deja de funcionar al instante; renovarlo cada lapso o si circula una foto |
 | **Jornadas y categorías** | Horarios, oficios del personal y feriados |
 | **Usuarios** | Cuentas de directiva y secretaría; «Gestionar» cambia el tipo, la contraseña o la desactiva |
 | **Datos** | Importar personal desde un archivo, datos de demostración y personal importado |

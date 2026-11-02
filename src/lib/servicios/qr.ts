@@ -1,7 +1,14 @@
 /** R13 · Generación del QR impreso (solo servidor, con la clave secreta). */
 import QRCode from "qrcode";
+import { getSecret } from "astro:env/server";
 import { clienteAdmin } from "@/lib/supabase/servidor";
-import { generarCodigoQR, hashCodigoQR } from "@/lib/qr";
+import { cifrarCodigoQR, descifrarCodigoQR, generarCodigoQR, hashCodigoQR } from "@/lib/qr";
+
+function secreto(): string {
+  const clave = getSecret("SUPABASE_SECRET_KEY");
+  if (!clave) throw new Error("Falta SUPABASE_SECRET_KEY");
+  return clave;
+}
 
 export interface QRGenerado {
   codigo: string;
@@ -9,7 +16,7 @@ export interface QRGenerado {
   id: string;
 }
 
-/** Revoca el QR activo y crea uno nuevo. Devuelve el código en claro una sola vez. */
+/** Revoca el QR activo y crea uno nuevo; el código queda guardado cifrado para volver a mostrarlo. */
 export async function generarNuevoQR(p: {
   creadoPor: string;
   descripcion: string | null;
@@ -28,6 +35,7 @@ export async function generarNuevoQR(p: {
     .from("codigos_qr")
     .insert({
       token_hash: hashCodigoQR(codigo),
+      codigo_cifrado: cifrarCodigoQR(codigo, secreto()),
       descripcion: p.descripcion,
       vigente_hasta: p.vigenteHasta,
       creado_por: p.creadoPor,
@@ -56,4 +64,20 @@ export async function desactivarQR(): Promise<void> {
     .update({ activo: false, revocado_en: new Date().toISOString() })
     .eq("activo", true);
   if (error) throw new Error(error.message);
+}
+
+/**
+ * El QR activo para volver a verlo o imprimirlo (D-59). null si no hay QR activo o
+ * se generó antes de guardarse cifrado (en ese caso hay que generar uno nuevo una vez).
+ */
+export async function verQRActivo(): Promise<{ id: string; svg: string } | null> {
+  const { data, error } = await clienteAdmin()
+    .from("codigos_qr")
+    .select("id, codigo_cifrado")
+    .eq("activo", true)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data?.codigo_cifrado) return null;
+  const codigo = descifrarCodigoQR(data.codigo_cifrado as string, secreto());
+  return codigo ? { id: data.id as string, svg: await svgQR(codigo) } : null;
 }

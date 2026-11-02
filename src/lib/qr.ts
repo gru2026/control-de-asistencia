@@ -1,8 +1,9 @@
 /**
- * R13 · Código QR impreso. El código es aleatorio (144 bits) y en la base de
- * datos solo se guarda su hash SHA-256.
+ * R13 · Código QR impreso. El código es aleatorio (144 bits). En la base de datos
+ * se valida por su hash SHA-256 y, para volver a mostrarlo a la directiva (D-59),
+ * se guarda además cifrado con AES-256-GCM.
  */
-import { createHash, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } from "node:crypto";
 
 const PREFIJO = "GRU1-";
 const FORMATO = /^GRU1-[A-Za-z0-9_-]{24}$/;
@@ -25,4 +26,30 @@ export function qrVigente(
   hoy: string,
 ): boolean {
   return !!qr && qr.activo && (!qr.vigente_hasta || hoy <= qr.vigente_hasta);
+}
+
+function claveQR(secreto: string): Buffer {
+  return Buffer.from(hkdfSync("sha256", secreto, "gru-system", "codigo-qr", 32));
+}
+
+/** Cifra el código para guardarlo: «iv.etiqueta.cifrado» en base64url. */
+export function cifrarCodigoQR(codigo: string, secreto: string): string {
+  const iv = randomBytes(12);
+  const c = createCipheriv("aes-256-gcm", claveQR(secreto), iv);
+  const cifrado = Buffer.concat([c.update(codigo, "utf8"), c.final()]);
+  return [iv, c.getAuthTag(), cifrado].map((b) => b.toString("base64url")).join(".");
+}
+
+/** Devuelve el código en claro, o null si no se puede descifrar (otra clave o dato alterado). */
+export function descifrarCodigoQR(guardado: string, secreto: string): string | null {
+  try {
+    const [iv, etiqueta, cifrado] = guardado.split(".").map((p) => Buffer.from(p, "base64url"));
+    if (!iv || !etiqueta || !cifrado) return null;
+    const d = createDecipheriv("aes-256-gcm", claveQR(secreto), iv);
+    d.setAuthTag(etiqueta);
+    const codigo = Buffer.concat([d.update(cifrado), d.final()]).toString("utf8");
+    return formatoQRValido(codigo) ? codigo : null;
+  } catch {
+    return null;
+  }
 }

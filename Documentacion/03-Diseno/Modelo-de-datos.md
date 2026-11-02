@@ -130,6 +130,7 @@ Unique `(personal_id, dia_semana)`.
 |---|---|---|
 | `id` | uuid PK | |
 | `token_hash` | text unique | SHA-256 del código impreso |
+| `codigo_cifrado` | text null | Código cifrado (AES-256-GCM) para volver a mostrarlo a la directiva; solo lo lee el servidor (D-59) |
 | `descripcion` | text | Ej. "Entrada principal — oct 2026" |
 | `activo` | bool | **Solo uno activo** (índice único parcial) |
 | `vigente_hasta` | date null | NULL = sin vencimiento |

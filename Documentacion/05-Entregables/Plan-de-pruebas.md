@@ -158,6 +158,7 @@ fecha: 2026-10-06
 | F57 | Abrir *Ajustes* | Resumen con un recuadro por área y su estado; el menú muestra sus siete secciones |
 | F58 | Desde el menú, *Ajustes › Institución* y guardar | Vuelve a Institución con el mensaje de guardado |
 | F59 | *Ajustes › Datos* › Eliminar datos de demostración (escribiendo ELIMINAR) | Se borran; el recuadro Datos pasa a «Sin datos de prueba» |
+| F60 | *Ajustes › Código QR* › **Ver e imprimir** en «QR actual» | Se abre la hoja con el mismo QR; al escanearlo con un teléfono aprobado, la marcación se acepta |
 
 ## 2b. Pruebas en navegador (automatizadas)
 

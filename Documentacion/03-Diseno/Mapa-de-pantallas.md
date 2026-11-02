@@ -53,7 +53,7 @@ Dos contextos de uso:
 /configuracion/institucion          [directiva] Planilla oficial con vista previa
 /configuracion/datos                [directiva] Importar personal, datos de demostración, personal importado
 /configuracion/marcacion            [directiva] Ubicación del colegio, ubicaciones de prueba, franjas, cierre diario
-/configuracion/qr                   [directiva] Generar / imprimir / desactivar el QR
+/configuracion/qr                   [directiva] Ver e imprimir el QR actual (?ver=1), generar uno nuevo, desactivar
 /configuracion/usuarios             [directiva] Cuentas y roles
 /configuracion/puesta-en-marcha     [directiva] Lista para empezar el uso real
 

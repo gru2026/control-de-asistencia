@@ -42,6 +42,7 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-59 | 2026-11-02 | El QR activo se puede volver a ver e imprimir: el código se guarda cifrado (AES-256-GCM) además del hash | ✅ Vigente |
 | D-58 | 2026-11-02 | Ajustes en secciones como el panel: resumen con el estado de cada área y siete subsecciones en el menú (Institución y Datos con página propia) | ✅ Vigente |
 | D-57 | 2026-10-28 | *Hoy* rediseñado: frase del día con barra de avance, semana de días tocables con su lectura, estados como botones con su cantidad y búsqueda al instante | ✅ Vigente |
 | D-56 | 2026-10-27 | Todo dato que resume lleva a su detalle (barras, segmentos, puntos, días, tramos); vista de una categoría comparada con el colegio; pastillas de filtros, «Volver al vistazo», descargas con filtros, estados vacíos útiles y tendencia semanal en la ficha | ✅ Vigente |
@@ -111,6 +112,14 @@ Motivo: cada acción cargaba una pantalla nueva (1 a 2,6 s desde el colegio) y s
 - **D-48 · Avisos y mensajes.** La campana abre un panel (en el celular, desde abajo) con los avisos sin leer, en la misma consulta que el contador. Los resultados de las acciones aparecen abajo y se cierran solos; los reversibles ofrecen **Deshacer** (marcación asistida de los últimos 15 min, revisión, aviso leído). Las acciones graves siguen pidiendo confirmación.
 - **D-49 · Ventanas.** Tocar un nombre abre el **panel lateral** de la persona (hoy, mes, permisos, teléfono, cuenta) con acciones: marcar, cargar permiso, aprobar o cambiar teléfono, «no tiene teléfono», crear cuenta, restablecer a 0000. Los formularios en ventana van a `/api/acciones` (JSON); si sale bien se cierra y se actualiza la pantalla; si no, los errores quedan junto al campo. Confirmaciones con una ventana propia. El contenido llega como fragmento y usa `ventanas.css` (clases `v-`). La ficha completa queda a un toque, por capas (pestañas).
 - **D-50 · Formularios sin estrés.** Marcar empieza en «Ahora»; «Otra hora» pide hora y motivo con botones. Permiso: buscador de persona (escribir nombre o cédula), fecha con botones (Hoy · Mañana · Otras fechas) y motivo con botones. En el celular, las tablas muestran solo lo esencial. Guía de prueba con personas reales: [[05-Entregables/Prueba-de-usabilidad]].
+
+### D-59 · Volver a ver el QR activo
+- **Problema:** la directiva no podía volver a ver el QR vigente (solo se guardaba su hash); si se perdía la hoja o se quería mostrar en pantalla, había que generar otro e invalidar el pegado en la entrada.
+- **Solución:** al generar, el código se guarda también **cifrado** (`codigo_cifrado`, AES-256-GCM, clave derivada con HKDF de la clave secreta del servidor). La marcación sigue validando solo por el hash.
+- En *Ajustes › Código QR*, «QR actual» muestra una miniatura y **Ver e imprimir** (`?ver=1`), que abre la misma hoja que al generarlo.
+- La columna no se concede al rol `authenticated`: solo el servidor la lee, y solo en una pantalla de directiva.
+- Los QR generados antes de este cambio no se pueden recuperar; la pantalla lo explica y basta con generar uno nuevo **una vez**.
+- Si se cambia la clave secreta del servidor, el QR guardado ya no se puede mostrar (sigue funcionando para marcar); se genera uno nuevo.
 
 ### D-58 · Ajustes en secciones
 - **Resumen** (`/configuracion`): un recuadro por área con su estado en palabras y su lectura — Institución («Planilla completa» / «Faltan datos»), Marcación («Solo se marca en el colegio», radio y cierre diario), Código QR (vigente, de prueba, vencido o sin QR), Jornadas y categorías, Usuarios (por rol), Datos (si hay demostración) y Puesta en marcha (pasos listos, con anillo). Cada recuadro lleva a su sección.
@@ -228,7 +237,7 @@ Motivo: cada acción cargaba una pantalla nueva (1 a 2,6 s desde el colegio) y s
 - La directiva genera el QR en `/configuracion/qr` → vista de impresión (logo + QR + instrucciones) → se pega en la entrada.
 - **Un solo QR activo.** Al regenerar, el anterior queda **revocado al instante**.
 - **Caducidad opcional:** "sin vencimiento" o "vence el dd/mm/aaaa". Ambas opciones disponibles.
-- En BD se guarda el **hash** del código, nunca el código en claro.
+- En BD se valida por el **hash** del código, nunca se guarda en claro. Desde D-59 se guarda además **cifrado** para que la directiva pueda volver a verlo.
 - Recomendación operativa: regenerar cada mes o cada lapso escolar.
 
 ### D-05 · Validación de cada marcación (entrada y salida)

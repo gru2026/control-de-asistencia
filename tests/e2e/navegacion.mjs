@@ -328,6 +328,11 @@ try {
   r.ok("cierre diario visible", (await pag.locator("#cierre").count()) === 1);
   await pag.goto(`${B}/configuracion/qr`);
   r.ok("página del QR", (await pag.locator("h1:has-text('Código QR')").count()) === 1);
+  r.ok(
+    "el QR actual se puede volver a ver, o se explica cómo lograrlo (D-59)",
+    (await pag.locator('.actual a[href="/configuracion/qr?ver=1"]:visible').count()) > 0 ||
+      (await pag.locator(".actual p:has-text('genere uno nuevo una vez')").count()) === 1,
+  );
   await pag.goto(`${B}/permisos`);
   await marcarPagina(pag);
   await pag.selectOption("#filtro-vigencia", "todos");

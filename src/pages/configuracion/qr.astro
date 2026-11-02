@@ -13,7 +13,7 @@ import { texto, validarNuevoQR, type Errores } from "@/lib/validacion";
 import { ponerFlash } from "@/lib/flash";
 import { fechaCorta, fechaLarga, hoyEnZona } from "@/lib/fecha";
 import { qrVigente } from "@/lib/qr";
-import { desactivarQR, generarNuevoQR, type QRGenerado } from "@/lib/servicios/qr";
+import { desactivarQR, generarNuevoQR, verQRActivo, type QRGenerado } from "@/lib/servicios/qr";
 
 const sb = Astro.locals.supabase;
 const perfil = Astro.locals.perfil!;
@@ -79,6 +79,19 @@ const activo = historial.find((q) => q.activo) ?? null;
 const vigente = qrVigente(activo, hoy);
 const fechaDe = (iso: string) => fechaCorta(hoyEnZona(undefined, new Date(iso)));
 const vence = valores.vence === "si";
+
+// D-59: el QR activo se puede volver a ver e imprimir sin generar otro.
+const guardado = activo && !nuevo ? await verQRActivo().catch(() => null) : null;
+const viendo = !!guardado && Astro.url.searchParams.get("ver") === "1";
+const hoja = nuevo
+  ? { svg: nuevo.svg, vigenteHasta: nuevo.vigenteHasta, generado: hoy }
+  : viendo && activo
+    ? {
+        svg: guardado!.svg,
+        vigenteHasta: activo.vigente_hasta,
+        generado: hoyEnZona(undefined, new Date(activo.creado_en)),
+      }
+    : null;
 ---
 
 <PanelLayout
@@ -90,12 +103,19 @@ const vence = valores.vence === "si";
   <div class="pila">
     {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
 
-    {nuevo ? (
+    {hoja ? (
       <>
-        <Alerta tipo="exito">
-          QR nuevo generado. Imprímalo ahora y péguelo en la entrada: por seguridad, este código no
-          se puede volver a mostrar. El QR anterior ya no funciona.
-        </Alerta>
+        {nuevo ? (
+          <Alerta tipo="exito">
+            QR nuevo generado. Imprímalo y péguelo en la entrada. El QR anterior ya no funciona. Si
+            lo necesita otra vez, está en «QR actual».
+          </Alerta>
+        ) : (
+          <Alerta tipo="info">
+            Este es el QR que está funcionando ahora. Puede imprimirlo de nuevo o mostrarlo en
+            pantalla; el personal lo escanea igual.
+          </Alerta>
+        )}
         <div class="acciones-hoja">
           <Boton data-imprimir>
             <Icono nombre="imprimir" tamano={18} />
@@ -108,7 +128,7 @@ const vence = valores.vence === "si";
         <section class="hoja" aria-label="Vista previa de la hoja para imprimir">
           <p class="plantel">{cfg?.nombre_planilla ?? "U.E.E. General Rafael Urdaneta"}</p>
           <h2>Marque su asistencia aquí</h2>
-          <div class="codigo" set:html={nuevo.svg} />
+          <div class="codigo" set:html={hoja.svg} />
           <ol>
             <li>
               Abra <strong>GRU-system</strong> en su teléfono.
@@ -119,10 +139,10 @@ const vence = valores.vence === "si";
             <li>Apunte la cámara a este código.</li>
           </ol>
           <p class="pie">
-            {nuevo.vigenteHasta
-              ? `Válido hasta el ${fechaLarga(nuevo.vigenteHasta)}`
+            {hoja.vigenteHasta
+              ? `Válido hasta el ${fechaLarga(hoja.vigenteHasta)}`
               : "Sin fecha de vencimiento"}
-            {" · "}Generado el {fechaCorta(hoy)}
+            {" · "}Generado el {fechaCorta(hoja.generado)}
           </p>
         </section>
       </>
@@ -210,6 +230,26 @@ const vence = valores.vence === "si";
                       </div>
                     )}
                   </dl>
+                  {guardado ? (
+                    <a
+                      href="/configuracion/qr?ver=1"
+                      class="miniatura"
+                      aria-label="Ver el QR actual"
+                    >
+                      <span class="codigo-mini" set:html={guardado.svg} />
+                    </a>
+                  ) : null}
+                  {guardado ? (
+                    <Boton href="/configuracion/qr?ver=1" variante="secundario">
+                      <Icono nombre="imprimir" tamano={18} />
+                      Ver e imprimir
+                    </Boton>
+                  ) : (
+                    <p class="tenue">
+                      Este QR se generó antes de que se pudiera volver a mostrar. Si necesita verlo
+                      en pantalla, genere uno nuevo una vez; desde entonces siempre estará aquí.
+                    </p>
+                  )}
                   {!vigente && (
                     <p class="vencido">
                       El QR venció: nadie puede marcar con el teléfono. Genere uno nuevo.
@@ -339,6 +379,16 @@ const vence = valores.vence === "si";
   dd {
     margin: 0;
     font-weight: var(--peso-fuerte);
+  }
+  .miniatura {
+    display: block;
+    width: 9rem;
+    border-radius: var(--radio);
+  }
+  .codigo-mini :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
   }
   .vencido {
     margin: 0;

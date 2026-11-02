@@ -1,0 +1,291 @@
+---
+/** Ajustes › Institución (D-58): datos de la planilla oficial con su vista previa. */
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Alerta from "@/components/ui/Alerta.astro";
+import Input from "@/components/ui/Input.astro";
+import { texto, type Errores } from "@/lib/validacion";
+import { ponerFlash } from "@/lib/flash";
+import Subnav from "@/components/ui/Subnav.astro";
+import { SECCIONES_AJUSTES } from "@/lib/ajustes";
+
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+let errores: Errores = {};
+let mensaje: string | null = null;
+let accion: string | null = null;
+let valores: Record<string, string> = {};
+
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  accion = texto(f, "accion");
+  valores = Object.fromEntries([...f.entries()].map(([k, v]) => [k, String(v)]));
+  let exito: string | null = null;
+
+  try {
+    if (accion === "institucion") {
+      const datos = {
+        encabezado: texto(f, "encabezado").slice(0, 400),
+        nombre_planilla: texto(f, "nombre_planilla").slice(0, 120),
+        ubicacion: texto(f, "ubicacion").slice(0, 120),
+        cod_dea: texto(f, "cod_dea").slice(0, 30) || null,
+        firmante_nombre: texto(f, "firmante_nombre").slice(0, 80) || null,
+        firmante_cedula: texto(f, "firmante_cedula").slice(0, 20) || null,
+        firmante_cargo: texto(f, "firmante_cargo").slice(0, 60) || null,
+        actualizado_por: perfil.id,
+      };
+      if (!datos.nombre_planilla) errores.nombre_planilla = "Obligatorio.";
+      else {
+        const { error } = await sb.from("configuracion").update(datos).eq("id", 1);
+        if (error) mensaje = "No se pudo guardar.";
+        else exito = "Datos de la institución guardados.";
+      }
+    } else mensaje = "Acción no reconocida.";
+  } catch (e) {
+    console.error("[configuracion/institucion]", e);
+    mensaje = "Ocurrió un error al procesar la operación. Intente de nuevo.";
+  }
+
+  if (exito) {
+    ponerFlash(Astro.cookies, "exito", exito);
+    return Astro.redirect("/configuracion/institucion", 303);
+  }
+  mensaje ??= "Revise los campos marcados.";
+  Astro.response.status = 400;
+}
+
+const [{ data: cfg }] = await Promise.all([
+  sb
+    .from("configuracion")
+    .select(
+      "encabezado, nombre_planilla, ubicacion, cod_dea, firmante_nombre, firmante_cedula, firmante_cargo",
+    )
+    .eq("id", 1)
+    .single(),
+]);
+const v = (k: string) =>
+  accion && valores[k] !== undefined
+    ? valores[k]
+    : String((cfg as Record<string, unknown> | null)?.[k] ?? "");
+const e = (a: string) => (accion === a ? errores : {});
+---
+
+<PanelLayout
+  titulo="Institución"
+  subtitulo="Datos que aparecen en el encabezado y el pie de las planillas PDF y Excel."
+  migas={[{ texto: "Ajustes", href: "/configuracion" }, { texto: "Institución" }]}
+>
+  <Subnav items={SECCIONES_AJUSTES} etiqueta="Secciones de Ajustes" />
+  <div class="pila">
+    {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
+    <div class="dos-zonas">
+      <div class="zona-principal">
+        <Tarjeta
+          titulo="Planilla oficial"
+          descripcion="Estos datos aparecen en el encabezado y el pie de las planillas PDF y Excel."
+          id="institucion"
+        >
+          <form method="post" class="campos" novalidate data-avisar-cambios data-previa-planilla>
+            <input type="hidden" name="accion" value="institucion" />
+            <div class="campo c-completo">
+              <label for="encabezado">Encabezado (una línea por renglón)</label>
+              <textarea id="encabezado" name="encabezado" rows="3">{v("encabezado")}</textarea>
+            </div>
+            <Input
+              class="c-largo"
+              etiqueta="Nombre del plantel"
+              nombre="nombre_planilla"
+              value={v("nombre_planilla")}
+              error={e("institucion").nombre_planilla}
+              required
+            />
+            <Input class="c-largo" etiqueta="Ubicación" nombre="ubicacion" value={v("ubicacion")} />
+            <Input class="c-corto" etiqueta="Código DEA" nombre="cod_dea" value={v("cod_dea")} />
+            <Input
+              class="c-corto"
+              etiqueta="Firma: nombre"
+              nombre="firmante_nombre"
+              value={v("firmante_nombre")}
+              placeholder="Prof. Nombre Apellido"
+            />
+            <Input
+              class="c-corto"
+              etiqueta="Firma: cédula"
+              nombre="firmante_cedula"
+              value={v("firmante_cedula")}
+              placeholder="V-12345678"
+            />
+            <Input
+              class="c-corto"
+              etiqueta="Firma: cargo"
+              nombre="firmante_cargo"
+              value={v("firmante_cargo")}
+              placeholder="Directora (E)"
+            />
+            <p class="nota c-completo">
+              Pendiente: logo del colegio y escudo del estado en buena calidad para el encabezado.
+            </p>
+            <div class="pie-form c-completo">
+              <Boton type="submit">Guardar</Boton>
+            </div>
+          </form>
+        </Tarjeta>
+      </div>
+      <aside class="zona-lateral" aria-label="Vista previa">
+        <Tarjeta titulo="Así sale en la planilla" descripcion="Se actualiza mientras escribe.">
+          <div class="previa" aria-live="polite">
+            <p class="previa-enc" data-previa="encabezado">
+              {v("encabezado")}
+            </p>
+            <p class="previa-plantel" data-previa="nombre_planilla">
+              {v("nombre_planilla")}
+            </p>
+            <p class="previa-meta">
+              <span data-previa="ubicacion">{v("ubicacion")}</span>
+              {" · DEA "}
+              <span data-previa="cod_dea">{v("cod_dea")}</span>
+            </p>
+            <div class="previa-tabla" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <p class="previa-firma">
+              <span data-previa="firmante_nombre">{v("firmante_nombre")}</span>
+              <span data-previa="firmante_cedula">{v("firmante_cedula")}</span>
+              <span data-previa="firmante_cargo">{v("firmante_cargo")}</span>
+            </p>
+          </div>
+        </Tarjeta>
+      </aside>
+    </div>
+  </div>
+</PanelLayout>
+
+<script>
+  // Vista previa del encabezado de la planilla mientras se escribe
+  document.addEventListener("input", (ev) => {
+    const campo = ev.target as HTMLInputElement | HTMLTextAreaElement;
+    if (!campo.form?.hasAttribute("data-previa-planilla")) return;
+    document
+      .querySelectorAll<HTMLElement>(`[data-previa="${campo.name}"]`)
+      .forEach((el) => (el.textContent = campo.value));
+  });
+</script>
+
+<style>
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  .accesos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: var(--esp-3);
+  }
+  .accesos a {
+    display: flex;
+    gap: var(--esp-3);
+    align-items: center;
+    padding: var(--esp-4);
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    color: var(--color-acento);
+    text-decoration: none;
+    transition: border-color var(--duracion-rapida) var(--curva);
+  }
+  .accesos a:hover {
+    border-color: var(--color-acento);
+  }
+  .accesos span {
+    display: grid;
+  }
+  .accesos strong {
+    color: var(--color-texto);
+  }
+  .accesos small {
+    color: var(--color-texto-suave);
+  }
+  .previa {
+    display: grid;
+    gap: var(--esp-1);
+    padding: var(--esp-4);
+    background: var(--color-fondo);
+    border-radius: var(--radio-sm);
+    text-align: center;
+    font-size: var(--texto-xs);
+  }
+  .previa p {
+    margin: 0;
+  }
+  .previa-enc {
+    white-space: pre-line;
+    color: var(--color-texto-suave);
+  }
+  .previa-plantel {
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-fuerte);
+  }
+  .previa-meta {
+    color: var(--color-texto-suave);
+  }
+  .previa-tabla {
+    display: grid;
+    gap: 6px;
+    margin: var(--esp-3) 0;
+  }
+  .previa-tabla span {
+    height: 8px;
+    border-radius: 2px;
+    background: var(--color-borde);
+  }
+  .previa-firma {
+    display: grid;
+    justify-items: center;
+    padding-top: var(--esp-2);
+    border-top: 1px solid var(--color-borde-fuerte);
+    margin-inline: auto !important;
+    min-width: 60%;
+  }
+  .campo {
+    display: grid;
+    gap: var(--esp-1);
+  }
+  .campo label {
+    font-weight: var(--peso-medio);
+    font-size: var(--texto-sm);
+  }
+  textarea {
+    padding: var(--esp-3);
+    border: 1px solid var(--color-borde-fuerte);
+    border-radius: var(--radio-sm);
+    resize: vertical;
+    font-family: inherit;
+  }
+  .nota {
+    margin: 0;
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .estado-demo {
+    margin: 0 0 var(--esp-4);
+  }
+  .botones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2);
+  }
+  .confirmar {
+    display: grid;
+    gap: var(--esp-2);
+    width: 100%;
+  }
+  .confirmar input {
+    min-height: 44px;
+    padding: 0 var(--esp-3);
+    border: 1px solid var(--color-borde-fuerte);
+    border-radius: var(--radio-sm);
+  }
+</style>

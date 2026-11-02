@@ -1,5 +1,7 @@
 ---
 import PanelLayout from "@/layouts/PanelLayout.astro";
+import Subnav from "@/components/ui/Subnav.astro";
+import { SECCIONES_AJUSTES } from "@/lib/ajustes";
 import Tarjeta from "@/components/ui/Tarjeta.astro";
 import Tabla from "@/components/ui/Tabla.astro";
 import Boton from "@/components/ui/Boton.astro";
@@ -126,6 +128,7 @@ const seleccionado = usuarios.find((u) => u.id === gestionar);
   subtitulo="Cuentas de acceso y roles."
   migas={[{ texto: "Ajustes", href: "/configuracion" }, { texto: "Usuarios" }]}
 >
+  <Subnav items={SECCIONES_AJUSTES} etiqueta="Secciones de Ajustes" />
   <Fragment slot="acciones">
     <Boton href="#nueva-cuenta" data-ventana="/ventanas/cuenta-nueva" data-ventana-modo="centro">
       <Icono nombre="mas" tamano={18} />

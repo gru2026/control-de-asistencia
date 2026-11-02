@@ -5,6 +5,7 @@ import { fade } from "astro:transitions";
 import Mensaje from "@/components/ui/Mensaje.astro";
 import PanelAvisos from "@/components/avisos/PanelAvisos.astro";
 import { SECCIONES_PANEL } from "@/lib/datos/panel";
+import { SECCIONES_AJUSTES } from "@/lib/ajustes";
 import { COLUMNAS_AVISO, type Aviso } from "@/lib/avisos";
 import Icono, { type NombreIcono } from "@/components/ui/Icono.astro";
 import { puedeVer } from "@/lib/auth/acceso";
@@ -37,6 +38,8 @@ type Item = {
   exacto?: boolean;
   /** Subsecciones (solo en el menú lateral de la PC) */
   hijos?: { href: string; texto: string }[];
+  /** Nombre corto para la barra inferior del celular */
+  corto?: string;
 };
 // Panel de control y sus secciones (D-55); conservan los filtros de período y categoría
 const filtrosPanel = new URLSearchParams();
@@ -50,6 +53,7 @@ const conFiltros = (href: string) => (filtrosPanel.size ? `${href}?${filtrosPane
 const PANEL: Item = {
   href: "/panel",
   texto: "Panel de control",
+  corto: "Panel",
   icono: "panel",
   hijos: SECCIONES_PANEL.slice(1).map((x) => ({ href: x.href, texto: x.texto })),
 };
@@ -71,7 +75,13 @@ const NAV: Record<typeof perfil.rol, Item[]> = {
     ASISTENCIA,
     { href: "/personal", texto: "Personal", icono: "usuarios" },
     { href: "/reportes", texto: "Reportes", icono: "documento" },
-    { href: "/configuracion", texto: "Ajustes", icono: "ajustes", activoEn: ["/jornadas"] },
+    {
+      href: "/configuracion",
+      texto: "Ajustes",
+      icono: "ajustes",
+      activoEn: ["/jornadas"],
+      hijos: SECCIONES_AJUSTES.slice(1).map((x) => ({ href: x.href, texto: x.texto })),
+    },
   ],
   secretaria: [
     PANEL,
@@ -174,15 +184,16 @@ const iniciales = (perfil.nombre[0] ?? "") + (perfil.apellido[0] ?? "");
               aria-current={
                 i.hijos ? (ruta === i.href ? "page" : undefined) : activo(i) ? "page" : undefined
               }
-              class:list={[i.hijos && ruta.startsWith(i.href + "/") && "dentro"]}
+              class:list={[i.hijos && ruta !== i.href && activo(i) && "dentro"]}
             >
               <Icono nombre={i.icono} tamano={22} />
               <span>
-                {i.hijos ? <span class="corto">Panel</span> : null}
-                <span class:list={[i.hijos && "largo"]}>{i.texto}</span>
+                {i.corto ? <span class="corto">{i.corto}</span> : null}
+                <span class:list={[i.corto && "largo"]}>{i.texto}</span>
               </span>
             </a>
-            {i.hijos && (
+            {/* El panel siempre muestra sus secciones; los demás grupos, solo cuando se está dentro */}
+            {i.hijos && (i.href === "/panel" || activo(i)) && (
               <ul class="sub" aria-label={`Secciones de ${i.texto}`}>
                 {i.hijos.map((h) => (
                   <li>

@@ -1,5 +1,7 @@
 ---
 import PanelLayout from "@/layouts/PanelLayout.astro";
+import Subnav from "@/components/ui/Subnav.astro";
+import { SECCIONES_AJUSTES } from "@/lib/ajustes";
 import Tarjeta from "@/components/ui/Tarjeta.astro";
 import Boton from "@/components/ui/Boton.astro";
 import Alerta from "@/components/ui/Alerta.astro";
@@ -152,6 +154,7 @@ const activasPrueba = ubicaciones.filter((u) => u.activa && u.es_prueba).length;
   subtitulo="Dónde y cuándo se puede marcar asistencia con el teléfono."
   migas={[{ texto: "Ajustes", href: "/configuracion" }, { texto: "Marcación" }]}
 >
+  <Subnav items={SECCIONES_AJUSTES} etiqueta="Secciones de Ajustes" />
   <div class="pila">
     {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
     {!cfg.geocerca_activa && (

@@ -49,7 +49,9 @@ Dos contextos de uso:
 /reportes                           Planilla diaria oficial (PDF/Excel)
 /reportes/resumen                   Resumen del período por persona (PDF/Excel)
 /jornadas                           [directiva] Jornadas, feriados y categorías
-/configuracion                      [directiva] Accesos, institución (con vista previa), demostración
+/configuracion                      [directiva] Ajustes · resumen (un recuadro por área, D-58)
+/configuracion/institucion          [directiva] Planilla oficial con vista previa
+/configuracion/datos                [directiva] Importar personal, datos de demostración, personal importado
 /configuracion/marcacion            [directiva] Ubicación del colegio, ubicaciones de prueba, franjas, cierre diario
 /configuracion/qr                   [directiva] Generar / imprimir / desactivar el QR
 /configuracion/usuarios             [directiva] Cuentas y roles
@@ -177,8 +179,9 @@ Buscador de personas, lista de pendientes con su botón y filtro por tipo, estad
 ### `/reportes` · `/reportes/resumen`
 Planilla diaria oficial y resumen del período por persona, en PDF o Excel.
 
-### `/configuracion` y subpáginas (directiva)
-Accesos, institución con **vista previa** del encabezado de la planilla, datos de demostración, marcación (ubicación y cierre diario), QR, usuarios y puesta en marcha.
+### `/configuracion` y sus secciones (directiva, D-58)
+- **Resumen:** un recuadro por área con su estado y lectura (Institución, Marcación, Código QR, Jornadas y categorías, Usuarios, Datos, Puesta en marcha); cada uno lleva a su sección.
+- **Secciones:** Institución (planilla con vista previa), Marcación (ubicación y cierre diario), Código QR, Jornadas y categorías (`/jornadas`), Usuarios, Datos (importar y limpiar) y Puesta en marcha. En el menú lateral aparecen debajo de «Ajustes» cuando se está dentro; en el celular, como pestañas.
 
 ## Navegación
 
@@ -186,7 +189,9 @@ Accesos, institución con **vista previa** del encabezado de la planilla, datos 
 🖥️ PC: barra superior (logo · nombre y rol · Acciones · Mi asistencia · 🔔 · Salir)
       + menú lateral
    Directiva:  Panel de control (Hoy · Asistencia · Puntualidad · Ausencias y permisos ·
-               Por categoría · Pendientes) · Permisos · Personal · Reportes · Ajustes
+               Por categoría · Pendientes) · Permisos · Personal · Reportes ·
+               Ajustes (Institución · Marcación · Código QR · Jornadas y categorías ·
+               Usuarios · Datos · Puesta en marcha; visibles al estar dentro)
    Secretaría: Panel de control (…las mismas seis) · Permisos · Personal · Reportes ·
                Mi asistencia
 

@@ -16,6 +16,13 @@ Qué cambió en la app después del cierre del desarrollo (19/10/2026), en palab
 > 3. El panel **dice en palabras** cómo vamos (Bien / Atención / Bajo) y **todo se puede tocar** para ver el detalle.
 > 4. En el menú, «Asistencia» pasó a llamarse **«Permisos»** (con la pestaña *Por revisar*).
 
+## 02/11/2026 — Ajustes en secciones (D-58)
+
+- **Ajustes** abre un resumen: un recuadro por área que dice cómo está («Planilla completa», «QR vigente», «Hay datos de demostración», «4 de 9 pasos listos»).
+- Sus secciones están en el menú, debajo de *Ajustes*: Institución, Marcación, Código QR, Jornadas y categorías, Usuarios, Datos y Puesta en marcha. En el celular, como pestañas.
+- **Institución** y **Datos** tienen ahora su propia página (antes estaban juntas en la portada de Ajustes).
+- El menú muestra las secciones de Ajustes solo cuando se está dentro, para que no se alargue.
+
 ## 28/10/2026 — Hoy, más claro y rápido (D-57)
 
 - Arriba, en palabras, cómo va el día («32 de 54 ya llegaron») con una barra de avance.

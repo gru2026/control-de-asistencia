@@ -24,6 +24,8 @@ const RUTAS = [
   "/reportes",
   "/jornadas",
   "/configuracion",
+  "/configuracion/institucion",
+  "/configuracion/datos",
   "/configuracion/usuarios",
   "/configuracion/marcacion",
   "/configuracion/qr",

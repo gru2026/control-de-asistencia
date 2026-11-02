@@ -1,463 +1,213 @@
 ---
+/**
+ * Ajustes · Resumen (D-58): el estado de cada área en palabras, con su lectura.
+ * Cada recuadro lleva a su sección; las mismas secciones están en el menú.
+ */
 import PanelLayout from "@/layouts/PanelLayout.astro";
-import Tarjeta from "@/components/ui/Tarjeta.astro";
-import Boton from "@/components/ui/Boton.astro";
-import Alerta from "@/components/ui/Alerta.astro";
-import Input from "@/components/ui/Input.astro";
-import Modal from "@/components/ui/Modal.astro";
-import Icono from "@/components/ui/Icono.astro";
-import { texto, type Errores } from "@/lib/validacion";
-import { ponerFlash } from "@/lib/flash";
-import { eliminarDemo, eliminarImportados, generarDemo } from "@/lib/servicios/mantenimiento";
+import Subnav from "@/components/ui/Subnav.astro";
+import Modulo from "@/components/panel/Modulo.astro";
+import Anillo from "@/components/panel/Anillo.astro";
+import { cargarPuestaEnMarcha, SECCIONES_AJUSTES } from "@/lib/ajustes";
+import { fechaCorta, hoyEnZona } from "@/lib/fecha";
+import { numero, plural } from "@/lib/formato";
+import type { Lectura } from "@/lib/reglas/estadisticas";
 
 const sb = Astro.locals.supabase;
-const perfil = Astro.locals.perfil!;
-let errores: Errores = {};
-let mensaje: string | null = null;
-let accion: string | null = null;
-let valores: Record<string, string> = {};
+const hoy = hoyEnZona();
 
-if (Astro.request.method === "POST") {
-  const f = await Astro.request.formData();
-  accion = texto(f, "accion");
-  valores = Object.fromEntries([...f.entries()].map(([k, v]) => [k, String(v)]));
-  let exito: string | null = null;
-  const confirmar = texto(f, "confirmar").toUpperCase() === "ELIMINAR";
-
-  try {
-    if (accion === "institucion") {
-      const datos = {
-        encabezado: texto(f, "encabezado").slice(0, 400),
-        nombre_planilla: texto(f, "nombre_planilla").slice(0, 120),
-        ubicacion: texto(f, "ubicacion").slice(0, 120),
-        cod_dea: texto(f, "cod_dea").slice(0, 30) || null,
-        firmante_nombre: texto(f, "firmante_nombre").slice(0, 80) || null,
-        firmante_cedula: texto(f, "firmante_cedula").slice(0, 20) || null,
-        firmante_cargo: texto(f, "firmante_cargo").slice(0, 60) || null,
-        actualizado_por: perfil.id,
-      };
-      if (!datos.nombre_planilla) errores.nombre_planilla = "Obligatorio.";
-      else {
-        const { error } = await sb.from("configuracion").update(datos).eq("id", 1);
-        if (error) mensaje = "No se pudo guardar.";
-        else exito = "Datos de la institución guardados.";
-      }
-    } else if (accion === "demo_generar") {
-      const r = await generarDemo(perfil.id);
-      exito = `Datos de demostración generados: ${r.registros} registros de asistencia y ${r.permisos} permisos para ${r.personas} personas.`;
-    } else if (accion === "demo_eliminar") {
-      if (!confirmar) mensaje = "Escriba ELIMINAR para confirmar.";
-      else {
-        const r = await eliminarDemo();
-        exito = `Se eliminaron ${r.registros} registros y ${r.permisos} permisos de demostración.`;
-      }
-    } else if (accion === "importados_eliminar") {
-      if (!confirmar) mensaje = "Escriba ELIMINAR para confirmar.";
-      else {
-        const n = await eliminarImportados();
-        exito = `Se eliminaron ${n} personas importadas y su asistencia.`;
-      }
-    } else mensaje = "Acción no reconocida.";
-  } catch (e) {
-    console.error("[configuracion]", e);
-    mensaje = "Ocurrió un error al procesar la operación. Intente de nuevo.";
-  }
-
-  if (exito) {
-    ponerFlash(Astro.cookies, "exito", exito);
-    return Astro.redirect("/configuracion", 303);
-  }
-  mensaje ??= "Revise los campos marcados.";
-  Astro.response.status = 400;
-}
-
-const [{ data: cfg }, { count: demo }, { count: importados }] = await Promise.all([
+const [
+  { data: cfg },
+  { data: qr },
+  { count: ubicacionesPrueba },
+  { count: jornadas },
+  { count: categorias },
+  { count: feriados },
+  { data: cuentas },
+  { count: demo },
+  { count: importados },
+  puesta,
+] = await Promise.all([
   sb
     .from("configuracion")
     .select(
-      "encabezado, nombre_planilla, ubicacion, cod_dea, firmante_nombre, firmante_cedula, firmante_cargo",
+      "nombre_planilla, firmante_nombre, cod_dea, colegio_lat, colegio_lng, radio_m, geocerca_activa, inicio_control",
     )
     .eq("id", 1)
     .single(),
+  sb
+    .from("codigos_qr")
+    .select("descripcion, creado_en, vigente_hasta")
+    .eq("activo", true)
+    .maybeSingle(),
+  sb
+    .from("ubicaciones")
+    .select("id", { count: "exact", head: true })
+    .eq("activa", true)
+    .eq("es_prueba", true),
+  sb.from("jornadas").select("id", { count: "exact", head: true }).eq("activa", true),
+  sb.from("categorias").select("id", { count: "exact", head: true }).eq("activa", true),
+  sb.from("feriados").select("id", { count: "exact", head: true }).gte("fecha", hoy),
+  sb.from("usuarios").select("rol").eq("estado", "activo"),
   sb.from("registros_asistencia").select("id", { count: "exact", head: true }).eq("es_demo", true),
   sb.from("personal").select("id", { count: "exact", head: true }).eq("origen", "importado"),
+  cargarPuestaEnMarcha(sb),
 ]);
-const v = (k: string) =>
-  accion && valores[k] !== undefined
-    ? valores[k]
-    : String((cfg as Record<string, unknown> | null)?.[k] ?? "");
-const e = (a: string) => (accion === a ? errores : {});
+
+// Institución
+const faltaPlanilla = [
+  !cfg?.firmante_nombre && "quién firma",
+  !cfg?.cod_dea && "código DEA",
+].filter(Boolean) as string[];
+// Marcación
+const hayUbicacion = cfg?.colegio_lat != null && cfg?.colegio_lng != null;
+const lecturaMarcacion: Lectura = !hayUbicacion
+  ? "bajo"
+  : !cfg?.geocerca_activa || ubicacionesPrueba
+    ? "atencion"
+    : "bien";
+const fraseMarcacion = !hayUbicacion
+  ? "Falta la ubicación del colegio"
+  : !cfg?.geocerca_activa
+    ? "No se verifica la ubicación"
+    : "Solo se marca en el colegio";
+const detalleMarcacion = [
+  hayUbicacion && `Radio de ${numero(cfg!.radio_m)} m`,
+  ubicacionesPrueba &&
+    plural(ubicacionesPrueba, "ubicación de prueba activa", "ubicaciones de prueba activas"),
+  cfg?.inicio_control
+    ? `Cierre diario desde el ${fechaCorta(cfg.inicio_control)}`
+    : "Cierre diario en pausa",
+]
+  .filter(Boolean)
+  .join(" · ");
+// Código QR
+const qrVencido = !!qr?.vigente_hasta && qr.vigente_hasta < hoy;
+const qrDePrueba = !!qr?.descripcion && /prueba/i.test(qr.descripcion);
+const lecturaQr: Lectura = !qr || qrVencido ? "bajo" : qrDePrueba ? "atencion" : "bien";
+const fraseQr = !qr
+  ? "No hay un QR activo"
+  : qrVencido
+    ? "El QR venció"
+    : qrDePrueba
+      ? "El QR activo es de prueba"
+      : "QR vigente";
+const detalleQr = qr
+  ? `Desde el ${fechaCorta(qr.creado_en.slice(0, 10))} · ${qr.vigente_hasta ? `vence el ${fechaCorta(qr.vigente_hasta)}` : "sin vencimiento"}`
+  : "Nadie puede marcar con el teléfono hasta generarlo";
+// Usuarios
+const roles = (cuentas ?? []) as { rol: string }[];
+const deRol = (r: string) => roles.filter((x) => x.rol === r).length;
+// Puesta en marcha
+const totalPasos = puesta.pasos.length;
+const pctPuesta = totalPasos ? (puesta.listos / totalPasos) * 100 : 0;
+const siguiente = puesta.pasos.find((p) => !p.listo);
 ---
 
 <PanelLayout titulo="Ajustes" subtitulo="Configuración de la institución y mantenimiento de datos.">
-  <div class="pila">
-    {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
+  <Subnav items={SECCIONES_AJUSTES} etiqueta="Secciones de Ajustes" />
 
-    <nav class="accesos" aria-label="Secciones de ajustes">
-      <a href="/configuracion/puesta-en-marcha">
-        <Icono nombre="exito" />{" "}
-        <span>
-          <strong>Puesta en marcha</strong>
-          <small>Lista para empezar el uso real</small>
-        </span>
-      </a>
-      <a href="/configuracion/marcacion">
-        <Icono nombre="ubicacion" />{" "}
-        <span>
-          <strong>Marcación</strong>
-          <small>Ubicación del colegio y horarios</small>
-        </span>
-      </a>
-      <a href="/configuracion/qr">
-        <Icono nombre="qr" />{" "}
-        <span>
-          <strong>Código QR</strong>
-          <small>Generar e imprimir</small>
-        </span>
-      </a>
-      <a href="/jornadas">
-        <Icono nombre="calendario" />{" "}
-        <span>
-          <strong>Jornadas y feriados</strong>
-          <small>Horarios del personal</small>
-        </span>
-      </a>
-      <a href="/configuracion/usuarios">
-        <Icono nombre="escudo" />{" "}
-        <span>
-          <strong>Usuarios</strong>
-          <small>Cuentas de acceso y roles</small>
-        </span>
-      </a>
-      <a href="/jornadas#categorias">
-        <Icono nombre="usuarios" />{" "}
-        <span>
-          <strong>Categorías</strong>
-          <small>Oficios del personal</small>
-        </span>
-      </a>
-      <a href="/personal/importar">
-        <Icono nombre="subir" />{" "}
-        <span>
-          <strong>Importar personal</strong>
-          <small>Desde una hoja de cálculo (CSV)</small>
-        </span>
-      </a>
-      <a href="#demo">
-        <Icono nombre="datos" />{" "}
-        <span>
-          <strong>Datos de demostración</strong>
-          <small>Generar o limpiar</small>
-        </span>
-      </a>
-    </nav>
-
-    <div class="dos-zonas">
-      <div class="zona-principal">
-        <Tarjeta
-          titulo="Institución y planilla oficial"
-          descripcion="Estos datos aparecen en el encabezado y el pie de las planillas PDF y Excel."
-          id="institucion"
-        >
-          <form method="post" class="campos" novalidate data-avisar-cambios data-previa-planilla>
-            <input type="hidden" name="accion" value="institucion" />
-            <div class="campo c-completo">
-              <label for="encabezado">Encabezado (una línea por renglón)</label>
-              <textarea id="encabezado" name="encabezado" rows="3">{v("encabezado")}</textarea>
-            </div>
-            <Input
-              class="c-largo"
-              etiqueta="Nombre del plantel"
-              nombre="nombre_planilla"
-              value={v("nombre_planilla")}
-              error={e("institucion").nombre_planilla}
-              required
-            />
-            <Input class="c-largo" etiqueta="Ubicación" nombre="ubicacion" value={v("ubicacion")} />
-            <Input class="c-corto" etiqueta="Código DEA" nombre="cod_dea" value={v("cod_dea")} />
-            <Input
-              class="c-corto"
-              etiqueta="Firma: nombre"
-              nombre="firmante_nombre"
-              value={v("firmante_nombre")}
-              placeholder="Prof. Nombre Apellido"
-            />
-            <Input
-              class="c-corto"
-              etiqueta="Firma: cédula"
-              nombre="firmante_cedula"
-              value={v("firmante_cedula")}
-              placeholder="V-12345678"
-            />
-            <Input
-              class="c-corto"
-              etiqueta="Firma: cargo"
-              nombre="firmante_cargo"
-              value={v("firmante_cargo")}
-              placeholder="Directora (E)"
-            />
-            <p class="nota c-completo">
-              Pendiente: logo del colegio y escudo del estado en buena calidad para el encabezado.
-            </p>
-            <div class="pie-form c-completo">
-              <Boton type="submit">Guardar</Boton>
-            </div>
-          </form>
-        </Tarjeta>
-      </div>
-
-      <aside class="zona-lateral" aria-label="Vista previa y mantenimiento">
-        <Tarjeta titulo="Así sale en la planilla" descripcion="Se actualiza mientras escribe.">
-          <div class="previa" aria-live="polite">
-            <p class="previa-enc" data-previa="encabezado">
-              {v("encabezado")}
-            </p>
-            <p class="previa-plantel" data-previa="nombre_planilla">
-              {v("nombre_planilla")}
-            </p>
-            <p class="previa-meta">
-              <span data-previa="ubicacion">{v("ubicacion")}</span>
-              {" · DEA "}
-              <span data-previa="cod_dea">{v("cod_dea")}</span>
-            </p>
-            <div class="previa-tabla" aria-hidden="true">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-            <p class="previa-firma">
-              <span data-previa="firmante_nombre">{v("firmante_nombre")}</span>
-              <span data-previa="firmante_cedula">{v("firmante_cedula")}</span>
-              <span data-previa="firmante_cargo">{v("firmante_cargo")}</span>
-            </p>
-          </div>
-        </Tarjeta>
-        <Tarjeta
-          id="demo"
-          titulo="Datos de demostración"
-          descripcion="Asistencia simulada de las últimas 5 semanas para el personal activo, para mostrar el panel y los reportes."
-        >
-          <p class="estado-demo">
-            {demo ? (
-              <>
-                <strong>{demo}</strong> registros de demostración cargados.
-              </>
-            ) : (
-              "No hay datos de demostración cargados."
-            )}
-          </p>
-          <div class="botones">
-            <form method="post">
-              <input type="hidden" name="accion" value="demo_generar" />
-              <Boton type="submit" variante="secundario" data-texto-cargando="Generando…">
-                <Icono nombre="datos" tamano={18} />
-                {demo ? "Volver a generar" : "Generar datos de demostración"}
-              </Boton>
-            </form>
-            {demo ? (
-              <Boton variante="peligro" data-abrir-modal="modal-demo">
-                <Icono nombre="papelera" tamano={18} />
-                Eliminar datos de demostración
-              </Boton>
-            ) : null}
-          </div>
-        </Tarjeta>
-
-        <Tarjeta
-          titulo="Personal importado"
-          descripcion="Personas cargadas desde un archivo (por ejemplo, la nómina inicial)."
-          id="importados"
-        >
-          <p class="estado-demo">
-            {importados ? (
-              <>
-                <strong>{importados}</strong> personas importadas.
-              </>
-            ) : (
-              "No hay personal importado."
-            )}
-          </p>
-          {importados ? (
-            <Boton variante="peligro" data-abrir-modal="modal-importados">
-              <Icono nombre="papelera" tamano={18} />
-              Eliminar personal importado
-            </Boton>
-          ) : null}
-        </Tarjeta>
-      </aside>
-    </div>
+  <div class="modulos">
+    <Modulo
+      titulo="Institución"
+      icono="documento"
+      frase={faltaPlanilla.length ? "Faltan datos de la planilla" : "Planilla completa"}
+      detalle={
+        faltaPlanilla.length
+          ? `Falta: ${faltaPlanilla.join(" y ")}`
+          : (cfg?.nombre_planilla ?? undefined)
+      }
+      lectura={faltaPlanilla.length ? "atencion" : "bien"}
+      href="/configuracion/institucion"
+      tono="azul"
+      orden={0}
+    />
+    <Modulo
+      titulo="Marcación"
+      icono="ubicacion"
+      frase={fraseMarcacion}
+      detalle={detalleMarcacion}
+      lectura={lecturaMarcacion}
+      href="/configuracion/marcacion"
+      tono="verde"
+      orden={1}
+    />
+    <Modulo
+      titulo="Código QR"
+      icono="qr"
+      frase={fraseQr}
+      detalle={detalleQr}
+      lectura={lecturaQr}
+      href="/configuracion/qr"
+      tono="violeta"
+      orden={2}
+    />
+    <Modulo
+      titulo="Jornadas y categorías"
+      icono="calendario"
+      frase={`${plural(jornadas ?? 0, "jornada", "jornadas")} · ${plural(categorias ?? 0, "categoría", "categorías")}`}
+      detalle={
+        feriados ? `${plural(feriados, "feriado", "feriados")} por venir` : "Sin feriados por venir"
+      }
+      href="/jornadas"
+      tono="cian"
+      orden={3}
+    />
+    <Modulo
+      titulo="Usuarios"
+      icono="escudo"
+      frase={plural(roles.length, "cuenta activa", "cuentas activas")}
+      detalle={`${deRol("directiva")} de directiva · ${deRol("secretaria")} de secretaría · ${deRol("personal")} del personal`}
+      href="/configuracion/usuarios"
+      tono="ambar"
+      orden={4}
+    />
+    <Modulo
+      titulo="Datos"
+      icono="datos"
+      frase={demo ? "Hay datos de demostración" : "Sin datos de prueba"}
+      detalle={
+        [
+          demo && `${numero(demo)} registros simulados`,
+          importados && `${plural(importados, "persona importada", "personas importadas")}`,
+        ]
+          .filter(Boolean)
+          .join(" · ") || "Importar personal desde un archivo"
+      }
+      lectura={demo ? "atencion" : "bien"}
+      href="/configuracion/datos"
+      tono="rosa"
+      orden={5}
+    />
+    <Modulo
+      titulo="Puesta en marcha"
+      icono="exito"
+      frase={`${puesta.listos} de ${totalPasos} pasos listos`}
+      detalle={
+        siguiente ? `Siguiente: ${siguiente.titulo.toLowerCase()}` : "Todo listo para el uso real"
+      }
+      lectura={puesta.listos === totalPasos ? "bien" : "atencion"}
+      href="/configuracion/puesta-en-marcha"
+      tono="verde"
+      orden={6}
+    >
+      <Anillo valor={pctPuesta} texto="listo" />
+    </Modulo>
   </div>
-
-  <Modal id="modal-demo" titulo="¿Eliminar los datos de demostración?">
-    <p>
-      Se borrarán todos los registros de asistencia y permisos marcados como demostración. Los
-      registros reales no se tocan.
-    </p>
-    <form method="post" slot="acciones" class="confirmar">
-      <input type="hidden" name="accion" value="demo_eliminar" />
-      <label for="conf-demo">
-        Escriba <strong>ELIMINAR</strong> para confirmar
-      </label>
-      <input
-        id="conf-demo"
-        name="confirmar"
-        autocomplete="off"
-        required
-        pattern="[Ee][Ll][Ii][Mm][Ii][Nn][Aa][Rr]"
-      />
-      <Boton type="submit" variante="peligro">
-        Eliminar
-      </Boton>
-    </form>
-  </Modal>
-
-  <Modal id="modal-importados" titulo="¿Eliminar el personal importado?">
-    <p>
-      Se borrarán las {importados} personas importadas junto con su asistencia y permisos. Las
-      cuentas de acceso que se les hayan creado se conservan.
-    </p>
-    <form method="post" slot="acciones" class="confirmar">
-      <input type="hidden" name="accion" value="importados_eliminar" />
-      <label for="conf-imp">
-        Escriba <strong>ELIMINAR</strong> para confirmar
-      </label>
-      <input
-        id="conf-imp"
-        name="confirmar"
-        autocomplete="off"
-        required
-        pattern="[Ee][Ll][Ii][Mm][Ii][Nn][Aa][Rr]"
-      />
-      <Boton type="submit" variante="peligro">
-        Eliminar
-      </Boton>
-    </form>
-  </Modal>
+  <p class="pie">
+    Toque un recuadro para abrir esa sección. También están en el menú, dentro de{" "}
+    <strong>Ajustes</strong>.
+  </p>
 </PanelLayout>
 
-<script>
-  // Vista previa del encabezado de la planilla mientras se escribe
-  document.addEventListener("input", (ev) => {
-    const campo = ev.target as HTMLInputElement | HTMLTextAreaElement;
-    if (!campo.form?.hasAttribute("data-previa-planilla")) return;
-    document
-      .querySelectorAll<HTMLElement>(`[data-previa="${campo.name}"]`)
-      .forEach((el) => (el.textContent = campo.value));
-  });
-</script>
-
 <style>
-  .pila {
+  .modulos {
     display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
     gap: var(--esp-4);
   }
-  .accesos {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-    gap: var(--esp-3);
-  }
-  .accesos a {
-    display: flex;
-    gap: var(--esp-3);
-    align-items: center;
-    padding: var(--esp-4);
-    background: var(--color-superficie);
-    border: 1px solid var(--color-borde);
-    border-radius: var(--radio);
-    color: var(--color-acento);
-    text-decoration: none;
-    transition: border-color var(--duracion-rapida) var(--curva);
-  }
-  .accesos a:hover {
-    border-color: var(--color-acento);
-  }
-  .accesos span {
-    display: grid;
-  }
-  .accesos strong {
-    color: var(--color-texto);
-  }
-  .accesos small {
+  .pie {
+    margin: var(--esp-6) 0 0;
     color: var(--color-texto-suave);
-  }
-  .previa {
-    display: grid;
-    gap: var(--esp-1);
-    padding: var(--esp-4);
-    background: var(--color-fondo);
-    border-radius: var(--radio-sm);
-    text-align: center;
-    font-size: var(--texto-xs);
-  }
-  .previa p {
-    margin: 0;
-  }
-  .previa-enc {
-    white-space: pre-line;
-    color: var(--color-texto-suave);
-  }
-  .previa-plantel {
     font-size: var(--texto-sm);
-    font-weight: var(--peso-fuerte);
-  }
-  .previa-meta {
-    color: var(--color-texto-suave);
-  }
-  .previa-tabla {
-    display: grid;
-    gap: 6px;
-    margin: var(--esp-3) 0;
-  }
-  .previa-tabla span {
-    height: 8px;
-    border-radius: 2px;
-    background: var(--color-borde);
-  }
-  .previa-firma {
-    display: grid;
-    justify-items: center;
-    padding-top: var(--esp-2);
-    border-top: 1px solid var(--color-borde-fuerte);
-    margin-inline: auto !important;
-    min-width: 60%;
-  }
-  .campo {
-    display: grid;
-    gap: var(--esp-1);
-  }
-  .campo label {
-    font-weight: var(--peso-medio);
-    font-size: var(--texto-sm);
-  }
-  textarea {
-    padding: var(--esp-3);
-    border: 1px solid var(--color-borde-fuerte);
-    border-radius: var(--radio-sm);
-    resize: vertical;
-    font-family: inherit;
-  }
-  .nota {
-    margin: 0;
-    font-size: var(--texto-sm);
-    color: var(--color-texto-suave);
-  }
-  .estado-demo {
-    margin: 0 0 var(--esp-4);
-  }
-  .botones {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--esp-2);
-  }
-  .confirmar {
-    display: grid;
-    gap: var(--esp-2);
-    width: 100%;
-  }
-  .confirmar input {
-    min-height: 44px;
-    padding: 0 var(--esp-3);
-    border: 1px solid var(--color-borde-fuerte);
-    border-radius: var(--radio-sm);
   }
 </style>

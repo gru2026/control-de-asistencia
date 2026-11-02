@@ -155,6 +155,9 @@ fecha: 2026-10-06
 | F54 | En *Hoy*, tocar un día de la semana | Se ve ese día; el día queda resaltado |
 | F55 | En *Hoy*, tocar «Tarde» | Solo quienes llegaron tarde; el botón muestra la misma cantidad que la lista |
 | F56 | En *Hoy*, escribir parte de una cédula | La lista se filtra al instante |
+| F57 | Abrir *Ajustes* | Resumen con un recuadro por área y su estado; el menú muestra sus siete secciones |
+| F58 | Desde el menú, *Ajustes › Institución* y guardar | Vuelve a Institución con el mensaje de guardado |
+| F59 | *Ajustes › Datos* › Eliminar datos de demostración (escribiendo ELIMINAR) | Se borran; el recuadro Datos pasa a «Sin datos de prueba» |
 
 ## 2b. Pruebas en navegador (automatizadas)
 
@@ -191,6 +194,7 @@ fecha: 2026-10-06
 
 | Fecha | Versión | Ejecutado por | Aprobado | Observaciones |
 |---|---|---|---|---|
+| 2026-11-02 | Ajustes en secciones (D-58) | Desarrollador (automatizado) | ✅ | 178 unitarias; 84/84 en navegador; detector de diseño sin hallazgos en 29 pantallas. Pruebas del panel fijadas en «Últimos 30 días» para no depender del día del mes. |
 | 2026-10-28 | *Hoy* rediseñado (D-57) | Desarrollador (automatizado) | ✅ | 178 unitarias; 80/80 en navegador. Detector de diseño sin hallazgos. |
 | 2026-10-27 | Cada dato a su detalle (D-56) y tendencia sin desbordes | Desarrollador (automatizado) | ✅ | 178 pruebas unitarias. 78/78 en navegador, en local y en producción. Detector de diseño sin hallazgos. |
 | 2026-10-27 | Panel de control en tres niveles (D-55) | Desarrollador (automatizado) | ✅ | 177 unitarias; 71/71 en navegador (local y producción). Recorrido de usabilidad simulado: todas las tareas en 0–3 toques. |

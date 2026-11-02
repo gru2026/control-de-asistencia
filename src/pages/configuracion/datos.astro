@@ -1,0 +1,327 @@
+---
+/** Ajustes › Datos (D-58): importar personal, datos de demostración y personal importado. */
+import PanelLayout from "@/layouts/PanelLayout.astro";
+import Tarjeta from "@/components/ui/Tarjeta.astro";
+import Boton from "@/components/ui/Boton.astro";
+import Alerta from "@/components/ui/Alerta.astro";
+import Modal from "@/components/ui/Modal.astro";
+import Icono from "@/components/ui/Icono.astro";
+import { texto } from "@/lib/validacion";
+import { ponerFlash } from "@/lib/flash";
+import { eliminarDemo, eliminarImportados, generarDemo } from "@/lib/servicios/mantenimiento";
+import Subnav from "@/components/ui/Subnav.astro";
+import { SECCIONES_AJUSTES } from "@/lib/ajustes";
+
+const sb = Astro.locals.supabase;
+const perfil = Astro.locals.perfil!;
+let mensaje: string | null = null;
+
+if (Astro.request.method === "POST") {
+  const f = await Astro.request.formData();
+  const accion = texto(f, "accion");
+  let exito: string | null = null;
+  const confirmar = texto(f, "confirmar").toUpperCase() === "ELIMINAR";
+
+  try {
+    if (accion === "demo_generar") {
+      const r = await generarDemo(perfil.id);
+      exito = `Datos de demostración generados: ${r.registros} registros de asistencia y ${r.permisos} permisos para ${r.personas} personas.`;
+    } else if (accion === "demo_eliminar") {
+      if (!confirmar) mensaje = "Escriba ELIMINAR para confirmar.";
+      else {
+        const r = await eliminarDemo();
+        exito = `Se eliminaron ${r.registros} registros y ${r.permisos} permisos de demostración.`;
+      }
+    } else if (accion === "importados_eliminar") {
+      if (!confirmar) mensaje = "Escriba ELIMINAR para confirmar.";
+      else {
+        const n = await eliminarImportados();
+        exito = `Se eliminaron ${n} personas importadas y su asistencia.`;
+      }
+    } else mensaje = "Acción no reconocida.";
+  } catch (e) {
+    console.error("[configuracion/datos]", e);
+    mensaje = "Ocurrió un error al procesar la operación. Intente de nuevo.";
+  }
+
+  if (exito) {
+    ponerFlash(Astro.cookies, "exito", exito);
+    return Astro.redirect("/configuracion/datos", 303);
+  }
+  mensaje ??= "No se pudo completar la operación.";
+  Astro.response.status = 400;
+}
+
+const [{ count: demo }, { count: importados }, { count: demoPermisos }] = await Promise.all([
+  sb.from("registros_asistencia").select("id", { count: "exact", head: true }).eq("es_demo", true),
+  sb.from("personal").select("id", { count: "exact", head: true }).eq("origen", "importado"),
+  sb.from("permisos").select("id", { count: "exact", head: true }).eq("es_demo", true),
+]);
+---
+
+<PanelLayout
+  titulo="Datos"
+  subtitulo="Cargar personal desde un archivo y limpiar los datos de prueba."
+  migas={[{ texto: "Ajustes", href: "/configuracion" }, { texto: "Datos" }]}
+>
+  <Subnav items={SECCIONES_AJUSTES} etiqueta="Secciones de Ajustes" />
+  <div class="pila">
+    {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
+    <div class="dos-zonas">
+      <div class="zona-principal">
+        <Tarjeta
+          titulo="Importar personal"
+          descripcion="Cargue varias personas a la vez desde una hoja de cálculo (CSV): nombre, apellido, cédula, categoría y vínculo."
+        >
+          <p class="estado-demo">
+            Sirve para la nómina inicial o para incorporar a varias personas juntas. Antes de
+            guardar se muestra una vista previa con los errores de cada fila.
+          </p>
+          <Boton href="/personal/importar">
+            <Icono nombre="subir" tamano={18} />
+            Importar desde un archivo
+          </Boton>
+        </Tarjeta>
+        <Tarjeta
+          id="demo"
+          titulo="Datos de demostración"
+          descripcion="Asistencia simulada de las últimas 5 semanas para el personal activo, para mostrar el panel y los reportes."
+        >
+          <p class="estado-demo">
+            {demo ? (
+              <>
+                <strong>{demo}</strong> registros de demostración cargados.
+              </>
+            ) : (
+              "No hay datos de demostración cargados."
+            )}
+          </p>
+          <div class="botones">
+            <form method="post">
+              <input type="hidden" name="accion" value="demo_generar" />
+              <Boton type="submit" variante="secundario" data-texto-cargando="Generando…">
+                <Icono nombre="datos" tamano={18} />
+                {demo ? "Volver a generar" : "Generar datos de demostración"}
+              </Boton>
+            </form>
+            {demo ? (
+              <Boton variante="peligro" data-abrir-modal="modal-demo">
+                <Icono nombre="papelera" tamano={18} />
+                Eliminar datos de demostración
+              </Boton>
+            ) : null}
+          </div>
+        </Tarjeta>
+        <Tarjeta
+          titulo="Personal importado"
+          descripcion="Personas cargadas desde un archivo (por ejemplo, la nómina inicial)."
+          id="importados"
+        >
+          <p class="estado-demo">
+            {importados ? (
+              <>
+                <strong>{importados}</strong> personas importadas.
+              </>
+            ) : (
+              "No hay personal importado."
+            )}
+          </p>
+          {importados ? (
+            <Boton variante="peligro" data-abrir-modal="modal-importados">
+              <Icono nombre="papelera" tamano={18} />
+              Eliminar personal importado
+            </Boton>
+          ) : null}
+        </Tarjeta>
+      </div>
+      <aside class="zona-lateral" aria-label="Qué se borra">
+        <Tarjeta titulo="Antes de empezar el uso real">
+          <ul class="lista-ayuda">
+            <li>
+              Borre los <strong>datos de demostración</strong>: el panel y los reportes quedarán
+              vacíos hasta las primeras marcaciones.
+              {demoPermisos ? ` Incluye ${demoPermisos} permisos simulados.` : ""}
+            </li>
+            <li>
+              El <strong>personal importado</strong> solo se borra si la nómina tenía errores; las
+              personas cargadas a mano no se tocan.
+            </li>
+            <li>
+              Siga el orden de <a href="/configuracion/puesta-en-marcha">Puesta en marcha</a>.
+            </li>
+          </ul>
+        </Tarjeta>
+      </aside>
+    </div>
+  </div>
+
+  <Modal id="modal-demo" titulo="¿Eliminar los datos de demostración?">
+    <p>
+      Se borrarán todos los registros de asistencia y permisos marcados como demostración. Los
+      registros reales no se tocan.
+    </p>
+    <form method="post" slot="acciones" class="confirmar">
+      <input type="hidden" name="accion" value="demo_eliminar" />
+      <label for="conf-demo">
+        Escriba <strong>ELIMINAR</strong> para confirmar
+      </label>
+      <input
+        id="conf-demo"
+        name="confirmar"
+        autocomplete="off"
+        required
+        pattern="[Ee][Ll][Ii][Mm][Ii][Nn][Aa][Rr]"
+      />
+      <Boton type="submit" variante="peligro">
+        Eliminar
+      </Boton>
+    </form>
+  </Modal>
+
+  <Modal id="modal-importados" titulo="¿Eliminar el personal importado?">
+    <p>
+      Se borrarán las {importados} personas importadas junto con su asistencia y permisos. Las
+      cuentas de acceso que se les hayan creado se conservan.
+    </p>
+    <form method="post" slot="acciones" class="confirmar">
+      <input type="hidden" name="accion" value="importados_eliminar" />
+      <label for="conf-imp">
+        Escriba <strong>ELIMINAR</strong> para confirmar
+      </label>
+      <input
+        id="conf-imp"
+        name="confirmar"
+        autocomplete="off"
+        required
+        pattern="[Ee][Ll][Ii][Mm][Ii][Nn][Aa][Rr]"
+      />
+      <Boton type="submit" variante="peligro">
+        Eliminar
+      </Boton>
+    </form>
+  </Modal>
+</PanelLayout>
+
+<style>
+  .lista-ayuda {
+    display: grid;
+    gap: var(--esp-3);
+    margin: 0;
+    padding-left: var(--esp-5);
+    color: var(--color-texto-suave);
+    font-size: var(--texto-sm);
+  }
+  .pila {
+    display: grid;
+    gap: var(--esp-4);
+  }
+  .accesos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: var(--esp-3);
+  }
+  .accesos a {
+    display: flex;
+    gap: var(--esp-3);
+    align-items: center;
+    padding: var(--esp-4);
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    color: var(--color-acento);
+    text-decoration: none;
+    transition: border-color var(--duracion-rapida) var(--curva);
+  }
+  .accesos a:hover {
+    border-color: var(--color-acento);
+  }
+  .accesos span {
+    display: grid;
+  }
+  .accesos strong {
+    color: var(--color-texto);
+  }
+  .accesos small {
+    color: var(--color-texto-suave);
+  }
+  .previa {
+    display: grid;
+    gap: var(--esp-1);
+    padding: var(--esp-4);
+    background: var(--color-fondo);
+    border-radius: var(--radio-sm);
+    text-align: center;
+    font-size: var(--texto-xs);
+  }
+  .previa p {
+    margin: 0;
+  }
+  .previa-enc {
+    white-space: pre-line;
+    color: var(--color-texto-suave);
+  }
+  .previa-plantel {
+    font-size: var(--texto-sm);
+    font-weight: var(--peso-fuerte);
+  }
+  .previa-meta {
+    color: var(--color-texto-suave);
+  }
+  .previa-tabla {
+    display: grid;
+    gap: 6px;
+    margin: var(--esp-3) 0;
+  }
+  .previa-tabla span {
+    height: 8px;
+    border-radius: 2px;
+    background: var(--color-borde);
+  }
+  .previa-firma {
+    display: grid;
+    justify-items: center;
+    padding-top: var(--esp-2);
+    border-top: 1px solid var(--color-borde-fuerte);
+    margin-inline: auto !important;
+    min-width: 60%;
+  }
+  .campo {
+    display: grid;
+    gap: var(--esp-1);
+  }
+  .campo label {
+    font-weight: var(--peso-medio);
+    font-size: var(--texto-sm);
+  }
+  textarea {
+    padding: var(--esp-3);
+    border: 1px solid var(--color-borde-fuerte);
+    border-radius: var(--radio-sm);
+    resize: vertical;
+    font-family: inherit;
+  }
+  .nota {
+    margin: 0;
+    font-size: var(--texto-sm);
+    color: var(--color-texto-suave);
+  }
+  .estado-demo {
+    margin: 0 0 var(--esp-4);
+  }
+  .botones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2);
+  }
+  .confirmar {
+    display: grid;
+    gap: var(--esp-2);
+    width: 100%;
+  }
+  .confirmar input {
+    min-height: 44px;
+    padding: 0 var(--esp-3);
+    border: 1px solid var(--color-borde-fuerte);
+    border-radius: var(--radio-sm);
+  }
+</style>

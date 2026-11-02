@@ -1,5 +1,7 @@
 ---
 import PanelLayout from "@/layouts/PanelLayout.astro";
+import Subnav from "@/components/ui/Subnav.astro";
+import { SECCIONES_AJUSTES } from "@/lib/ajustes";
 import Tarjeta from "@/components/ui/Tarjeta.astro";
 import Boton from "@/components/ui/Boton.astro";
 import Alerta from "@/components/ui/Alerta.astro";
@@ -84,6 +86,7 @@ const vence = valores.vence === "si";
   subtitulo="El QR impreso en la entrada que el personal escanea para marcar."
   migas={[{ texto: "Ajustes", href: "/configuracion" }, { texto: "Código QR" }]}
 >
+  <Subnav items={SECCIONES_AJUSTES} etiqueta="Secciones de Ajustes" />
   <div class="pila">
     {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
 

@@ -181,7 +181,7 @@ try {
   await pag.waitForSelector("#ventana[open] .v-titulo:has-text('Daniel')", { timeout: 15000 });
   r.ok("Pendientes: buscar a una persona abre su panel", true);
   await pag.keyboard.press("Escape");
-  await pag.goto(`${B}/panel/categorias`);
+  await pag.goto(`${B}/panel/categorias?periodo=30d`);
   r.ok(
     "las barras por categoría se colorean por su lectura",
     (
@@ -200,7 +200,7 @@ try {
   await pag.goto(`${B}/panel`);
 
   r.seccion("Panel de control: cada dato lleva a su detalle (D-56)");
-  await pag.goto(`${B}/panel`);
+  await pag.goto(`${B}/panel?periodo=30d`);
   await pag.click('a[data-ventana-local="capa-categorias"]');
   await pag.waitForSelector("#ventana[open] #capa-categorias-titulo", { timeout: 15000 });
   const barra = pag.locator("#ventana .barras a.enlace").first();
@@ -225,14 +225,14 @@ try {
   r.ok("«Volver al vistazo» regresa con el vistazo abierto", true);
   await pag.click("#ventana [data-cerrar-ventana]");
 
-  await pag.goto(`${B}/panel/asistencia`);
+  await pag.goto(`${B}/panel/asistencia?periodo=30d`);
   const dia = pag.locator(".calendario a.dia").first();
   if (await dia.count()) {
     await dia.click();
     await pag.waitForURL("**/panel/hoy?fecha=**", { timeout: 15000 });
     r.ok("un día del calendario abre Hoy de esa fecha", true);
   } else r.ok("calendario sin días con datos", true);
-  await pag.goto(`${B}/panel/asistencia`);
+  await pag.goto(`${B}/panel/asistencia?periodo=30d`);
   await pag.click(".dias-semana a:has-text('Mar')");
   await pag.waitForURL("**dia=2**");
   r.ok(
@@ -243,7 +243,7 @@ try {
   await pag.waitForFunction(() => !location.search.includes("dia="));
   r.ok("el ✕ quita el filtro", (await pag.locator(".pastilla").count()) === 0);
 
-  await pag.goto(`${B}/panel/puntualidad`);
+  await pag.goto(`${B}/panel/puntualidad?periodo=30d`);
   const tramo = pag.locator(".tramos a.enlace").first();
   if (await tramo.count()) {
     await tramo.click();
@@ -253,6 +253,28 @@ try {
       (await pag.locator("#llegadas-tramo tbody tr").count()) > 0,
     );
   } else r.ok("tramos sin datos", true);
+
+  r.seccion("Ajustes en secciones (D-58)");
+  await pag.goto(`${B}/configuracion`);
+  r.ok(
+    "el resumen de Ajustes muestra un recuadro por área",
+    (await pag.locator(".modulos .modulo").count()) === 7,
+  );
+  r.ok(
+    "el menú lateral muestra las secciones de Ajustes",
+    (await pag.locator('nav.nav .sub[aria-label="Secciones de Ajustes"] a').count()) === 7,
+  );
+  await pag.click('nav.nav .sub a:has-text("Institución")');
+  await pag.waitForURL("**/configuracion/institucion", { timeout: 15000 });
+  r.ok(
+    "Institución tiene su propia sección con la vista previa",
+    (await pag.locator("[data-previa-planilla]").count()) === 1 &&
+      (await pag.locator('nav.nav .sub a[aria-current="page"]:has-text("Institución")').count()) ===
+        1,
+  );
+  await pag.goto(`${B}/configuracion/datos`);
+  r.ok("Datos reúne la importación y la demostración", (await pag.locator("#demo").count()) === 1);
+  await pag.goto(`${B}/panel`);
 
   r.seccion("Otras pantallas");
   await marcarPagina(pag);
@@ -469,7 +491,11 @@ try {
   await pag.waitForSelector("#ventana[open] #ventana-titulo-cuenta", { timeout: 15000 });
   r.ok("gestionar una cuenta abre una ventana", true);
   await pag.keyboard.press("Escape");
-  for (const ruta of ["/personal/nuevo", "/configuracion", "/configuracion/marcacion"]) {
+  for (const ruta of [
+    "/personal/nuevo",
+    "/configuracion/institucion",
+    "/configuracion/marcacion",
+  ]) {
     await pag.goto(`${B}${ruta}`);
     const z = await pag.evaluate(() => {
       const p = document.querySelector(".zona-principal")?.getBoundingClientRect();

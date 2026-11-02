@@ -1,5 +1,7 @@
 ---
 import PanelLayout from "@/layouts/PanelLayout.astro";
+import Subnav from "@/components/ui/Subnav.astro";
+import { SECCIONES_AJUSTES } from "@/lib/ajustes";
 import Tarjeta from "@/components/ui/Tarjeta.astro";
 import Tabla from "@/components/ui/Tabla.astro";
 import Boton from "@/components/ui/Boton.astro";
@@ -224,8 +226,9 @@ const eF = accion === "feriado_agregar" ? errores : {};
 <PanelLayout
   titulo="Jornadas, categorías y feriados"
   subtitulo="Horarios configurables, oficios del personal y días no laborables."
-  migas={[{ texto: "Ajustes", href: "/configuracion" }, { texto: "Jornadas" }]}
+  migas={[{ texto: "Ajustes", href: "/configuracion" }, { texto: "Jornadas y categorías" }]}
 >
+  <Subnav items={SECCIONES_AJUSTES} etiqueta="Secciones de Ajustes" />
   <div class="pila">
     {mensaje && <Alerta tipo="error">{mensaje}</Alerta>}
 

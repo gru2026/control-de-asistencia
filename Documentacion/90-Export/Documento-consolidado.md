@@ -2,7 +2,7 @@
 
 **Servicio comunitario — Documentación completa del proyecto**
 
-Fecha de generación: 2026-10-28
+Fecha de generación: 2026-11-02
 
 ---
 
@@ -563,6 +563,7 @@ Decisiones cerradas del proyecto. **Si algo cambia, se agrega una nueva fila** (
 | D-23 | 2026-10-08 | Personal clasificado por **categoría** (oficio, configurable) y **vínculo** (fijo/contratado/suplente) + carga horaria | ✅ Vigente |
 | D-24 | 2026-10-08 | **Jornadas nocturnas** (cruzan medianoche) para vigilancia | ✅ Vigente |
 | D-25 | 2026-10-08 | Reportes PDF/Excel con el **formato de la planilla oficial**; sin columnas de firma (solo firma la dirección al pie) | ✅ Vigente |
+| D-58 | 2026-11-02 | Ajustes en secciones como el panel: resumen con el estado de cada área y siete subsecciones en el menú (Institución y Datos con página propia) | ✅ Vigente |
 | D-57 | 2026-10-28 | *Hoy* rediseñado: frase del día con barra de avance, semana de días tocables con su lectura, estados como botones con su cantidad y búsqueda al instante | ✅ Vigente |
 | D-56 | 2026-10-27 | Todo dato que resume lleva a su detalle (barras, segmentos, puntos, días, tramos); vista de una categoría comparada con el colegio; pastillas de filtros, «Volver al vistazo», descargas con filtros, estados vacíos útiles y tendencia semanal en la ficha | ✅ Vigente |
 | D-55 | 2026-10-27 | Panel de control en tres niveles: resumen (recuadros), vistazo (panel lateral con datos rápidos y «Ver todo») y seis secciones propias en el menú; el Registro del día pasa a ser Panel › Hoy; la secretaría entra a Pendientes | ✅ Vigente |
@@ -631,6 +632,13 @@ Motivo: cada acción cargaba una pantalla nueva (1 a 2,6 s desde el colegio) y s
 - **D-48 · Avisos y mensajes.** La campana abre un panel (en el celular, desde abajo) con los avisos sin leer, en la misma consulta que el contador. Los resultados de las acciones aparecen abajo y se cierran solos; los reversibles ofrecen **Deshacer** (marcación asistida de los últimos 15 min, revisión, aviso leído). Las acciones graves siguen pidiendo confirmación.
 - **D-49 · Ventanas.** Tocar un nombre abre el **panel lateral** de la persona (hoy, mes, permisos, teléfono, cuenta) con acciones: marcar, cargar permiso, aprobar o cambiar teléfono, «no tiene teléfono», crear cuenta, restablecer a 0000. Los formularios en ventana van a `/api/acciones` (JSON); si sale bien se cierra y se actualiza la pantalla; si no, los errores quedan junto al campo. Confirmaciones con una ventana propia. El contenido llega como fragmento y usa `ventanas.css` (clases `v-`). La ficha completa queda a un toque, por capas (pestañas).
 - **D-50 · Formularios sin estrés.** Marcar empieza en «Ahora»; «Otra hora» pide hora y motivo con botones. Permiso: buscador de persona (escribir nombre o cédula), fecha con botones (Hoy · Mañana · Otras fechas) y motivo con botones. En el celular, las tablas muestran solo lo esencial. Guía de prueba con personas reales: Prueba-de-usabilidad.
+
+### D-58 · Ajustes en secciones
+- **Resumen** (`/configuracion`): un recuadro por área con su estado en palabras y su lectura — Institución («Planilla completa» / «Faltan datos»), Marcación («Solo se marca en el colegio», radio y cierre diario), Código QR (vigente, de prueba, vencido o sin QR), Jornadas y categorías, Usuarios (por rol), Datos (si hay demostración) y Puesta en marcha (pasos listos, con anillo). Cada recuadro lleva a su sección.
+- **Siete subsecciones** en el menú lateral, bajo «Ajustes»: Institución, Marcación, Código QR, Jornadas y categorías, Usuarios, Datos y Puesta en marcha; en el celular, pastillas deslizables (`Subnav`).
+- **Páginas nuevas:** `/configuracion/institucion` (planilla oficial con vista previa) y `/configuracion/datos` (importar personal, datos de demostración y personal importado), que antes estaban juntas en la portada de Ajustes.
+- La lista de puesta en marcha pasa a `src/lib/ajustes.ts` (`cargarPuestaEnMarcha`) para usarla en su página y en el resumen.
+- **Menú:** el Panel de control muestra siempre sus secciones; los demás grupos (Ajustes) solo cuando se está dentro, para que el menú no se alargue.
 
 ### D-57 · Hoy, como el resto del panel
 - **Motivo:** la pantalla tenía una fecha suelta con flechas, cifras en una esquina, un desplegable «Mostrar» y un botón «Aplicar»: distinta del panel y lenta de usar.
@@ -1353,7 +1361,9 @@ Dos contextos de uso:
 /reportes                           Planilla diaria oficial (PDF/Excel)
 /reportes/resumen                   Resumen del período por persona (PDF/Excel)
 /jornadas                           [directiva] Jornadas, feriados y categorías
-/configuracion                      [directiva] Accesos, institución (con vista previa), demostración
+/configuracion                      [directiva] Ajustes · resumen (un recuadro por área, D-58)
+/configuracion/institucion          [directiva] Planilla oficial con vista previa
+/configuracion/datos                [directiva] Importar personal, datos de demostración, personal importado
 /configuracion/marcacion            [directiva] Ubicación del colegio, ubicaciones de prueba, franjas, cierre diario
 /configuracion/qr                   [directiva] Generar / imprimir / desactivar el QR
 /configuracion/usuarios             [directiva] Cuentas y roles
@@ -1481,8 +1491,9 @@ Buscador de personas, lista de pendientes con su botón y filtro por tipo, estad
 ### `/reportes` · `/reportes/resumen`
 Planilla diaria oficial y resumen del período por persona, en PDF o Excel.
 
-### `/configuracion` y subpáginas (directiva)
-Accesos, institución con **vista previa** del encabezado de la planilla, datos de demostración, marcación (ubicación y cierre diario), QR, usuarios y puesta en marcha.
+### `/configuracion` y sus secciones (directiva, D-58)
+- **Resumen:** un recuadro por área con su estado y lectura (Institución, Marcación, Código QR, Jornadas y categorías, Usuarios, Datos, Puesta en marcha); cada uno lleva a su sección.
+- **Secciones:** Institución (planilla con vista previa), Marcación (ubicación y cierre diario), Código QR, Jornadas y categorías (`/jornadas`), Usuarios, Datos (importar y limpiar) y Puesta en marcha. En el menú lateral aparecen debajo de «Ajustes» cuando se está dentro; en el celular, como pestañas.
 
 ## Navegación
 
@@ -1490,7 +1501,9 @@ Accesos, institución con **vista previa** del encabezado de la planilla, datos 
 🖥️ PC: barra superior (logo · nombre y rol · Acciones · Mi asistencia · 🔔 · Salir)
       + menú lateral
    Directiva:  Panel de control (Hoy · Asistencia · Puntualidad · Ausencias y permisos ·
-               Por categoría · Pendientes) · Permisos · Personal · Reportes · Ajustes
+               Por categoría · Pendientes) · Permisos · Personal · Reportes ·
+               Ajustes (Institución · Marcación · Código QR · Jornadas y categorías ·
+               Usuarios · Datos · Puesta en marcha; visibles al estar dentro)
    Secretaría: Panel de control (…las mismas seis) · Permisos · Personal · Reportes ·
                Mi asistencia
 
@@ -1554,7 +1567,8 @@ servicio comunitario/              # raíz del repositorio
 │   │   ├── permisos/              # index, [id]
 │   │   ├── reportes.astro · reportes/resumen.astro
 │   │   ├── jornadas.astro · historial.astro · notificaciones.astro
-│   │   ├── configuracion/         # index, marcacion, qr, usuarios, puesta-en-marcha
+│   │   ├── configuracion/         # index (resumen), institucion, marcacion, qr, usuarios,
+│   │   │                          # datos, puesta-en-marcha (D-58)
 │   │   ├── ventanas/              # fragmentos para la ventana lateral (D-49, D-51)
 │   │   │   ├── persona/[id].astro · permiso.astro · acciones.astro
 │   │   │   ├── personal-nuevo.astro · cuenta/[id].astro · cuenta-nueva.astro
@@ -1566,7 +1580,7 @@ servicio comunitario/              # raíz del repositorio
 │   │       └── reportes/          # planilla.ts, resumen.ts (PDF y Excel)
 │   │
 │   ├── components/
-│   │   ├── ui/                    # Boton, Tarjeta, Tabla, Modal, Input, Select, Badge, Icono,
+│   │   ├── ui/                    # Boton, Tarjeta, Tabla, Modal, Input, Select, Badge, Icono, Subnav,
 │   │   │                          # BarraFiltros, Pestanas, Paginacion, Mensaje, Alerta…
 │   │   ├── graficas/              # GraficaLinea, BarrasHorizontales, BarraApilada,
 │   │   │                          # DistribucionLlegadas, Figura (todas aceptan destino al tocar)
@@ -1587,6 +1601,7 @@ servicio comunitario/              # raíz del repositorio
 │   │   ├── reportes/              # planilla y resumen en PDF y Excel
 │   │   ├── auth/                  # acceso.ts (reglas por ruta y rol, inicio por rol), cedula.ts
 │   │   ├── validacion/            # validación de formularios
+│   │   ├── ajustes.ts             # secciones de Ajustes y lista de puesta en marcha (D-58)
 │   │   ├── supabase/servidor.ts · fecha.ts · formato.ts (números a la venezolana) · flash.ts
 │   │   └── avisos.ts · importacion.ts · qr.ts · demo/
 │   │
@@ -2056,6 +2071,13 @@ Qué cambió en la app después del cierre del desarrollo (19/10/2026), en palab
 > 3. El panel **dice en palabras** cómo vamos (Bien / Atención / Bajo) y **todo se puede tocar** para ver el detalle.
 > 4. En el menú, «Asistencia» pasó a llamarse **«Permisos»** (con la pestaña *Por revisar*).
 
+## 02/11/2026 — Ajustes en secciones (D-58)
+
+- **Ajustes** abre un resumen: un recuadro por área que dice cómo está («Planilla completa», «QR vigente», «Hay datos de demostración», «4 de 9 pasos listos»).
+- Sus secciones están en el menú, debajo de *Ajustes*: Institución, Marcación, Código QR, Jornadas y categorías, Usuarios, Datos y Puesta en marcha. En el celular, como pestañas.
+- **Institución** y **Datos** tienen ahora su propia página (antes estaban juntas en la portada de Ajustes).
+- El menú muestra las secciones de Ajustes solo cuando se está dentro, para que no se alargue.
+
 ## 28/10/2026 — Hoy, más claro y rápido (D-57)
 
 - Arriba, en palabras, cómo va el día («32 de 54 ya llegaron») con una barra de avance.
@@ -2240,7 +2262,7 @@ La app tiene una lista de verificación en vivo en **Ajustes › Puesta en march
 | 2 | Marcar a quien no tiene teléfono | Ficha › Teléfono › «Marca en secretaría» | No necesitan cuenta |
 | 3 | Completar los datos de la planilla (firmante, código DEA, logo) | Ajustes › Institución | El logo está pendiente del colegio |
 | 4 | Crear la cuenta de la directiva real | Ajustes › Usuarios | Con su correo; luego desactivar la de prueba |
-| 5 | Borrar los datos de demostración | Ajustes › Datos de demostración | El panel quedará vacío hasta las primeras marcaciones |
+| 5 | Borrar los datos de demostración | Ajustes › Datos | El panel quedará vacío hasta las primeras marcaciones |
 | 6 | Desactivar fichas, cuentas y ubicaciones de prueba | Personal · Ajustes › Usuarios · Ajustes › Marcación | Cuentas `…@example.com`; fichas V-1000000x |
 | 7 | Generar e imprimir el QR definitivo | Ajustes › Código QR | Pegarlo en la entrada |
 | 8 | Crear las cuentas del personal | Personal › Cuentas | El mismo día de la capacitación (contraseña inicial 0000) |
@@ -2359,7 +2381,7 @@ En el PC se entra con el **correo** de la cuenta (o con la cédula, si la cuenta
 | **Permisos** | Cargar y consultar permisos; pestaña **Por revisar** |
 | **Personal** | Lista del personal, fichas, cuentas |
 | **Reportes** | Planilla diaria y resumen del período (PDF y Excel) |
-| **Ajustes** (directiva) | QR, marcación, jornadas, categorías, usuarios, institución |
+| **Ajustes** (directiva) | Resumen y sus secciones: Institución, Marcación, Código QR, Jornadas y categorías, Usuarios, Datos, Puesta en marcha |
 
 En el celular, el menú está abajo y las secciones del panel aparecen como pestañas arriba.
 
@@ -2470,11 +2492,17 @@ La **campana** muestra los avisos: faltas y salidas sin marcar del cierre diario
 
 ## 16. Ajustes (directiva)
 
-- **Puesta en marcha:** lista de lo que falta para empezar el uso real, con su barra de avance.
-- **Marcación:** ubicación del colegio y radio, ubicaciones de prueba, franjas horarias y **cierre diario** (fecha de inicio del control).
-- **Código QR:** generar, imprimir y desactivar. El anterior deja de funcionar al instante. Recomendado: renovarlo cada lapso o si circula una foto.
-- **Institución:** datos de la planilla; a la derecha se ve **cómo saldrá el encabezado** mientras se escribe.
-- **Jornadas y feriados**, **Categorías**, **Usuarios**, **Importar personal** y **Datos de demostración**.
+**Ajustes** abre un **resumen** con un recuadro por área que dice cómo está («Planilla completa», «QR vigente», «4 de 9 pasos listos») con su etiqueta Bien / Atención / Bajo. Toque un recuadro para abrir esa sección; también están en el menú, debajo de *Ajustes*:
+
+| Sección | Para qué |
+|---|---|
+| **Institución** | Datos de la planilla (encabezado, plantel, DEA, firma); a la derecha se ve **cómo saldrá** mientras se escribe |
+| **Marcación** | Ubicación del colegio y radio, ubicaciones de prueba, franjas horarias y **cierre diario** (fecha de inicio del control) |
+| **Código QR** | Generar, imprimir y desactivar. El anterior deja de funcionar al instante; renovarlo cada lapso o si circula una foto |
+| **Jornadas y categorías** | Horarios, oficios del personal y feriados |
+| **Usuarios** | Cuentas de directiva y secretaría; «Gestionar» cambia el tipo, la contraseña o la desactiva |
+| **Datos** | Importar personal desde un archivo, datos de demostración y personal importado |
+| **Puesta en marcha** | Lo que falta para empezar el uso real, con su avance |
 
 ## 17. Cierre diario
 
@@ -2698,6 +2726,9 @@ Todos los días a las 18:00 el sistema cierra las jornadas terminadas: quien no 
 | F54 | En *Hoy*, tocar un día de la semana | Se ve ese día; el día queda resaltado |
 | F55 | En *Hoy*, tocar «Tarde» | Solo quienes llegaron tarde; el botón muestra la misma cantidad que la lista |
 | F56 | En *Hoy*, escribir parte de una cédula | La lista se filtra al instante |
+| F57 | Abrir *Ajustes* | Resumen con un recuadro por área y su estado; el menú muestra sus siete secciones |
+| F58 | Desde el menú, *Ajustes › Institución* y guardar | Vuelve a Institución con el mensaje de guardado |
+| F59 | *Ajustes › Datos* › Eliminar datos de demostración (escribiendo ELIMINAR) | Se borran; el recuadro Datos pasa a «Sin datos de prueba» |
 
 ## 2b. Pruebas en navegador (automatizadas)
 
@@ -2734,6 +2765,7 @@ Todos los días a las 18:00 el sistema cierra las jornadas terminadas: quien no 
 
 | Fecha | Versión | Ejecutado por | Aprobado | Observaciones |
 |---|---|---|---|---|
+| 2026-11-02 | Ajustes en secciones (D-58) | Desarrollador (automatizado) | ✅ | 178 unitarias; 84/84 en navegador; detector de diseño sin hallazgos en 29 pantallas. Pruebas del panel fijadas en «Últimos 30 días» para no depender del día del mes. |
 | 2026-10-28 | *Hoy* rediseñado (D-57) | Desarrollador (automatizado) | ✅ | 178 unitarias; 80/80 en navegador. Detector de diseño sin hallazgos. |
 | 2026-10-27 | Cada dato a su detalle (D-56) y tendencia sin desbordes | Desarrollador (automatizado) | ✅ | 178 pruebas unitarias. 78/78 en navegador, en local y en producción. Detector de diseño sin hallazgos. |
 | 2026-10-27 | Panel de control en tres niveles (D-55) | Desarrollador (automatizado) | ✅ | 177 unitarias; 71/71 en navegador (local y producción). Recorrido de usabilidad simulado: todas las tareas en 0–3 toques. |
@@ -3528,19 +3560,137 @@ Firma: ______________________
 
 Firma: ______________________
 
+## Semana 4 (22/10 – 28/10/2026)
+
+> **Borrador para revisión**
+> Se armó con el reparto de la Semana 4, el tablero de tareas y, en el caso del desarrollo, con los commits de GitHub. Cada integrante revisa **sus** filas, corrige lo que no coincida con lo que hizo, agrega su evidencia y firma.
+> La prueba en celulares reales, la puesta en marcha y la capacitación siguen pendientes en el tablero, por eso aquí solo aparece su preparación.
+
+### Schormeiker Lugo · Coordinación y desarrollo
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 22/10 | Revisión con el equipo del informe de auditoría y de la lista de puesta en marcha | 3 | Informe-de-auditoria |
+|  | Coordinación de la Semana 4 y reparto de tareas | 2 | Equipo-y-reparto-de-tareas |
+| Vie 23/10 | Planificación del panel más fácil de leer (frases en palabras, lectura Bien/Atención/Bajo) | 3 | Registro-de-decisiones (D-53) |
+|  | Guía de la prueba de usabilidad (tareas D1–D6 y S0–S9) | 2 | Prueba-de-usabilidad |
+| Lun 26/10 | Panel en dos vistas (Resumen y Acción rápida) con los datos en segunda capa | 3 | Commit `ff5575d` |
+|  | Recorrido simulado de usabilidad del nuevo panel | 2 | Resultados-usabilidad |
+| Mar 27/10 | Panel de control en tres niveles, animaciones y gráficas | 3 | Commits `4d73b18`, `7bc01ae`, `d42cf18` |
+|  | Cada dato del panel lleva a su detalle; corrección de la tendencia; recorrido de usabilidad | 2 | Commits `f794b36`, `303fe29` |
+| Mié 28/10 | Documentación al día con el Panel de control (D-46 a D-56) | 2 | Commit `729986d` |
+|  | Sección Hoy rediseñada como el resto del panel | 3 | Commits `e726a7e` a `c8f64a1` |
+| | **Total semana 4** | **25** | |
+
+Firma: ______________________
+
+
+### Hector Diaz · Pruebas y calidad
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 22/10 | Revisión del informe de auditoría y de los casos F35–F41 | 3 | Casos listos |
+|  | Preparación de la prueba en celulares reales (lista de teléfonos del personal) | 2 | Lista |
+| Vie 23/10 | Prueba de las cuentas por cédula, la contraseña 0000 y el cambio obligatorio | 3 | Resultados |
+|  | Prueba del bloqueo tras 5 intentos fallidos | 2 | Resultados |
+| Lun 26/10 | Prueba de la app instalada y del aviso «Actualizar» | 3 | Resultados |
+|  | Revisión del panel en dos vistas | 2 | Lista de incidencias |
+| Mar 27/10 | Prueba del Panel de control en tres niveles y de sus enlaces | 3 | Resultados |
+|  | Revisión de los recorridos de usabilidad simulados | 2 | Resultados-usabilidad |
+| Mié 28/10 | Prueba de la sección Hoy | 3 | Resultados |
+|  | Informe de pruebas de la semana | 2 | Informe |
+| | **Total semana 4** | **25** | |
+
+Firma: ______________________
+
+
+### Rebeca Nexans · Documentación
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 22/10 | Revisión del manual de usuario final | 3 | Manual-de-usuario |
+|  | Acta de la reunión del equipo | 2 | Acta |
+| Vie 23/10 | Revisión de las guías rápidas (personal y secretaría) | 3 | Guías en PDF |
+|  | Capturas de las cuentas por cédula y del cambio de contraseña | 2 | Capturas |
+| Lun 26/10 | Informe final: introducción y descripción del proyecto | 3 | Documento |
+|  | Capturas del panel nuevo | 2 | Capturas |
+| Mar 27/10 | Informe final: actividades realizadas por semana | 3 | Documento |
+|  | Manual: actualización del Panel de control | 2 | Sección del manual |
+| Mié 28/10 | Informe final: resultados y anexos | 3 | Documento |
+|  | Acta de la reunión del equipo | 2 | Acta |
+| | **Total semana 4** | **25** | |
+
+Firma: ______________________
+
+
+### Antonio Gonzalez · Enlace con el colegio
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 22/10 | Coordinación con el colegio de la fecha de inicio del control y de la capacitación | 3 | Mensajes o acta |
+|  | Seguimiento del logo del colegio y del escudo | 2 | Mensajes |
+| Vie 23/10 | Ubicación para pegar el QR en la entrada | 3 | Fotos |
+|  | Datos del administrador inicial (pregunta #12) | 2 | Preguntas-para-el-colegio |
+| Lun 26/10 | Lista del personal para crear las cuentas por cédula | 3 | Lista revisada |
+|  | Revisión del personal sin teléfono (marca en secretaría) | 2 | Lista |
+| Mar 27/10 | Revisión del PC de secretaría (navegador, internet e impresora) | 3 | Notas |
+|  | Pasar las respuestas a «Preguntas para el colegio» | 2 | Preguntas-para-el-colegio |
+| Mié 28/10 | Coordinación de la visita para la prueba de usabilidad con directiva y secretaría | 3 | Mensajes o acta |
+|  | Revisión de los datos antes de la puesta en marcha | 2 | Datos entregados |
+| | **Total semana 4** | **25** | |
+
+Firma: ______________________
+
+
+### Liz Espinoza · Investigación
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 22/10 | Plan de medición de resultados (tiempo antes y después) | 3 | Documento |
+|  | Gráficas de los resultados del diagnóstico | 2 | Gráficas |
+| Vie 23/10 | Tabla comparativa del tiempo del registro manual frente a la app | 3 | Tabla comparativa |
+|  | Borrador de las conclusiones | 2 | Documento |
+| Lun 26/10 | Conclusiones del informe | 3 | Documento |
+|  | Recomendaciones al colegio | 2 | Documento |
+| Mar 27/10 | Revisión de las conclusiones con los resultados de usabilidad | 3 | Documento |
+|  | Recomendaciones para una versión 2 (marcación sin conexión) | 2 | Documento |
+| Mié 28/10 | Revisión final de las conclusiones y recomendaciones | 5 | Documento |
+| | **Total semana 4** | **25** | |
+
+Firma: ______________________
+
+
+### Mariansel Herrera · Capacitación y presentación
+
+| Fecha | Actividad | Horas | Evidencia |
+|---|---|---|---|
+| Jue 22/10 | Agenda final de la capacitación y grupos | 3 | Plan |
+|  | Material sobre la cuenta por cédula y la contraseña 0000 | 2 | Material |
+| Vie 23/10 | Hoja de instrucciones para el primer ingreso | 3 | Hoja en PDF |
+|  | Formato de la lista de asistencia a la capacitación | 2 | Formato |
+| Lun 26/10 | Diapositivas de la exposición final | 3 | Borrador de diapositivas |
+|  | Actualización del material de capacitación con el panel nuevo | 2 | Material |
+| Mar 27/10 | Diapositivas: resultados del proyecto | 3 | Borrador de diapositivas |
+|  | Ensayo de la exposición final | 2 | Lista de asistencia |
+| Mié 28/10 | Ensayo de la capacitación con el equipo | 3 | Lista de asistencia |
+|  | Revisión final de la presentación | 2 | Diapositivas |
+| | **Total semana 4** | **25** | |
+
+Firma: ______________________
+
 ## Resumen acumulado
 
 | Integrante | Sem. 1 | Sem. 2 | Sem. 3 | Sem. 4 | Total |
 |---|---|---|---|---|---|
-| Schormeiker Lugo | 25 | 25 | 25 | | 75 |
-| Hector Diaz | 25 | 25 | 25 | | 75 |
-| Rebeca Nexans | 25 | 25 | 25 | | 75 |
-| Antonio Gonzalez | 25 | 25 | 25 | | 75 |
-| Liz Espinoza | 25 | 25 | 25 | | 75 |
-| Mariansel Herrera | 25 | 25 | 25 | | 75 |
-| **Equipo** | **150** | **150** | **150** | | **450** |
+| Schormeiker Lugo | 25 | 25 | 25 | 25 | 100 |
+| Hector Diaz | 25 | 25 | 25 | 25 | 100 |
+| Rebeca Nexans | 25 | 25 | 25 | 25 | 100 |
+| Antonio Gonzalez | 25 | 25 | 25 | 25 | 100 |
+| Liz Espinoza | 25 | 25 | 25 | 25 | 100 |
+| Mariansel Herrera | 25 | 25 | 25 | 25 | 100 |
+| **Equipo** | **150** | **150** | **150** | **150** | **600** |
 
-> Pendiente de confirmar: las horas *(previstas)* del 13 y 14/10 (Semana 2) y del 20 y 21/10 (Semana 3). Cada integrante las confirma o corrige con su evidencia antes de firmar.
+> Pendiente de confirmar: las horas *(previstas)* del 13 y 14/10 (Semana 2) y del 20 y 21/10 (Semana 3), y toda la Semana 4 (borrador). Cada integrante las confirma o corrige con su evidencia antes de firmar.
 
 ---
 

@@ -56,7 +56,8 @@ servicio comunitario/              # raíz del repositorio
 │   │   ├── permisos/              # index, [id]
 │   │   ├── reportes.astro · reportes/resumen.astro
 │   │   ├── jornadas.astro · historial.astro · notificaciones.astro
-│   │   ├── configuracion/         # index, marcacion, qr, usuarios, puesta-en-marcha
+│   │   ├── configuracion/         # index (resumen), institucion, marcacion, qr, usuarios,
+│   │   │                          # datos, puesta-en-marcha (D-58)
 │   │   ├── ventanas/              # fragmentos para la ventana lateral (D-49, D-51)
 │   │   │   ├── persona/[id].astro · permiso.astro · acciones.astro
 │   │   │   ├── personal-nuevo.astro · cuenta/[id].astro · cuenta-nueva.astro
@@ -68,7 +69,7 @@ servicio comunitario/              # raíz del repositorio
 │   │       └── reportes/          # planilla.ts, resumen.ts (PDF y Excel)
 │   │
 │   ├── components/
-│   │   ├── ui/                    # Boton, Tarjeta, Tabla, Modal, Input, Select, Badge, Icono,
+│   │   ├── ui/                    # Boton, Tarjeta, Tabla, Modal, Input, Select, Badge, Icono, Subnav,
 │   │   │                          # BarraFiltros, Pestanas, Paginacion, Mensaje, Alerta…
 │   │   ├── graficas/              # GraficaLinea, BarrasHorizontales, BarraApilada,
 │   │   │                          # DistribucionLlegadas, Figura (todas aceptan destino al tocar)
@@ -89,6 +90,7 @@ servicio comunitario/              # raíz del repositorio
 │   │   ├── reportes/              # planilla y resumen en PDF y Excel
 │   │   ├── auth/                  # acceso.ts (reglas por ruta y rol, inicio por rol), cedula.ts
 │   │   ├── validacion/            # validación de formularios
+│   │   ├── ajustes.ts             # secciones de Ajustes y lista de puesta en marcha (D-58)
 │   │   ├── supabase/servidor.ts · fecha.ts · formato.ts (números a la venezolana) · flash.ts
 │   │   └── avisos.ts · importacion.ts · qr.ts · demo/
 │   │

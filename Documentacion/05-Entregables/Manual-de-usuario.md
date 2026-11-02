@@ -106,7 +106,7 @@ En el PC se entra con el **correo** de la cuenta (o con la cédula, si la cuenta
 | **Permisos** | Cargar y consultar permisos; pestaña **Por revisar** |
 | **Personal** | Lista del personal, fichas, cuentas |
 | **Reportes** | Planilla diaria y resumen del período (PDF y Excel) |
-| **Ajustes** (directiva) | QR, marcación, jornadas, categorías, usuarios, institución |
+| **Ajustes** (directiva) | Resumen y sus secciones: Institución, Marcación, Código QR, Jornadas y categorías, Usuarios, Datos, Puesta en marcha |
 
 En el celular, el menú está abajo y las secciones del panel aparecen como pestañas arriba.
 
@@ -217,11 +217,17 @@ La **campana** muestra los avisos: faltas y salidas sin marcar del cierre diario
 
 ## 16. Ajustes (directiva)
 
-- **Puesta en marcha:** lista de lo que falta para empezar el uso real, con su barra de avance.
-- **Marcación:** ubicación del colegio y radio, ubicaciones de prueba, franjas horarias y **cierre diario** (fecha de inicio del control).
-- **Código QR:** generar, imprimir y desactivar. El anterior deja de funcionar al instante. Recomendado: renovarlo cada lapso o si circula una foto.
-- **Institución:** datos de la planilla; a la derecha se ve **cómo saldrá el encabezado** mientras se escribe.
-- **Jornadas y feriados**, **Categorías**, **Usuarios**, **Importar personal** y **Datos de demostración**.
+**Ajustes** abre un **resumen** con un recuadro por área que dice cómo está («Planilla completa», «QR vigente», «4 de 9 pasos listos») con su etiqueta Bien / Atención / Bajo. Toque un recuadro para abrir esa sección; también están en el menú, debajo de *Ajustes*:
+
+| Sección | Para qué |
+|---|---|
+| **Institución** | Datos de la planilla (encabezado, plantel, DEA, firma); a la derecha se ve **cómo saldrá** mientras se escribe |
+| **Marcación** | Ubicación del colegio y radio, ubicaciones de prueba, franjas horarias y **cierre diario** (fecha de inicio del control) |
+| **Código QR** | Generar, imprimir y desactivar. El anterior deja de funcionar al instante; renovarlo cada lapso o si circula una foto |
+| **Jornadas y categorías** | Horarios, oficios del personal y feriados |
+| **Usuarios** | Cuentas de directiva y secretaría; «Gestionar» cambia el tipo, la contraseña o la desactiva |
+| **Datos** | Importar personal desde un archivo, datos de demostración y personal importado |
+| **Puesta en marcha** | Lo que falta para empezar el uso real, con su avance |
 
 ## 17. Cierre diario
 
